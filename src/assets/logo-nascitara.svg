@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 208 48" width="208" height="48"
+     role="img" aria-labelledby="nascitara-title nascitara-desc">
+  <title id="nascitara-title">NasciTara</title>
+  <desc id="nascitara-desc">Profilo arrotondato di una pancia con una curva di crescita che ne esce verso l'alto.</desc>
+
+  <!-- Simbolo: la pancia, un arco morbido aperto a sinistra -->
+  <path d="M17 7 A 17 17 0 1 1 17 41"
+        fill="none" stroke="#FFC8B0" stroke-width="7" stroke-linecap="round" />
+
+  <!-- La curva di crescita che sale e ne esce -->
+  <path d="M13 35 C 17.5 32.5 20.5 27.5 23.5 22 C 26 17.4 28.8 13.8 32 11.6"
+        fill="none" stroke="#E2725B" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" />
+  <circle cx="32.6" cy="11.2" r="3.3" fill="#E2725B" />
+
+  <!-- Wordmark. WCAG 1.4.3 esenta i logotipi dal requisito di contrasto. -->
+  <text x="58" y="32" fill="#E2725B"
+        font-family="'Nunito Sans', system-ui, -apple-system, 'Segoe UI', sans-serif"
+        font-size="25" font-weight="700" letter-spacing="-0.4">NasciTara</text>
+</svg>

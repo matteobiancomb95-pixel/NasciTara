@@ -1,0 +1,1339 @@
+<title>Curva di Matilde</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  color-scheme: light;
+  --ground:#e6ecec; --panel:#f7f9f9; --panel-2:#eef2f2; --chart-surface:#f2f5f5;
+  --line:#ccd7d7; --line-soft:#dde4e4; --line-strong:#9fb0b0;
+  --ink:#0f1719; --ink-2:#44575b; --ink-3:#6c8085;
+  --accent:#009298; --accent-deep:#00696e; --accent-wash:rgba(0,146,152,.10);
+  --series-2:#b06a12; --series-2-wash:rgba(176,106,18,.12);
+  --good:#1c7d4d; --warn:#9a6109; --alert:#a83a31;
+  --grid:rgba(15,23,25,.09); --band:rgba(56,92,96,.07); --band-in:rgba(56,92,96,.11);
+  --focus:#00696e; --btn-bg:#00696e; --btn-fg:#ffffff;
+  --shadow:0 1px 2px rgba(15,40,45,.06), 0 8px 24px -14px rgba(15,40,45,.28);
+  --font-ui:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --font-data:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --ground:#0b1012; --panel:#161d20; --panel-2:#1d2529; --chart-surface:#12181a;
+    --line:#283438; --line-soft:#202a2d; --line-strong:#3c5055;
+    --ink:#e7eeef; --ink-2:#a2b5b9; --ink-3:#778c91;
+    --accent:#04a3aa; --accent-deep:#7fd9dc; --accent-wash:rgba(4,163,170,.14);
+    --series-2:#c17f21; --series-2-wash:rgba(193,127,33,.16);
+    --good:#4fb27c; --warn:#d0982f; --alert:#e0716a;
+    --grid:rgba(231,238,239,.10); --band:rgba(140,180,186,.06); --band-in:rgba(140,180,186,.10);
+    --focus:#7fd9dc; --btn-bg:#04a3aa; --btn-fg:#08120f;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --ground:#0b1012; --panel:#161d20; --panel-2:#1d2529; --chart-surface:#12181a;
+  --line:#283438; --line-soft:#202a2d; --line-strong:#3c5055;
+  --ink:#e7eeef; --ink-2:#a2b5b9; --ink-3:#778c91;
+  --accent:#04a3aa; --accent-deep:#7fd9dc; --accent-wash:rgba(4,163,170,.14);
+  --series-2:#c17f21; --series-2-wash:rgba(193,127,33,.16);
+  --good:#4fb27c; --warn:#d0982f; --alert:#e0716a;
+  --grid:rgba(231,238,239,.10); --band:rgba(140,180,186,.06); --band-in:rgba(140,180,186,.10);
+  --focus:#7fd9dc; --btn-bg:#04a3aa; --btn-fg:#08120f;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -16px rgba(0,0,0,.8);
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--ground); color:var(--ink);
+  font-family:var(--font-ui); font-size:15px; line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1080px; margin:0 auto; padding:28px 20px 64px; display:flex; flex-direction:column; gap:22px}
+
+/* ---------- console header ---------- */
+.console{
+  background:var(--panel); border:1px solid var(--line); border-radius:3px;
+  box-shadow:var(--shadow); overflow:hidden;
+}
+.console-top{
+  display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between;
+  gap:16px; padding:18px 20px 16px; border-bottom:1px solid var(--line);
+}
+.eyebrow{
+  font-size:10.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--ink-3); font-stretch:112%; display:block; margin-bottom:4px;
+}
+h1{
+  margin:0; font-size:clamp(26px,4.2vw,36px); font-weight:700; font-stretch:118%;
+  letter-spacing:-.015em; line-height:1.02; text-wrap:balance;
+}
+.h1-sub{margin:6px 0 0; color:var(--ink-2); font-size:13.5px; max-width:46ch}
+.theme-btn{
+  font:inherit; font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase;
+  font-stretch:110%; color:var(--ink-2); background:var(--panel-2);
+  border:1px solid var(--line); border-radius:2px; padding:7px 11px; cursor:pointer;
+}
+.theme-btn:hover{color:var(--ink); border-color:var(--line-strong)}
+
+.readout-strip{
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(132px,1fr));
+  background:var(--panel-2);
+}
+.readout{padding:11px 20px; border-right:1px solid var(--line)}
+.readout:last-child{border-right:0}
+.readout .k{
+  font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--ink-3); font-stretch:112%;
+}
+.readout .v{
+  font-family:var(--font-data); font-size:17px; font-weight:500; color:var(--ink);
+  font-variant-numeric:tabular-nums; margin-top:1px;
+}
+.readout .v small{font-size:11px; color:var(--ink-3); font-weight:400}
+
+/* ---------- stepper ---------- */
+.stepper{
+  position:relative; display:grid; grid-template-columns:repeat(3,1fr);
+  background:var(--panel); border:1px solid var(--line); border-radius:3px;
+  box-shadow:var(--shadow); overflow:hidden;
+}
+.stepper button{
+  display:flex; align-items:center; gap:10px; text-align:left; font:inherit; min-width:0;
+  background:none; border:0; border-right:1px solid var(--line);
+  padding:13px 15px 15px; cursor:pointer; color:var(--ink-3);
+}
+.stepper button:last-of-type{border-right:0}
+.stepper button:disabled{cursor:not-allowed; opacity:.5}
+.stepper button:not(:disabled):hover{background:var(--panel-2)}
+.sp-num{
+  flex:none; width:23px; height:23px; border-radius:50%; border:1px solid currentColor;
+  display:grid; place-items:center; font-family:var(--font-data); font-size:11px; font-weight:600;
+}
+.sp-txt{display:flex; flex-direction:column; line-height:1.25; min-width:0}
+.sp-txt b{font-size:12.5px; font-weight:600; font-stretch:110%; color:inherit}
+.sp-txt i{
+  font-style:normal; font-size:9.5px; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--ink-3); font-stretch:110%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.stepper button[aria-current="step"]{color:var(--accent-deep); background:var(--accent-wash)}
+.stepper button[aria-current="step"] .sp-num{background:var(--accent); color:var(--btn-fg); border-color:var(--accent)}
+.stepper button.done{color:var(--ink-2)}
+.stepper button.done .sp-num{border-color:var(--accent); color:var(--accent-deep)}
+.sp-rail{position:absolute; left:0; right:0; bottom:0; height:2px; background:var(--line)}
+.sp-fill{height:100%; background:var(--accent); width:33.333%}
+
+/* ---------- barra di navigazione del passo ---------- */
+.step-nav{
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  padding:14px 20px; border-top:1px solid var(--line); background:var(--panel-2);
+}
+.nav-msg{font-size:12px; color:var(--ink-2); flex:1 1 200px; min-width:0}
+.nav-msg.block{color:var(--warn)}
+.btn{
+  font:inherit; font-size:12px; font-weight:600; letter-spacing:.09em; text-transform:uppercase;
+  font-stretch:110%; border-radius:2px; padding:10px 17px; cursor:pointer;
+  border:1px solid var(--line); background:var(--panel); color:var(--ink-2);
+}
+.btn:hover:not(:disabled){color:var(--ink); border-color:var(--line-strong)}
+.btn-next{background:var(--btn-bg); color:var(--btn-fg); border-color:var(--btn-bg)}
+.btn-next:hover:not(:disabled){filter:brightness(1.12); color:var(--btn-fg)}
+.btn:disabled{opacity:.4; cursor:not-allowed}
+
+/* ---------- steps ---------- */
+.step{background:var(--panel); border:1px solid var(--line); border-radius:3px; box-shadow:var(--shadow); overflow:hidden}
+.step-head{display:flex; gap:14px; align-items:baseline; padding:18px 20px 0}
+.step-num{
+  font-family:var(--font-data); font-size:11px; font-weight:600; color:var(--accent-deep);
+  border:1px solid var(--accent); border-radius:2px; padding:1px 6px; flex:none;
+  background:var(--accent-wash);
+}
+.step-head h2{
+  margin:0; font-size:17px; font-weight:600; font-stretch:112%; letter-spacing:-.005em;
+}
+.step-head p{margin:3px 0 0; color:var(--ink-2); font-size:13px; max-width:62ch}
+.step-body{padding:16px 20px 20px}
+
+/* ---------- fields ---------- */
+.grid{display:grid; gap:14px}
+.g-base{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+label.f{display:flex; flex-direction:column; gap:5px}
+.f-lab{
+  font-size:10px; font-weight:600; letter-spacing:.13em; text-transform:uppercase;
+  color:var(--ink-3); font-stretch:112%;
+}
+.f-in{position:relative; display:flex; align-items:center}
+input[type=number],input[type=date]{
+  width:100%; font-family:var(--font-data); font-size:15px; font-weight:500;
+  font-variant-numeric:tabular-nums; color:var(--ink);
+  background:var(--panel-2); border:1px solid var(--line); border-radius:2px;
+  padding:9px 11px; -moz-appearance:textfield;
+}
+input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+input:focus-visible{outline:2px solid var(--focus); outline-offset:1px; border-color:transparent}
+.unit{
+  position:absolute; right:10px; font-family:var(--font-data); font-size:11px;
+  color:var(--ink-3); pointer-events:none;
+}
+.f-in.has-unit input{padding-right:38px}
+.hint{font-family:var(--font-data); font-size:10.5px; color:var(--ink-3); min-height:14px}
+.hint.bad{color:var(--alert)}
+.pair{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+
+/* ---------- observation cards ---------- */
+.obs-grid{display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+.obs{
+  border:1px solid var(--line); border-radius:2px; background:var(--panel-2);
+  display:flex; flex-direction:column;
+}
+.obs-head{
+  display:flex; align-items:center; gap:10px; padding:10px 12px;
+  border-bottom:1px solid var(--line);
+}
+.obs-tag{
+  font-family:var(--font-data); font-size:11px; font-weight:600; color:var(--ink-2);
+  letter-spacing:.04em;
+}
+.obs-ga{
+  font-family:var(--font-data); font-size:11px; font-weight:600; color:var(--accent-deep);
+  background:var(--accent-wash); border:1px solid var(--accent); border-radius:2px;
+  padding:1px 6px; letter-spacing:.02em;
+}
+.obs-ga.bad{color:var(--alert); border-color:var(--alert); background:transparent}
+.obs-del{
+  margin-left:auto; font:inherit; font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+  font-weight:600; font-stretch:110%; color:var(--ink-3); background:none;
+  border:1px solid transparent; border-radius:2px; padding:3px 6px; cursor:pointer;
+}
+.obs-del:hover{color:var(--alert); border-color:var(--alert)}
+.obs-body{padding:12px; display:grid; gap:11px; grid-template-columns:1fr 1fr}
+.obs-body .date-cell{grid-column:1 / -1}
+.cal-lab{display:flex; align-items:baseline; gap:6px; min-height:17px; flex-wrap:wrap}
+.cal-lab .abbr{
+  font-family:var(--font-data); font-size:11.5px; font-weight:600; color:var(--ink);
+  letter-spacing:.06em;
+}
+.cal-lab .full{font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); font-stretch:110%}
+.efw-strip{
+  border-top:1px solid var(--line); padding:9px 12px; display:flex; align-items:baseline;
+  gap:8px; font-family:var(--font-data); font-size:12px; color:var(--ink-2);
+  font-variant-numeric:tabular-nums; flex-wrap:wrap;
+}
+.efw-strip b{color:var(--ink); font-weight:600; font-size:14px}
+.add-btn{
+  margin-top:14px; font:inherit; font-size:12px; font-weight:600; letter-spacing:.09em;
+  text-transform:uppercase; font-stretch:110%; color:var(--accent-deep);
+  background:var(--accent-wash); border:1px dashed var(--accent); border-radius:2px;
+  padding:10px 14px; cursor:pointer; width:100%;
+}
+.add-btn:hover{background:transparent}
+.add-btn:disabled{opacity:.4; cursor:not-allowed}
+
+/* ---------- results ---------- */
+.hero{
+  display:flex; flex-wrap:wrap; align-items:flex-end; gap:8px 28px;
+  padding:4px 0 18px; border-bottom:1px solid var(--line-soft); margin-bottom:18px;
+}
+.hero-main{display:flex; flex-direction:column}
+.hero-num{
+  font-family:var(--font-data); font-weight:600; font-size:clamp(46px,9vw,72px);
+  line-height:.95; letter-spacing:-.03em; color:var(--ink); font-variant-numeric:tabular-nums;
+}
+.hero-num .u{font-size:.34em; font-weight:500; color:var(--ink-3); letter-spacing:0; margin-left:.12em}
+.hero-ci{font-family:var(--font-data); font-size:12.5px; color:var(--ink-2); margin-top:7px; font-variant-numeric:tabular-nums}
+.hero-note{font-size:12.5px; color:var(--ink-2); max-width:30ch; padding-bottom:4px}
+
+.tiles{display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); margin-bottom:20px}
+.tile{border:1px solid var(--line); border-radius:2px; padding:14px; background:var(--panel-2)}
+.tile .k{
+  font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--ink-3); font-stretch:112%;
+}
+.tile .v{
+  font-family:var(--font-data); font-size:30px; font-weight:600; line-height:1.1;
+  margin-top:4px; letter-spacing:-.02em; font-variant-numeric:tabular-nums;
+}
+.tile .v small{font-size:.44em; font-weight:500; color:var(--ink-3); letter-spacing:0}
+.tile .sub{font-size:12px; color:var(--ink-2); margin-top:5px}
+.chip{
+  display:inline-block; font-family:var(--font-data); font-size:10.5px; font-weight:600;
+  padding:1px 6px; border-radius:2px; border:1px solid currentColor; letter-spacing:.04em;
+}
+.chip.ok{color:var(--good)} .chip.warn{color:var(--warn)} .chip.alert{color:var(--alert)}
+
+/* centile strip gauge */
+.gauge{margin-top:11px}
+.gauge-track{position:relative; height:10px; border:1px solid var(--line); border-radius:1px; overflow:hidden; display:flex}
+.gauge-seg{height:100%}
+.gauge-mark{
+  position:absolute; top:-4px; bottom:-4px; width:2px; background:var(--accent);
+  border-radius:1px; transform:translateX(-1px);
+}
+.gauge-scale{
+  display:flex; justify-content:space-between; font-family:var(--font-data);
+  font-size:9.5px; color:var(--ink-3); margin-top:3px; font-variant-numeric:tabular-nums;
+}
+
+/* ---------- chart ---------- */
+figure.chart{margin:0 0 20px; border:1px solid var(--line); border-radius:2px; background:var(--chart-surface); overflow:hidden}
+.chart-head{padding:13px 15px 0; display:flex; flex-wrap:wrap; gap:10px 18px; align-items:baseline; justify-content:space-between}
+.chart-title{font-size:13.5px; font-weight:600; font-stretch:110%}
+.chart-sub{font-size:11.5px; color:var(--ink-3); margin-top:2px}
+.legend{display:flex; flex-wrap:wrap; gap:12px; font-size:11.5px; color:var(--ink-2)}
+.legend span{display:inline-flex; align-items:center; gap:5px}
+.sw{width:15px; height:3px; border-radius:2px; flex:none}
+.sw.dot{width:9px; height:9px; border-radius:50%}
+.chart-scroll{overflow-x:auto; padding:4px 6px 8px}
+svg.growth{display:block; width:100%; min-width:560px; height:auto}
+.tt{
+  position:absolute; pointer-events:none; background:var(--panel); border:1px solid var(--line-strong);
+  border-radius:2px; padding:7px 9px; font-family:var(--font-data); font-size:11px;
+  color:var(--ink); box-shadow:var(--shadow); white-space:nowrap; z-index:5;
+  font-variant-numeric:tabular-nums; line-height:1.5;
+}
+.tt b{color:var(--accent-deep)}
+.chart-pos{position:relative}
+
+/* ---------- table ---------- */
+.tbl-wrap{overflow-x:auto; border:1px solid var(--line); border-radius:2px; margin-bottom:20px}
+table{border-collapse:collapse; width:100%; min-width:640px; font-family:var(--font-data); font-size:12px; font-variant-numeric:tabular-nums}
+th,td{padding:8px 11px; text-align:right; border-bottom:1px solid var(--line-soft); white-space:nowrap}
+th{
+  font-family:var(--font-ui); font-size:9.5px; font-weight:600; letter-spacing:.11em;
+  text-transform:uppercase; color:var(--ink-3); background:var(--panel-2); font-stretch:110%;
+  border-bottom:1px solid var(--line);
+}
+th:first-child,td:first-child{text-align:left}
+tbody tr:last-child td{border-bottom:0}
+td.em{color:var(--ink); font-weight:600}
+td.mut{color:var(--ink-3)}
+
+/* ---------- sensitivity ---------- */
+.sens{border:1px solid var(--line); border-radius:2px; padding:15px; margin-bottom:20px; background:var(--panel-2)}
+.sens h3{margin:0 0 3px; font-size:13.5px; font-weight:600; font-stretch:110%}
+.sens p{margin:0 0 14px; font-size:12.5px; color:var(--ink-2); max-width:66ch}
+.sens-row{display:grid; grid-template-columns:112px 1fr 52px; align-items:center; gap:11px; margin-bottom:7px}
+.sens-lab{font-family:var(--font-data); font-size:11.5px; color:var(--ink-2)}
+.sens-lab b{color:var(--ink); font-weight:600}
+.sens-bar{height:14px; background:var(--line-soft); border-radius:1px; overflow:hidden}
+.sens-fill{height:100%; border-radius:1px}
+.sens-val{font-family:var(--font-data); font-size:11.5px; text-align:right; font-variant-numeric:tabular-nums; color:var(--ink)}
+.sens-foot{font-size:11.5px; color:var(--ink-3); margin-top:11px; max-width:70ch; line-height:1.6}
+
+/* ---------- method ---------- */
+details.method{border:1px solid var(--line); border-radius:2px; background:var(--panel-2)}
+details.method summary{
+  padding:12px 15px; cursor:pointer; font-size:11px; font-weight:600; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--ink-2); font-stretch:110%; list-style:none;
+}
+details.method summary::-webkit-details-marker{display:none}
+details.method summary::before{content:"+ "; font-family:var(--font-data); color:var(--accent-deep)}
+details.method[open] summary::before{content:"– "}
+.method-body{padding:0 15px 15px; font-size:12.5px; color:var(--ink-2); line-height:1.65}
+.method-body h4{
+  margin:14px 0 4px; font-size:10px; letter-spacing:.13em; text-transform:uppercase;
+  color:var(--ink-3); font-weight:600; font-stretch:110%;
+}
+.method-body code{font-family:var(--font-data); font-size:11.5px; color:var(--ink); background:var(--panel); padding:1px 4px; border-radius:2px; border:1px solid var(--line)}
+.method-body ul{margin:4px 0; padding-left:18px}
+.method-body li{margin:3px 0}
+
+.notice{
+  border-left:2px solid var(--warn); background:var(--panel-2); padding:11px 14px;
+  font-size:12.5px; color:var(--ink-2); border-radius:0 2px 2px 0; margin-bottom:18px;
+  max-width:74ch;
+}
+.notice b{color:var(--ink); font-weight:600}
+.demo-flag{
+  display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-bottom:14px;
+  font-size:12px; color:var(--ink-2);
+}
+.demo-flag .chip{color:var(--warn)}
+.demo-flag button{
+  font:inherit; font-size:11px; font-weight:600; letter-spacing:.09em; text-transform:uppercase;
+  font-stretch:110%; color:var(--ink-2); background:var(--panel-2); border:1px solid var(--line);
+  border-radius:2px; padding:5px 9px; cursor:pointer;
+}
+.demo-flag button:hover{color:var(--ink); border-color:var(--line-strong)}
+footer{color:var(--ink-3); font-size:11.5px; text-align:center; line-height:1.7; max-width:70ch; margin:0 auto}
+@media (max-width:560px){
+  .obs-body{grid-template-columns:1fr 1fr}
+  .sens-row{grid-template-columns:96px 1fr 46px}
+}
+@media (prefers-reduced-motion:no-preference){
+  .gauge-mark,.sens-fill{transition:all .35s cubic-bezier(.4,0,.2,1)}
+  .sp-fill{transition:width .3s cubic-bezier(.4,0,.2,1)}
+  .step.enter{animation:stepIn .26s cubic-bezier(.22,.61,.36,1)}
+}
+@keyframes stepIn{from{opacity:0; transform:translateY(7px)} to{opacity:1; transform:none}}
+@media (max-width:620px){
+  .stepper{grid-template-columns:repeat(3,1fr)}
+  .stepper button{padding:11px 9px 14px; gap:7px}
+  .sp-txt i{display:none}
+  .sp-txt b{font-size:11.5px}
+}
+</style>
+
+<div class="wrap">
+
+  <header class="console">
+    <div class="console-top">
+      <div>
+        <span class="eyebrow">Stima biometrica fetale · multi-osservazione</span>
+        <h1>Curva di Matilde</h1>
+        <p class="h1-sub">Peso, percentile e lunghezza stimati da tutte le ecografie, non da una sola.</p>
+      </div>
+      <button class="theme-btn" id="themeBtn" type="button">Tema</button>
+    </div>
+    <div class="readout-strip" id="readouts"></div>
+  </header>
+
+  <nav class="stepper" id="stepper" aria-label="Passaggi del calcolo">
+    <button type="button" data-goto="1"><span class="sp-num">1</span>
+      <span class="sp-txt"><b>Dati di base</b><i>Epoca &middot; mamma</i></span></button>
+    <button type="button" data-goto="2"><span class="sp-num">2</span>
+      <span class="sp-txt"><b>Misure</b><i>HC &middot; AC &middot; FL &middot; BPD</i></span></button>
+    <button type="button" data-goto="3"><span class="sp-num">3</span>
+      <span class="sp-txt"><b>Stima</b><i>Peso &middot; percentile</i></span></button>
+    <div class="sp-rail"><div class="sp-fill" id="spFill"></div></div>
+  </nav>
+
+  <div class="demo-flag" id="demoFlag" hidden>
+    <span class="chip warn">Dati di esempio</span>
+    <span>I valori caricati sono un esempio realistico, non le misure di Matilde.</span>
+    <button type="button" id="clearBtn">Svuota tutto</button>
+  </div>
+
+  <section class="step" data-step="1">
+    <div class="step-head">
+      <span class="step-num">1</span>
+      <div>
+        <h2>Dati di base</h2>
+        <p>L'età gestazionale di oggi fissa il riferimento: la data di ogni ecografia viene riportata indietro su questa scala.</p>
+      </div>
+    </div>
+    <div class="step-body">
+      <div class="grid g-base">
+        <label class="f">
+          <span class="f-lab">Età gestazionale</span>
+          <div class="pair">
+            <div class="f-in has-unit"><input type="number" id="gaW" min="12" max="42" step="1"><span class="unit">sett</span></div>
+            <div class="f-in has-unit"><input type="number" id="gaD" min="0" max="6" step="1"><span class="unit">gg</span></div>
+          </div>
+          <span class="hint" id="gaHint"></span>
+        </label>
+        <label class="f">
+          <span class="f-lab">Alla data del</span>
+          <div class="f-in"><input type="date" id="refDate"></div>
+          <span class="hint">Riferimento per l'EG</span>
+        </label>
+        <label class="f">
+          <span class="f-lab">Peso mamma</span>
+          <div class="f-in has-unit"><input type="number" id="mW" min="35" max="180" step="0.5"><span class="unit">kg</span></div>
+          <span class="hint" id="bmiHint"></span>
+        </label>
+        <label class="f">
+          <span class="f-lab">Altezza mamma</span>
+          <div class="f-in has-unit"><input type="number" id="mH" min="130" max="210" step="1"><span class="unit">cm</span></div>
+          <span class="hint">Per la curva personalizzata</span>
+        </label>
+        <label class="f">
+          <span class="f-lab">N. osservazioni</span>
+          <div class="f-in"><input type="number" id="nObs" min="1" max="12" step="1"></div>
+          <span class="hint" id="nHint"></span>
+        </label>
+      </div>
+    </div>
+    <div class="step-nav">
+      <span class="nav-msg" id="msg1"></span>
+      <button type="button" class="btn btn-next" data-goto="2">Avanti &rarr;</button>
+    </div>
+  </section>
+
+  <section class="step" data-step="2" hidden>
+    <div class="step-head">
+      <span class="step-num">2</span>
+      <div>
+        <h2>Misure ecografiche</h2>
+        <p>Le quattro misure del referto, in millimetri. Accanto a ogni campo trovi il valore atteso per quell'epoca.</p>
+      </div>
+    </div>
+    <div class="step-body">
+      <div class="obs-grid" id="obsList"></div>
+      <button class="add-btn" id="addBtn" type="button">+ Aggiungi ecografia</button>
+    </div>
+    <div class="step-nav">
+      <button type="button" class="btn" data-goto="1">&larr; Indietro</button>
+      <span class="nav-msg" id="msg2"></span>
+      <button type="button" class="btn btn-next" data-goto="3">Calcola &rarr;</button>
+    </div>
+  </section>
+
+  <section class="step" data-step="3" hidden>
+    <div class="step-head">
+      <span class="step-num">3</span>
+      <div>
+        <h2>Stima</h2>
+        <p>Ogni ecografia diventa uno scarto dalla curva di riferimento; la traiettoria di quegli scarti viene proiettata a oggi e al termine.</p>
+      </div>
+    </div>
+    <div class="step-body">
+      <div id="results"></div>
+    </div>
+    <div class="step-nav">
+      <button type="button" class="btn" data-goto="2">&larr; Modifica le misure</button>
+      <span class="nav-msg" id="msg3"></span>
+      <button type="button" class="btn" id="restartBtn">Ricomincia</button>
+    </div>
+  </section>
+
+  <footer>
+    Strumento personale di calcolo, non un dispositivo medico. Le stime ecografiche del peso hanno
+    un errore intrinseco di circa ±10&nbsp;% anche in mani esperte: il valore che conta resta quello
+    del referto del ginecologo.
+  </footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+   1. MODELLO
+   ============================================================ */
+
+/* -- normale standard -- */
+function erf(x){
+  var s = x < 0 ? -1 : 1; x = Math.abs(x);
+  var a1=.254829592,a2=-.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=.3275911;
+  var t = 1/(1+p*x);
+  var y = 1 - (((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-x*x);
+  return s*y;
+}
+var phi = function(z){ return .5*(1+erf(z/Math.SQRT2)); };
+
+/* -- formule di peso fetale stimato (misure in cm) -- */
+function hadlock4(bpd,hc,ac,fl){ // BPD+HC+AC+FL — Hadlock 1985
+  return Math.pow(10, 1.3596 - .00386*ac*fl + .0064*hc + .00061*bpd*ac + .0424*ac + .174*fl);
+}
+function hadlock3(hc,ac,fl){     // HC+AC+FL
+  return Math.pow(10, 1.326 - .00326*ac*fl + .0107*hc + .0438*ac + .158*fl);
+}
+function hadlock2(bpd,ac,fl){    // BPD+AC+FL
+  return Math.pow(10, 1.335 - .0034*ac*fl + .0316*bpd + .0457*ac + .1623*fl);
+}
+function whoEfw(hc,ac){          // WHO / Kiserud 2017 — solo AC e HC
+  var a = ac/100;
+  return Math.exp(5.084820 - 54.06633*Math.pow(a,3) - 95.80076*Math.pow(a,3)*Math.log(a) + 3.136370*(hc/100));
+}
+
+/* -- curva di riferimento Hadlock 1991 : mediana e dispersione -- */
+var CV = 0.13;                                   // coeff. di variazione del peso a EG fissa
+function refMean(ga){ return Math.exp(.578 + .332*ga - .00354*ga*ga); }
+function refAt(ga,z){ return refMean(ga)*(1+z*CV); }
+var Z = { p3:-1.88079, p10:-1.28155, p50:0, p90:1.28155, p97:1.88079 };
+
+/* -- biometria attesa (50° centile, mm) -- */
+var BIO = {
+  BPD:[[16,35],[20,47],[24,60],[28,72],[32,83],[36,90],[40,96]],
+  HC :[[16,125],[20,176],[24,224],[28,265],[32,297],[36,322],[40,344]],
+  AC :[[16,105],[20,152],[24,199],[28,243],[32,285],[36,322],[40,355]],
+  FL :[[16,22],[20,33],[24,44],[28,54],[32,62],[36,69],[40,75]]
+};
+function interp(tab,ga){
+  if(ga<=tab[0][0]) return tab[0][1]*(ga/tab[0][0]);
+  if(ga>=tab[tab.length-1][0]) return tab[tab.length-1][1];
+  for(var i=0;i<tab.length-1;i++){
+    if(ga>=tab[i][0] && ga<=tab[i+1][0]){
+      var t=(ga-tab[i][0])/(tab[i+1][0]-tab[i][0]);
+      return tab[i][1]+t*(tab[i+1][1]-tab[i][1]);
+    }
+  }
+  return tab[tab.length-1][1];
+}
+/* dispersione di popolazione di ciascuna misura, come frazione del valore atteso */
+var BIO_CV = { BPD:.043, HC:.037, AC:.060, FL:.052 };
+
+/* -- rapporto femore / lunghezza totale (cranio-calcagno) -- */
+var FL_RATIO = [[20,.129],[24,.144],[28,.152],[32,.154],[36,.153],[40,.150]];
+function flRatio(ga){ return interp(FL_RATIO, Math.max(20,Math.min(40,ga))); }
+function refLength(ga){ return 1.22*ga + 1.2; }   // cm, cranio-calcagno
+
+/* -- peso ottimale a termine personalizzato (metodo Gardosi, semplificato) -- */
+function customTerm(hCm,wKg){
+  var TOW = 3480;                       // riferimento: 163 cm, 64 kg, nullipara
+  if(isFinite(hCm)) TOW += 9.0*(hCm-163);
+  if(isFinite(wKg)){ var d=wKg-64; TOW += 8.5*d - .08*d*d; }
+  TOW -= 65;                            // feto femmina
+  return TOW;
+}
+
+/* -- regressione della traiettoria sugli scarti standardizzati -- */
+var SIG_Z = .075/CV;                    // rumore di una singola stima ecografica (7,5 % → scala z)
+function fitTrajectory(pts, target){
+  var n = pts.length, i;
+  if(n === 0) return null;
+  if(n === 1) return { z:pts[0].z, slope:0, se:SIG_Z, shrink:0 };
+  var xs=[], ys=[], mx=0, my=0;
+  for(i=0;i<n;i++){ xs.push(pts[i].ga-target); ys.push(pts[i].z); mx+=xs[i]; my+=ys[i]; }
+  mx/=n; my/=n;
+  var sxx=0, sxy=0;
+  for(i=0;i<n;i++){ sxx += (xs[i]-mx)*(xs[i]-mx); sxy += (xs[i]-mx)*(ys[i]-my); }
+  if(sxx <= 1e-9) return { z:my, slope:0, se:Math.max(SIG_Z/Math.sqrt(n),SIG_Z*.5), shrink:0 };
+  var b = sxy/sxx, sig2;
+  if(n > 2){
+    var rss=0, a0=my-b*mx;
+    for(i=0;i<n;i++){ var r=ys[i]-(a0+b*xs[i]); rss+=r*r; }
+    sig2 = Math.max(rss/(n-2), SIG_Z*SIG_Z*.25);
+  } else {
+    sig2 = SIG_Z*SIG_Z;
+  }
+  var seb = Math.sqrt(sig2/sxx);
+  var t = seb>0 ? Math.abs(b/seb) : 0;
+  var shrink = t*t/(1+t*t);             // una pendenza indistinguibile dal rumore viene azzerata
+  b *= shrink;
+  var a = my - b*mx;
+  var se = Math.max(Math.sqrt(sig2*(1/n + mx*mx/sxx)), SIG_Z/Math.sqrt(n));
+  return { z:a, slope:b, se:se, shrink:shrink };
+}
+
+/* -- stima completa a una data epoca -- */
+function estimateAt(pts, ga, custScale){
+  var fit = fitTrajectory(pts, ga);
+  if(!fit) return null;
+  var m = refMean(ga);
+  var efw = m*(1+fit.z*CV);
+  if(efw < 40) efw = 40;
+  var half = 1.96*fit.se*CV*m;                       // incertezza della traiettoria
+  var sys  = 1.96*0.055*efw;                         // errore sistematico della formula
+  var tot  = Math.sqrt(half*half + sys*sys);
+  var mc   = m*custScale;
+  return {
+    ga:ga, efw:efw, lo:Math.max(30,efw-tot), hi:efw+tot,
+    z:fit.z, slope:fit.slope, se:fit.se,
+    pct:100*phi(fit.z),
+    zc:(efw-mc)/(CV*mc), pctc:100*phi((efw-mc)/(CV*mc))
+  };
+}
+
+/* ============================================================
+   2. STATO
+   ============================================================ */
+var $ = function(s){ return document.querySelector(s); };
+function iso(d){ return d.toISOString().slice(0,10); }
+function addDays(d,n){ var x=new Date(d.getTime()); x.setDate(x.getDate()+n); return x; }
+function parseISO(s){ var p=(s||"").split("-"); if(p.length!==3) return null;
+  var d=new Date(Date.UTC(+p[0],+p[1]-1,+p[2])); return isNaN(d.getTime())?null:d; }
+
+var TODAY = new Date(); TODAY = new Date(Date.UTC(TODAY.getFullYear(),TODAY.getMonth(),TODAY.getDate()));
+
+/* dati di esempio: una gravidanza plausibile a 33+2, tre ecografie */
+var demo = {
+  gaW:33, gaD:2, refDate:iso(TODAY), mW:64, mH:167,
+  obs:[
+    { date:iso(addDays(TODAY,-89)), BPD:47,  HC:176, AC:152, FL:31 },
+    { date:iso(addDays(TODAY,-37)), BPD:72,  HC:262, AC:243, FL:53 },
+    { date:iso(addDays(TODAY,-6)),  BPD:83,  HC:298, AC:285, FL:62 }
+  ]
+};
+function blankState(){
+  return { gaW:"", gaD:"", refDate:iso(TODAY), mW:"", mH:"",
+           obs:[ { date:"", BPD:null, HC:null, AC:null, FL:null } ] };
+}
+var startEmpty = /^#?(vuoto|empty|reset)$/i.test(location.hash);
+var state = startEmpty ? blankState() : JSON.parse(JSON.stringify(demo));
+var isDemo = !startEmpty;
+
+/* ============================================================
+   3. INPUT
+   ============================================================ */
+var MEAS = [
+  { k:"HC",  full:"Circ. cranica",     aria:"Circonferenza cranica" },
+  { k:"AC",  full:"Circ. addominale",  aria:"Circonferenza addominale" },
+  { k:"FL",  full:"Lungh. femore",     aria:"Lunghezza del femore" },
+  { k:"BPD", full:"Diam. biparietale", aria:"Diametro biparietale" }
+];
+
+function gaDecimal(){ return (+state.gaW||0) + (+state.gaD||0)/7; }
+function refDateObj(){ return parseISO(state.refDate) || TODAY; }
+function gaOf(obs){
+  var d = parseISO(obs.date); if(!d) return NaN;
+  var days = (refDateObj().getTime()-d.getTime())/864e5;
+  return gaDecimal() - days/7;
+}
+function fmtGA(ga){
+  if(!isFinite(ga)) return "—";
+  var w = Math.floor(ga+1e-9), d = Math.round((ga-w)*7);
+  if(d===7){ w+=1; d=0; }
+  return w+"+"+d;
+}
+
+function renderObs(){
+  var list = $("#obsList");
+  /* la lista viene ricostruita a ogni battuta: memorizza il campo attivo e il cursore */
+  var act = document.activeElement;
+  var fid = (act && act.dataset) ? act.dataset.fid : null, selS = null, selE = null;
+  if(fid){ try{ selS = act.selectionStart; selE = act.selectionEnd; }catch(e){} }
+  list.innerHTML="";
+  state.obs.forEach(function(o,idx){
+    var ga = gaOf(o);
+    var card = document.createElement("div"); card.className="obs";
+
+    var head = document.createElement("div"); head.className="obs-head";
+    var tag = document.createElement("span"); tag.className="obs-tag";
+    tag.textContent = "Eco "+(idx+1);
+    var gaChip = document.createElement("span");
+    gaChip.className = "obs-ga" + (isFinite(ga) && ga>=12 && ga<=42 ? "" : " bad");
+    gaChip.textContent = isFinite(ga) ? fmtGA(ga)+" sett" : "data mancante";
+    head.appendChild(tag); head.appendChild(gaChip);
+    if(state.obs.length>1){
+      var del = document.createElement("button");
+      del.type="button"; del.className="obs-del"; del.textContent="Rimuovi";
+      del.setAttribute("aria-label","Rimuovi ecografia "+(idx+1));
+      del.onclick = function(){ touch(); state.obs.splice(idx,1); $("#nObs").value=state.obs.length; renderAll(); };
+      head.appendChild(del);
+    }
+    card.appendChild(head);
+
+    var body = document.createElement("div"); body.className="obs-body";
+    var dl = document.createElement("label"); dl.className="f date-cell";
+    dl.innerHTML = '<span class="f-lab">Data dell\'esame</span><div class="f-in"></div>';
+    var di = document.createElement("input"); di.type="date"; di.value=o.date||"";
+    di.max = state.refDate; di.dataset.fid = "o"+idx+"-date";
+    di.oninput = function(){ touch(); o.date=di.value; renderAll(); };
+    dl.querySelector(".f-in").appendChild(di);
+    body.appendChild(dl);
+
+    MEAS.forEach(function(m){
+      var lab = document.createElement("label"); lab.className="f";
+      var exp = isFinite(ga) ? interp(BIO[m.k], ga) : NaN;
+      lab.innerHTML =
+        '<span class="cal-lab"><span class="abbr">'+m.k+'</span><span class="full">'+m.full+'</span></span>'+
+        '<div class="f-in has-unit"></div><span class="hint"></span>';
+      var inp = document.createElement("input");
+      inp.type="number"; inp.min="1"; inp.max="500"; inp.step="1";
+      inp.value = (o[m.k]===null||o[m.k]===undefined||o[m.k]==="") ? "" : o[m.k];
+      inp.dataset.fid = "o"+idx+"-"+m.k;
+      inp.setAttribute("aria-label", m.aria+", ecografia "+(idx+1)+", in millimetri");
+      inp.oninput = function(){ touch(); o[m.k] = inp.value===""?null:+inp.value; renderAll(); };
+      var cell = lab.querySelector(".f-in");
+      cell.appendChild(inp);
+      var u = document.createElement("span"); u.className="unit"; u.textContent="mm"; cell.appendChild(u);
+
+      var hint = lab.querySelector(".hint");
+      var v = o[m.k];
+      if(v!=null && isFinite(exp) && (v < exp*.65 || v > exp*1.4)){
+        hint.className = "hint bad";
+        hint.textContent = "atteso ~"+Math.round(exp)+" mm — controlla";
+      } else if(isFinite(exp)){
+        hint.textContent = "atteso ~"+Math.round(exp)+" mm";
+      }
+      body.appendChild(lab);
+    });
+    card.appendChild(body);
+
+    var strip = document.createElement("div"); strip.className="efw-strip";
+    var r = obsResult(o);
+    if(r){
+      strip.innerHTML = '<span>EFW</span><b>'+Math.round(r.efw)+' g</b>'+
+        '<span>· p'+r.pct.toFixed(0)+'</span>'+
+        (r.who!=null ? '<span style="color:var(--ink-3)">· WHO '+Math.round(r.who)+' g</span>' : '');
+    } else {
+      strip.innerHTML = '<span style="color:var(--ink-3)">Compila le quattro misure per calcolare l\'EFW</span>';
+    }
+    card.appendChild(strip);
+    list.appendChild(card);
+  });
+  if(fid){
+    var back = list.querySelector('[data-fid="'+fid+'"]');
+    if(back){
+      back.focus();
+      if(selS !== null){ try{ back.setSelectionRange(selS, selE); }catch(e){} }
+    }
+  }
+  $("#addBtn").disabled = state.obs.length>=12;
+}
+
+function obsResult(o){
+  var ga = gaOf(o);
+  if(!isFinite(ga) || ga<12 || ga>43) return null;
+  var b=o.BPD, h=o.HC, a=o.AC, f=o.FL;
+  if(b==null||h==null||a==null||f==null) return null;
+  if(!(b>0&&h>0&&a>0&&f>0)) return null;
+  var efw = hadlock4(b/10,h/10,a/10,f/10);
+  var m = refMean(ga), z = (efw-m)/(CV*m);
+  return {
+    ga:ga, efw:efw, z:z, pct:100*phi(z),
+    h3:hadlock3(h/10,a/10,f/10), h2:hadlock2(b/10,a/10,f/10),
+    who: ga>=22 ? whoEfw(h/10,a/10) : null,
+    o:o
+  };
+}
+function validPoints(){
+  return state.obs.map(obsResult).filter(Boolean).sort(function(x,y){ return x.ga-y.ga; });
+}
+
+function touch(){
+  if(isDemo){ isDemo=false; $("#demoFlag").hidden = true; }
+}
+
+/* ============================================================
+   4. RISULTATI
+   ============================================================ */
+function pctLabel(p){
+  if(p<3)  return {cls:"alert", t:"sotto il 3° centile"};
+  if(p<10) return {cls:"warn",  t:"tra 3° e 10° centile"};
+  if(p>97) return {cls:"alert", t:"sopra il 97° centile"};
+  if(p>90) return {cls:"warn",  t:"tra 90° e 97° centile"};
+  return {cls:"ok", t:"nella norma (10°–90°)"};
+}
+function ord(p){
+  var r = Math.round(p);
+  if(r<1) return "<1"; if(r>99) return ">99";
+  return String(r);
+}
+
+function renderResults(){
+  var pts = validPoints();
+  var box = $("#results");
+  if(pts.length === 0){
+    box.innerHTML = '<div class="notice"><b>Nessuna misura completa.</b> '+
+      'Servono la data dell\'esame e tutte e quattro le misure di almeno un\'ecografia.</div>';
+    return;
+  }
+
+  var gaNow  = gaDecimal();
+  var custT  = customTerm(+state.mH, +state.mW);
+  var scale  = custT / refMean(40);
+  var now    = estimateAt(pts, gaNow, scale);
+  var term   = estimateAt(pts, 40, scale);
+  var last   = pts[pts.length-1];
+
+  /* lunghezza */
+  var lenFL  = (last.o.FL/10) / flRatio(last.ga) + 1.22*(gaNow-last.ga);
+  var lenRef = refLength(gaNow)*(1 + .7*now.z*.04);
+  var lenNow = .6*lenFL + .4*lenRef;
+  var lenTerm= (last.o.FL/10)/flRatio(last.ga) + 1.22*(40-last.ga);
+  lenTerm    = .6*lenTerm + .4*refLength(40)*(1+.7*term.z*.04);
+
+  var pl = pctLabel(now.pct);
+  var trend = now.slope;
+  var trendTxt = Math.abs(trend) < .012
+    ? "Crescita regolare: resta sullo stesso centile."
+    : (trend>0 ? "In accelerazione" : "In rallentamento") +
+      ": la traiettoria si sposta di " + (trend>0?"+":"") + trend.toFixed(2) + " z a settimana.";
+  if(pts.length === 1) trendTxt = "Una sola ecografia: nessuna traiettoria, solo la fotografia di quel giorno.";
+
+  var html = "";
+
+  /* hero */
+  html += '<div class="hero">'+
+    '<div class="hero-main">'+
+      '<div class="hero-num">'+Math.round(now.efw).toLocaleString("it-IT")+'<span class="u">g</span></div>'+
+      '<div class="hero-ci">intervallo 95 % '+Math.round(now.lo).toLocaleString("it-IT")+' – '+
+        Math.round(now.hi).toLocaleString("it-IT")+' g · a '+fmtGA(gaNow)+' settimane</div>'+
+    '</div>'+
+    '<p class="hero-note">Su '+pts.length+' '+(pts.length===1?"ecografia":"ecografie")+', dalla '+
+      fmtGA(pts[0].ga)+' alla '+fmtGA(last.ga)+'. '+trendTxt+'</p>'+
+  '</div>';
+
+  /* tiles */
+  var gaugeSegs = '<div class="gauge-seg" style="width:3%;background:var(--band)"></div>'+
+                  '<div class="gauge-seg" style="width:7%;background:var(--band-in)"></div>'+
+                  '<div class="gauge-seg" style="width:80%;background:var(--accent-wash)"></div>'+
+                  '<div class="gauge-seg" style="width:7%;background:var(--band-in)"></div>'+
+                  '<div class="gauge-seg" style="width:3%;background:var(--band)"></div>';
+
+  html += '<div class="tiles">';
+  html += '<div class="tile">'+
+      '<div class="k">Percentile</div>'+
+      '<div class="v">'+ord(now.pct)+'<small>°</small></div>'+
+      '<div class="sub"><span class="chip '+pl.cls+'">'+pl.t+'</span></div>'+
+      '<div class="gauge">'+
+        '<div class="gauge-track">'+gaugeSegs+
+          '<div class="gauge-mark" style="left:'+Math.max(0,Math.min(100,now.pct))+'%"></div>'+
+        '</div>'+
+        '<div class="gauge-scale"><span>3°</span><span>10°</span><span>50°</span><span>90°</span><span>97°</span></div>'+
+      '</div>'+
+    '</div>';
+
+  html += '<div class="tile">'+
+      '<div class="k">Lunghezza stimata</div>'+
+      '<div class="v">'+lenNow.toFixed(1)+'<small>cm</small></div>'+
+      '<div class="sub">Cranio-calcagno, dal femore di '+fmtGA(last.ga)+'.<br>'+
+        'Circa '+(lenNow-2).toFixed(0)+'–'+(lenNow+2).toFixed(0)+' cm.</div>'+
+    '</div>';
+
+  html += '<div class="tile">'+
+      '<div class="k">Proiezione a 40+0</div>'+
+      '<div class="v">'+(term.efw/1000).toFixed(2)+'<small>kg</small></div>'+
+      '<div class="sub">'+Math.round(term.lo).toLocaleString("it-IT")+' – '+
+        Math.round(term.hi).toLocaleString("it-IT")+' g · p'+ord(term.pct)+
+        '<br>Lunghezza ~'+lenTerm.toFixed(0)+' cm</div>'+
+    '</div>';
+
+  html += '<div class="tile">'+
+      '<div class="k">Curva personalizzata</div>'+
+      '<div class="v">'+ord(now.pctc)+'<small>°</small></div>'+
+      '<div class="sub">Con mamma di '+(+state.mH||"—")+' cm e '+(+state.mW||"—")+' kg, '+
+        'peso ottimale a termine '+Math.round(custT).toLocaleString("it-IT")+' g.</div>'+
+    '</div>';
+  html += '</div>';
+
+  /* grafico */
+  html += chartHTML(pts, now, term, gaNow);
+
+  /* tabella */
+  html += '<div class="tbl-wrap"><table>'+
+    '<thead><tr><th>Eco</th><th>EG</th><th>BPD</th><th>HC</th><th>AC</th><th>FL</th>'+
+    '<th>EFW Hadlock&nbsp;4</th><th>HC+AC+FL</th><th>BPD+AC+FL</th><th>WHO</th><th>z</th><th>Perc.</th></tr></thead><tbody>';
+  pts.forEach(function(p,i){
+    var pc = pctLabel(p.pct);
+    html += '<tr>'+
+      '<td class="mut">'+(state.obs.indexOf(p.o)+1)+'</td>'+
+      '<td>'+fmtGA(p.ga)+'</td>'+
+      '<td class="mut">'+p.o.BPD+'</td><td class="mut">'+p.o.HC+'</td>'+
+      '<td class="mut">'+p.o.AC+'</td><td class="mut">'+p.o.FL+'</td>'+
+      '<td class="em">'+Math.round(p.efw).toLocaleString("it-IT")+' g</td>'+
+      '<td class="mut">'+Math.round(p.h3).toLocaleString("it-IT")+'</td>'+
+      '<td class="mut">'+Math.round(p.h2).toLocaleString("it-IT")+'</td>'+
+      '<td class="mut">'+(p.who!=null?Math.round(p.who).toLocaleString("it-IT"):"—")+'</td>'+
+      '<td>'+(p.z>=0?"+":"")+p.z.toFixed(2)+'</td>'+
+      '<td class="em">p'+ord(p.pct)+'</td>'+
+    '</tr>';
+  });
+  html += '</tbody></table></div>';
+
+  /* sensibilità */
+  html += sensHTML(last);
+
+  /* metodo */
+  html += methodHTML(pts, custT);
+
+  box.innerHTML = html;
+  wireChart(pts, gaNow, scale);
+}
+
+/* ---------- grafico di crescita ---------- */
+var CH = { w:780, h:420, l:56, r:48, t:16, b:40 };
+function chartHTML(pts, now, term, gaNow){
+  var gaMin = Math.max(13, Math.min(pts[0].ga, gaNow) - 1.5);
+  var gaMax = 41;
+  var wMax  = refAt(41, Z.p97)*1.04;
+  var X = function(g){ return CH.l + (g-gaMin)/(gaMax-gaMin)*(CH.w-CH.l-CH.r); };
+  var Y = function(w){ return CH.h-CH.b - (w/wMax)*(CH.h-CH.t-CH.b); };
+
+  var steps = [], g;
+  for(g=gaMin; g<=gaMax+1e-9; g+=0.25) steps.push(Math.min(g,gaMax));
+
+  function bandPath(zLo,zHi){
+    var up = steps.map(function(g,i){ return (i?"L":"M")+X(g).toFixed(1)+" "+Y(refAt(g,zHi)).toFixed(1); }).join(" ");
+    var dn = steps.slice().reverse().map(function(g){ return "L"+X(g).toFixed(1)+" "+Y(refAt(g,zLo)).toFixed(1); }).join(" ");
+    return up+" "+dn+" Z";
+  }
+  function linePath(z){
+    return steps.map(function(g,i){ return (i?"L":"M")+X(g).toFixed(1)+" "+Y(refAt(g,z)).toFixed(1); }).join(" ");
+  }
+
+  var s = '<svg class="growth" viewBox="0 0 '+CH.w+' '+CH.h+'" role="img" '+
+    'aria-label="Curva di crescita: percentili di riferimento, ecografie eseguite e traiettoria stimata fino al termine.">';
+
+  /* bande */
+  s += '<path d="'+bandPath(Z.p3,Z.p97)+'" fill="var(--band)" stroke="none"/>';
+  s += '<path d="'+bandPath(Z.p10,Z.p90)+'" fill="var(--band-in)" stroke="none"/>';
+
+  /* griglia */
+  var yStep = 500;
+  for(var w=yStep; w<=wMax; w+=yStep){
+    s += '<line x1="'+CH.l+'" y1="'+Y(w).toFixed(1)+'" x2="'+(CH.w-CH.r)+'" y2="'+Y(w).toFixed(1)+
+         '" stroke="var(--grid)" stroke-width="1"/>';
+    s += '<text x="'+(CH.l-9)+'" y="'+(Y(w)+3.5).toFixed(1)+'" text-anchor="end" fill="var(--ink-3)" '+
+         'font-family="IBM Plex Mono, monospace" font-size="10">'+(w/1000).toFixed(1)+'</text>';
+  }
+  s += '<text x="'+(CH.l-9)+'" y="'+(Y(0)+3.5).toFixed(1)+'" text-anchor="end" fill="var(--ink-3)" '+
+       'font-family="IBM Plex Mono, monospace" font-size="10">0</text>';
+  s += '<text x="'+(CH.l-9)+'" y="'+(CH.t+2)+'" text-anchor="end" fill="var(--ink-3)" '+
+       'font-family="Archivo, sans-serif" font-size="9.5" letter-spacing="1.3">KG</text>';
+
+  var xStart = Math.ceil(gaMin/2)*2;
+  for(var gg=xStart; gg<=gaMax; gg+=2){
+    s += '<line x1="'+X(gg).toFixed(1)+'" y1="'+CH.t+'" x2="'+X(gg).toFixed(1)+'" y2="'+(CH.h-CH.b)+
+         '" stroke="var(--grid)" stroke-width="1"/>';
+    s += '<text x="'+X(gg).toFixed(1)+'" y="'+(CH.h-CH.b+16)+'" text-anchor="middle" fill="var(--ink-3)" '+
+         'font-family="IBM Plex Mono, monospace" font-size="10">'+gg+'</text>';
+  }
+  s += '<text x="'+((CH.l+CH.w-CH.r)/2).toFixed(1)+'" y="'+(CH.h-6)+'" text-anchor="middle" fill="var(--ink-3)" '+
+       'font-family="Archivo, sans-serif" font-size="9.5" letter-spacing="1.3">SETTIMANE DI GESTAZIONE</text>';
+
+  /* assi */
+  s += '<line x1="'+CH.l+'" y1="'+(CH.h-CH.b)+'" x2="'+(CH.w-CH.r)+'" y2="'+(CH.h-CH.b)+
+       '" stroke="var(--line-strong)" stroke-width="1"/>';
+
+  /* percentili di riferimento */
+  [["p3",Z.p3,"3°"],["p10",Z.p10,"10°"],["p50",Z.p50,"50°"],["p90",Z.p90,"90°"],["p97",Z.p97,"97°"]].forEach(function(c){
+    var mid = c[0]==="p50";
+    s += '<path d="'+linePath(c[1])+'" fill="none" stroke="var(--line-strong)" '+
+         'stroke-width="'+(mid?1.6:1)+'" stroke-dasharray="'+(mid?"":"3 3")+'" opacity="'+(mid?.85:.55)+'"/>';
+    s += '<text x="'+(CH.w-CH.r+6)+'" y="'+(Y(refAt(gaMax,c[1]))+3.5).toFixed(1)+'" fill="var(--ink-3)" '+
+         'font-family="IBM Plex Mono, monospace" font-size="9.5">'+c[2]+'</text>';
+  });
+
+  /* traiettoria stimata */
+  var fitPts = [], gStart = pts[0].ga;
+  for(g=gStart; g<=gaMax+1e-9; g+=0.25){
+    var gc = Math.min(g,gaMax);
+    var e = estimateAt(pts, gc, 1);
+    fitPts.push([X(gc), Y(e.efw)]);
+  }
+  var obsEnd = pts[pts.length-1].ga;
+  var solid = fitPts.filter(function(p,i){ return p[0] <= X(obsEnd)+.01; });
+  var dash  = fitPts.filter(function(p,i){ return p[0] >= X(obsEnd)-.01; });
+  function pth(arr){ return arr.map(function(p,i){ return (i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1); }).join(" "); }
+  if(dash.length>1)
+    s += '<path d="'+pth(dash)+'" fill="none" stroke="var(--series-2)" stroke-width="2" '+
+         'stroke-dasharray="5 4" stroke-linecap="round"/>';
+  if(solid.length>1)
+    s += '<path d="'+pth(solid)+'" fill="none" stroke="var(--series-2)" stroke-width="2" stroke-linecap="round"/>';
+
+  /* linea "oggi" */
+  if(gaNow>=gaMin && gaNow<=gaMax){
+    s += '<line x1="'+X(gaNow).toFixed(1)+'" y1="'+CH.t+'" x2="'+X(gaNow).toFixed(1)+'" y2="'+(CH.h-CH.b)+
+         '" stroke="var(--accent)" stroke-width="1" stroke-dasharray="2 4" opacity=".7"/>';
+    s += '<text x="'+(X(gaNow)+5).toFixed(1)+'" y="'+(CH.t+11)+'" fill="var(--accent)" '+
+         'font-family="Archivo, sans-serif" font-size="9.5" font-weight="600" letter-spacing="1.2">OGGI</text>';
+  }
+
+  /* punti osservati */
+  pts.forEach(function(p){
+    s += '<circle cx="'+X(p.ga).toFixed(1)+'" cy="'+Y(p.efw).toFixed(1)+'" r="5.5" '+
+         'fill="var(--accent)" stroke="var(--chart-surface)" stroke-width="2"/>';
+  });
+
+  /* endpoint proiettato, etichettato direttamente */
+  var tx = X(40), ty = Y(term.efw);
+  s += '<circle cx="'+tx.toFixed(1)+'" cy="'+ty.toFixed(1)+'" r="4" fill="var(--chart-surface)" '+
+       'stroke="var(--series-2)" stroke-width="2.5"/>';
+  s += '<text x="'+(tx-8).toFixed(1)+'" y="'+(ty-11).toFixed(1)+'" text-anchor="end" fill="var(--series-2)" '+
+       'font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600">'+
+       (term.efw/1000).toFixed(2)+' kg</text>';
+
+  /* strato hover */
+  s += '<line id="xh" x1="0" y1="'+CH.t+'" x2="0" y2="'+(CH.h-CH.b)+'" stroke="var(--ink-3)" '+
+       'stroke-width="1" opacity="0" pointer-events="none"/>';
+  s += '<circle id="xhd" r="4" fill="none" stroke="var(--series-2)" stroke-width="2" opacity="0" pointer-events="none"/>';
+  s += '<rect id="hit" x="'+CH.l+'" y="'+CH.t+'" width="'+(CH.w-CH.l-CH.r)+'" height="'+(CH.h-CH.t-CH.b)+
+       '" fill="transparent" style="cursor:crosshair"/>';
+  s += '</svg>';
+
+  return '<figure class="chart">'+
+    '<div class="chart-head">'+
+      '<div><div class="chart-title">Peso lungo la gravidanza</div>'+
+      '<div class="chart-sub">Centili di riferimento Hadlock 1991 · banda 10°–90° evidenziata</div></div>'+
+      '<div class="legend">'+
+        '<span><i class="sw dot" style="background:var(--accent)"></i>Ecografie eseguite</span>'+
+        '<span><i class="sw" style="background:var(--series-2)"></i>Traiettoria stimata</span>'+
+        '<span><i class="sw" style="background:var(--series-2);opacity:.45"></i>Proiezione al termine</span>'+
+      '</div>'+
+    '</div>'+
+    '<div class="chart-scroll"><div class="chart-pos" id="chartPos">'+s+'</div></div>'+
+  '</figure>';
+}
+
+function wireChart(pts, gaNow, scale){
+  var svg = document.querySelector("svg.growth");
+  if(!svg) return;
+  var hit = svg.querySelector("#hit"), xh = svg.querySelector("#xh"), xhd = svg.querySelector("#xhd");
+  var host = document.getElementById("chartPos");
+  var tip = document.createElement("div"); tip.className="tt"; tip.style.opacity="0";
+  host.appendChild(tip);
+
+  var gaMin = Math.max(13, Math.min(pts[0].ga, gaNow) - 1.5), gaMax = 41;
+  var invX = function(px){ return gaMin + (px-CH.l)/(CH.w-CH.l-CH.r)*(gaMax-gaMin); };
+  var wMax = refAt(41, Z.p97)*1.04;
+  var Y = function(w){ return CH.h-CH.b - (w/wMax)*(CH.h-CH.t-CH.b); };
+  var X = function(g){ return CH.l + (g-gaMin)/(gaMax-gaMin)*(CH.w-CH.l-CH.r); };
+
+  function move(ev){
+    var r = svg.getBoundingClientRect();
+    var cx = ev.clientX!=null ? ev.clientX : (ev.touches&&ev.touches[0].clientX);
+    if(cx==null) return;
+    var px = (cx - r.left)/r.width*CH.w;
+    var ga = Math.max(pts[0].ga, Math.min(gaMax, invX(px)));
+    var e = estimateAt(pts, ga, scale);
+    var gx = X(ga);
+    xh.setAttribute("x1",gx); xh.setAttribute("x2",gx); xh.setAttribute("opacity",".45");
+    xhd.setAttribute("cx",gx); xhd.setAttribute("cy",Y(e.efw)); xhd.setAttribute("opacity","1");
+    tip.innerHTML = '<b>'+fmtGA(ga)+' settimane</b><br>'+
+      'stima &nbsp;'+Math.round(e.efw).toLocaleString("it-IT")+' g<br>'+
+      'centile '+ord(e.pct)+'°<br>'+
+      '<span style="color:var(--ink-3)">mediana '+Math.round(refMean(ga)).toLocaleString("it-IT")+' g</span>';
+    tip.style.opacity="1";
+    var hb = host.getBoundingClientRect();
+    var lx = (cx - hb.left) + 14;
+    if(lx + tip.offsetWidth > hb.width - 4) lx = (cx - hb.left) - tip.offsetWidth - 14;
+    tip.style.left = Math.max(2,lx)+"px";
+    tip.style.top  = Math.max(2, (Y(e.efw)/CH.h)*svg.getBoundingClientRect().height - tip.offsetHeight - 12)+"px";
+  }
+  function leave(){ xh.setAttribute("opacity","0"); xhd.setAttribute("opacity","0"); tip.style.opacity="0"; }
+  hit.addEventListener("mousemove", move);
+  hit.addEventListener("mouseleave", leave);
+  hit.addEventListener("touchmove", function(e){ move(e); e.preventDefault(); }, {passive:false});
+  hit.addEventListener("touchend", leave);
+}
+
+/* ---------- pannello sensibilità ---------- */
+function sensHTML(last){
+  var b=last.o.BPD/10, h=last.o.HC/10, a=last.o.AC/10, f=last.o.FL/10;
+  var base = Math.log(hadlock4(b,h,a,f));
+  var d = 0.01; // 0,1 mm
+  var vars = [
+    { k:"AC",  full:"Circ. addominale", ln:(Math.log(hadlock4(b,h,a+d,f))-base)/d, v:a },
+    { k:"FL",  full:"Lungh. femore",    ln:(Math.log(hadlock4(b,h,a,f+d))-base)/d, v:f },
+    { k:"HC",  full:"Circ. cranica",    ln:(Math.log(hadlock4(b,h+d,a,f))-base)/d, v:h },
+    { k:"BPD", full:"Diam. biparietale",ln:(Math.log(hadlock4(b+d,h,a,f))-base)/d, v:b }
+  ];
+  var tot = 0;
+  vars.forEach(function(x){ x.std = Math.abs(x.ln)*BIO_CV[x.k]*x.v; tot += x.std; });
+  vars.sort(function(x,y){ return y.std-x.std; });
+  var top = vars[0];
+
+  var rows = vars.map(function(x,i){
+    var share = 100*x.std/tot;
+    var lead = i===0;
+    return '<div class="sens-row">'+
+      '<div class="sens-lab"><b>'+x.k+'</b> '+x.full+'</div>'+
+      '<div class="sens-bar"><div class="sens-fill" style="width:'+share.toFixed(1)+'%;'+
+        'background:'+(lead?"var(--accent)":"var(--line-strong)")+'"></div></div>'+
+      '<div class="sens-val">'+share.toFixed(0)+'%</div>'+
+    '</div>';
+  }).join("");
+
+  var perMm = vars.map(function(x){ return x.k+" "+(x.ln/10*100).toFixed(2)+"%"; }).join(" · ");
+
+  return '<div class="sens">'+
+    '<h3>Quale misura pesa di più</h3>'+
+    '<p>Contributo di ciascuna variabile alla stima, misurato sulle misure della tua ultima ecografia: '+
+    'la derivata del peso rispetto alla misura, moltiplicata per quanto quella misura varia realmente '+
+    'da feto a feto. Non basta che una misura muova molto il risultato — deve anche variare abbastanza.</p>'+
+    rows +
+    '<div class="sens-foot"><b>'+top.k+'</b> domina. È lo stesso motivo per cui la formula del '+
+    '<b>WHO Fetal Growth Calculator</b> usa soltanto <b>AC</b> e <b>HC</b> e scarta femore e biparietale: '+
+    'l\'addome porta quasi tutta l\'informazione sul tessuto molle, cioè sul peso. '+
+    'Per millimetro il femore sposta di più ('+perMm+'), ma varia in un intervallo molto più stretto, '+
+    'quindi conta meno. In pratica: se una misura vale la pena di rifarla, è l\'AC.</div>'+
+  '</div>';
+}
+
+/* ---------- metodo ---------- */
+function methodHTML(pts, custT){
+  return '<details class="method"><summary>Come viene calcolato</summary><div class="method-body">'+
+    '<h4>Peso di ogni singola ecografia</h4>'+
+    '<p>Formula di Hadlock a quattro parametri (1985), quella che usa tutte e quattro le tue misure: '+
+    '<code>log₁₀EFW = 1,3596 − 0,00386·AC·FL + 0,0064·HC + 0,00061·BPD·AC + 0,0424·AC + 0,174·FL</code> '+
+    '(misure in cm). In tabella trovi anche le varianti a tre parametri e la formula WHO '+
+    '(Kiserud 2017), che usa solo AC e HC, come controprova. La colonna WHO resta vuota prima '+
+    'della 22ª settimana: con circonferenze addominali piccole quell\'equazione sovrastima '+
+    'nettamente (+30 % a 20 settimane), quindi è meglio non mostrarla che mostrarla sbagliata.</p>'+
+    '<h4>Da una osservazione a n osservazioni</h4>'+
+    '<ul>'+
+      '<li>Ogni ecografia viene convertita in uno <b>scarto standardizzato z</b> rispetto alla mediana '+
+      'attesa per la sua epoca: <code>z = (EFW − mediana) / (0,13 · mediana)</code>.</li>'+
+      '<li>Sugli z si adatta una <b>retta ai minimi quadrati</b>: l\'intercetta dice su quale centile '+
+      'la bambina sta viaggiando, la pendenza se lo sta cambiando.</li>'+
+      '<li>La pendenza viene <b>contratta</b> con il fattore <code>t²/(1+t²)</code>: se non è distinguibile '+
+      'dal rumore di misura viene azzerata, così tre ecografie rumorose non producono una falsa accelerazione.</li>'+
+      '<li>L\'intervallo al 95 % somma l\'incertezza della traiettoria e l\'errore sistematico della formula '+
+      '(≈ 5,5 %). Con una sola ecografia coincide con il ±10 % classico di una stima singola.</li>'+
+    '</ul>'+
+    '<h4>Percentile</h4>'+
+    '<p>Curva di Hadlock 1991: mediana <code>exp(0,578 + 0,332·EG − 0,00354·EG²)</code> con coefficiente '+
+    'di variazione 0,13. Riproduce la tabella pubblicata (3°, 10°, 50°, 90°, 97° centile) entro lo 0,3 % '+
+    'fra la 20ª e la 40ª settimana. Riferimenti diversi — WHO, INTERGROWTH-21st, curve italiane — '+
+    'spostano il centile di qualche punto: è normale.</p>'+
+    '<h4>Curva personalizzata</h4>'+
+    '<p>Rilettura semplificata del metodo Gardosi: il peso ottimale a termine parte da 3480 g e viene '+
+    'corretto per altezza e peso della mamma e per il sesso femminile, arrivando a '+
+    Math.round(custT).toLocaleString("it-IT")+' g; la forma della curva resta quella di Hadlock. '+
+    'Non è il software GROW certificato — trattalo come un secondo parere, non come il dato clinico.</p>'+
+    '<h4>Lunghezza</h4>'+
+    '<p>Stimata dal femore, che è la misura scheletrica diretta: il rapporto fra FL e lunghezza '+
+    'cranio-calcagno passa da circa 0,129 a 20 settimane a 0,150 a termine. Il risultato viene mediato '+
+    'con la lunghezza attesa per l\'epoca corretta per la corporatura. È la stima <b>meno solida</b> '+
+    'delle tre: l\'ecografia non misura la lunghezza totale, la deduce. Consideral'+'a un ordine di grandezza, ±2 cm.</p>'+
+  '</div></details>';
+}
+
+/* ============================================================
+   5. RENDER + EVENTI
+   ============================================================ */
+function renderReadouts(){
+  var ga = gaDecimal();
+  var hasGa = (+state.gaW) >= 12;
+  var edd = addDays(refDateObj(), Math.round((280 - ga*7)));
+  var eddTxt = hasGa ? edd.toLocaleDateString("it-IT",{day:"2-digit",month:"2-digit",year:"numeric",timeZone:"UTC"}) : "—";
+  var left = (280 - ga*7)/7;
+  var bmi = (+state.mW) / Math.pow((+state.mH)/100, 2);
+  var lp = validPoints(), liveTxt = "—";
+  if(hasGa && lp.length){
+    var le = estimateAt(lp, ga, 1);
+    if(le) liveTxt = Math.round(le.efw).toLocaleString("it-IT")+' <small>g</small>';
+  }
+  $("#readouts").innerHTML =
+    '<div class="readout"><div class="k">Epoca</div><div class="v">'+
+      (hasGa?fmtGA(ga)+' <small>sett</small>':'—')+'</div></div>'+
+    '<div class="readout"><div class="k">Peso stimato</div><div class="v" '+
+      'style="color:var(--accent-deep)">'+liveTxt+'</div></div>'+
+    '<div class="readout"><div class="k">Data presunta parto</div><div class="v">'+eddTxt+'</div></div>'+
+    '<div class="readout"><div class="k">Mancano</div><div class="v">'+
+      (hasGa?(left>0?left.toFixed(1):"0")+' <small>sett</small>':'—')+'</div></div>'+
+    '<div class="readout"><div class="k">Ecografie</div><div class="v">'+validPoints().length+
+      ' <small>/ '+state.obs.length+'</small></div></div>'+
+    '<div class="readout"><div class="k">BMI mamma</div><div class="v">'+
+      (isFinite(bmi)?bmi.toFixed(1):"—")+'</div></div>';
+
+  $("#bmiHint").textContent = isFinite(bmi)
+    ? ("BMI " + bmi.toFixed(1) + (bmi>=30 ? " — misure meno precise" : ""))
+    : "";
+  $("#bmiHint").className = "hint" + (isFinite(bmi)&&bmi>=30 ? " bad" : "");
+  $("#gaHint").textContent = hasGa
+    ? "Termine il " + edd.toLocaleDateString("it-IT",{day:"2-digit",month:"short",timeZone:"UTC"})
+    : "Settimane e giorni di oggi";
+  var vp = validPoints().length;
+  $("#nHint").textContent = vp>=2 ? "traiettoria su "+vp+" punti" : (vp===1 ? "serve una 2ª eco per la traiettoria" : "");
+}
+
+/* ---------- wizard ---------- */
+var cur = 1, maxReached = 1;
+var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function step1Valid(){
+  var w = +state.gaW, d = state.gaD === "" ? 0 : +state.gaD;
+  return isFinite(w) && w>=12 && w<=42 && isFinite(d) && d>=0 && d<=6 && !!parseISO(state.refDate);
+}
+function step2Status(){
+  var done = validPoints().length;
+  return { done:done, tot:state.obs.length, ok:done>=1 };
+}
+function canGo(n){
+  if(n<=1) return true;
+  if(n===2) return step1Valid();
+  return step1Valid() && step2Status().ok;
+}
+function goStep(n){
+  n = Math.max(1, Math.min(3, n));
+  if(!canGo(n)) return;
+  cur = n;
+  if(n > maxReached) maxReached = n;
+  paintWizard(true);
+  window.scrollTo({ top:0, behavior: reduced ? "auto" : "smooth" });
+}
+function paintWizard(animate){
+  document.querySelectorAll(".step[data-step]").forEach(function(sec){
+    var n = +sec.getAttribute("data-step"), on = (n === cur);
+    sec.hidden = !on;
+    sec.classList.remove("enter");
+    if(on && animate && !reduced){ void sec.offsetWidth; sec.classList.add("enter"); }
+  });
+  document.querySelectorAll("#stepper button").forEach(function(b){
+    var n = +b.getAttribute("data-goto");
+    b.classList.toggle("done", n < cur);
+    if(n === cur) b.setAttribute("aria-current","step"); else b.removeAttribute("aria-current");
+    b.disabled = !(n <= maxReached && canGo(n));
+  });
+  $("#spFill").style.width = (cur/3*100).toFixed(2)+"%";
+
+  var st2 = step2Status();
+  $("#msg1").textContent = step1Valid()
+    ? ((+state.mW && +state.mH) ? "" : "Peso e altezza sono facoltativi: servono solo alla curva personalizzata.")
+    : "Inserisci le settimane di gestazione (12–42) e la data di riferimento.";
+  $("#msg1").className = "nav-msg" + (step1Valid() ? "" : " block");
+
+  $("#msg2").textContent = st2.done === 0
+    ? "Serve almeno un'ecografia con data e tutte e quattro le misure."
+    : st2.done + " di " + st2.tot + (st2.tot===1?" ecografia completa":" ecografie complete") +
+      (st2.done < st2.tot ? " — le incomplete verranno ignorate." : ".");
+  $("#msg2").className = "nav-msg" + (st2.ok ? "" : " block");
+
+  $("#msg3").textContent = st2.done === 1
+    ? "Su una sola ecografia. Aggiungine altre per avere una traiettoria."
+    : "Traiettoria su " + st2.done + " ecografie.";
+  $("#msg3").className = "nav-msg";
+
+  document.querySelectorAll(".step-nav button[data-goto]").forEach(function(b){
+    b.disabled = !canGo(+b.getAttribute("data-goto"));
+  });
+}
+document.querySelectorAll("[data-goto]").forEach(function(b){
+  b.addEventListener("click", function(){ goStep(+b.getAttribute("data-goto")); });
+});
+document.addEventListener("keydown", function(e){
+  if(e.key !== "Enter" || e.target.tagName !== "INPUT") return;
+  e.preventDefault();
+  if(cur < 3 && canGo(cur+1)) goStep(cur+1);
+});
+$("#restartBtn").addEventListener("click", function(){
+  isDemo = false; $("#demoFlag").hidden = true;
+  state = blankState(); syncBaseInputs();
+  maxReached = 1; renderAll(); goStep(1);
+  $("#gaW").focus();
+});
+
+function renderAll(){
+  renderObs();
+  renderReadouts();
+  renderResults();
+  paintWizard(false);
+}
+
+/* binding campi base */
+[["#gaW","gaW"],["#gaD","gaD"],["#mW","mW"],["#mH","mH"]].forEach(function(p){
+  var el = $(p[0]);
+  el.value = state[p[1]];
+  el.addEventListener("input", function(){ touch(); state[p[1]] = el.value===""?"":+el.value; renderAll(); });
+});
+$("#refDate").value = state.refDate;
+$("#refDate").addEventListener("input", function(){ touch(); state.refDate = this.value; renderAll(); });
+
+$("#nObs").value = state.obs.length;
+$("#nObs").addEventListener("input", function(){
+  var n = Math.max(1, Math.min(12, +this.value||1));
+  touch();
+  while(state.obs.length < n) state.obs.push(blankObs());
+  while(state.obs.length > n) state.obs.pop();
+  renderAll();
+});
+function blankObs(){
+  var lastGa = state.obs.length ? gaOf(state.obs[state.obs.length-1]) : gaDecimal()-4;
+  var d = addDays(refDateObj(), -Math.round((gaDecimal()-Math.min(gaDecimal(), (isFinite(lastGa)?lastGa:gaDecimal()-4)+4))*7));
+  return { date: iso(d>refDateObj()?refDateObj():d), BPD:null, HC:null, AC:null, FL:null };
+}
+$("#addBtn").addEventListener("click", function(){
+  touch(); state.obs.push(blankObs()); $("#nObs").value = state.obs.length; renderAll();
+});
+function syncBaseInputs(){
+  $("#gaW").value = state.gaW; $("#gaD").value = state.gaD;
+  $("#mW").value  = state.mW;  $("#mH").value  = state.mH;
+  $("#refDate").value = state.refDate; $("#nObs").value = state.obs.length;
+}
+$("#clearBtn").addEventListener("click", function(){
+  isDemo = false; $("#demoFlag").hidden = true;
+  state = blankState(); syncBaseInputs();
+  maxReached = 1; renderAll(); goStep(1);
+  $("#gaW").focus();
+});
+
+/* tema */
+var themes = ["auto","light","dark"], ti = 0;
+$("#themeBtn").addEventListener("click", function(){
+  ti = (ti+1)%3;
+  if(themes[ti]==="auto") document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.setAttribute("data-theme", themes[ti]);
+  this.textContent = themes[ti]==="auto" ? "Tema" : (themes[ti]==="light" ? "Chiaro" : "Scuro");
+  renderResults();
+});
+
+$("#demoFlag").hidden = !isDemo;
+renderAll();
+})();
+</script>

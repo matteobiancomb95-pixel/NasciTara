@@ -1,0 +1,79 @@
+/**
+ * Design token NasciTara.
+ *
+ * I colori di marca richiesti sono conservati per intero, ma separati per
+ * RUOLO, perche' alcuni non possono portare testo su bianco:
+ *
+ *   #E2725B terracotta   3,09:1  -> grafica e icone (>=3:1, SC 1.4.11). NON testo.
+ *   #FFC8B0 terra chiaro 1,49:1  -> solo riempimenti decorativi. MAI testo.
+ *   #7FBF9E salvia       2,13:1  -> solo riempimenti decorativi. MAI testo ne bordi.
+ *
+ * Per ogni ruolo che porta testo esiste una variante piu' scura dello stesso
+ * tono, calcolata per superare la soglia:
+ *
+ *   --color-terra-ink   #BC4A30  5,05:1  testo e link terracotta        (AA)
+ *   --color-primary-btn #3C7D5D  4,90:1  fondo bottone con testo bianco (AA)
+ *   --color-primary-ui  #52A47A  3,02:1  bordi e focus                  (SC 1.4.11)
+ *   --color-border      #8B9592  3,08:1  bordo dei campi                (SC 1.4.11)
+ *   --color-text        #333333 12,63:1  testo 15-16 px                 (AA)
+ *   --color-text-muted  #5F5F5F  6,39:1  testo secondario               (AA)
+ *
+ * Il wordmark del logo usa #E2725B: WCAG 1.4.3 esenta esplicitamente i
+ * logotipi dal requisito di contrasto.
+ */
+
+:root {
+  /* --- superfici --- */
+  --color-bg: #ffffff;
+  --color-surface: #ffffff;
+  --color-surface-alt: #fdf8f6; /* bianco caldo, virato verso il terracotta */
+
+  /* --- testo --- */
+  --color-text: #333333;
+  --color-text-muted: #5f5f5f;
+  --color-text-on-dark: #ffffff;
+
+  /* --- marca: terracotta --- */
+  --color-terra: #e2725b; /* grafica, icone, tratti. Non testo. */
+  --color-terra-soft: #ffc8b0; /* riempimenti decorativi, badge. Mai testo. */
+  --color-terra-ink: #bc4a30; /* testo e link */
+
+  /* --- marca: salvia --- */
+  --color-primary: #7fbf9e; /* riempimenti decorativi */
+  --color-primary-btn: #3c7d5d; /* bottoni primari, testo bianco */
+  --color-primary-ui: #52a47a; /* bordi, focus, indicatori */
+
+  /* --- bordi --- */
+  --color-border: #8b9592; /* bordo dei componenti interattivi */
+  --color-border-soft: #f3f3f3; /* divisori puramente decorativi */
+
+  /* --- stato --- */
+  --color-ok: #3c7d5d;
+  --color-warn: #8a5a12;
+  --color-alert: #b3261e;
+
+  /* --- tipografia --- */
+  --font-family-base: 'Nunito Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-size-title: 1.5rem; /* 24 px */
+  --font-size-module: 1.25rem; /* 20 px */
+  --font-size-body: 1rem; /* 16 px */
+  --font-size-label: 0.9375rem; /* 15 px */
+  --font-size-small: 0.8125rem; /* 13 px */
+  --font-weight-regular: 400;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --letter-spacing-button: 0.03em;
+
+  /* --- spaziatura e forma --- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --shadow-card: 0 1px 2px rgba(51, 51, 51, 0.05), 0 10px 28px -18px rgba(190, 110, 90, 0.35);
+  --max-width: 1180px;
+}
