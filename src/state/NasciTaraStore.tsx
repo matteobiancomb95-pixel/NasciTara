@@ -56,6 +56,7 @@ export type Action =
   | { type: 'setScan'; id: string; field: keyof Omit<ScanState, 'id'>; value: NumField | string }
   | { type: 'addScan' }
   | { type: 'removeScan'; id: string }
+  | { type: 'loadDemo' }
   | { type: 'reset' };
 
 let scanSeq = 0;
@@ -132,6 +133,8 @@ function reducer(state: NasciTaraState, action: Action): NasciTaraState {
       const scans = state.scans.filter((s) => s.id !== action.id);
       return { ...touched, scans: scans.length > 0 ? scans : [emptyScan()] };
     }
+    case 'loadDemo':
+      return demoState();
     case 'reset':
       return emptyState();
     default:
@@ -164,7 +167,7 @@ export function NasciTaraProvider({
   children: ReactNode;
   initial?: NasciTaraState;
 }) {
-  const [state, dispatch] = useReducer(reducer, initial ?? demoState());
+  const [state, dispatch] = useReducer(reducer, initial ?? emptyState());
 
   const value = useMemo<StoreValue>(() => {
     const gaValid = isGaValid(Number(state.gaWeeks), Number(state.gaDays || 0));

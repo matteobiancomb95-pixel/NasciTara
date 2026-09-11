@@ -26,6 +26,9 @@ export function AppLayout() {
   const [tab, setTab] = useState<TabId>('gravidanza');
   const { analysis, state, dispatch, gaValid, ga, completeScans } = useNasciTara();
 
+  /** Nulla di compilato: mostra l'invito iniziale invece di tre moduli muti. */
+  const isEmpty = !gaValid && completeScans === 0 && !state.isDemo;
+
   return (
     <div className="app">
       <header className="app-header">
@@ -69,6 +72,20 @@ export function AppLayout() {
       </nav>
 
       <main className="modules">
+        {isEmpty ? (
+          <div className="notice" style={{ marginBottom: 0 }}>
+            <strong>Si comincia da qui.</strong> Inserisci l’epoca gestazionale nel Modulo 1 e almeno
+            un’ecografia nel Modulo 2. Il peso compare da solo, mano a mano.{' '}
+            <button
+              type="button"
+              className="btn btn--ghost btn--small"
+              onClick={() => dispatch({ type: 'loadDemo' })}
+            >
+              Carica un esempio
+            </button>
+          </div>
+        ) : null}
+
         {state.isDemo ? (
           <div className="notice" style={{ marginBottom: 0 }}>
             <strong>Dati di esempio.</strong> I valori caricati sono una gravidanza realistica, non i tuoi.{' '}

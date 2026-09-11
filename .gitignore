@@ -9,3 +9,7 @@ dist-ssr
 .vite
 coverage
 .netlify
+
+# build della preview a file singolo
+preview.html
+_preview.html

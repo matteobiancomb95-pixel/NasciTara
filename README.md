@@ -65,6 +65,9 @@ il fuoco.
 Il peso stimato è anche un **readout in header**, aggiornato in tempo reale
 mentre si compilano i moduli 1 e 2.
 
+**Ogni sessione parte vuota.** L'esempio non si carica mai da solo: serve il
+pulsante *Carica un esempio* nello stato iniziale, oppure `#demo` nell'URL.
+
 Le ecografie incomplete non bloccano nulla: vengono ignorate, con il messaggio
 *"2 di 3 ecografie complete — le incomplete verranno ignorate."*
 
@@ -198,6 +201,8 @@ I plugin si installano da una sessione interattiva:
 Il logo in `src/assets/logo-nascitara.svg` è stato disegnato a mano: la skill
 *SVG Logo Designer* non era disponibile in questa sessione. Simbolo e wordmark
 sono vettoriali puri, il testo è in `<text>` con stack di fallback.
+Consideralo un segnaposto: [`docs/prompt-logo.md`](./docs/prompt-logo.md)
+contiene i prompt pronti per rigenerarlo (logo, favicon, copertine LinkedIn).
 
 ---
 
