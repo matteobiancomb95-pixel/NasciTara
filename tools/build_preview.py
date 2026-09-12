@@ -7,6 +7,12 @@ delle sole righe import/export, e compilati nel browser da Babel standalone
 (preset typescript + react). Non e' una riproduzione: e' lo stesso codice che
 gira in produzione, solo assemblato diversamente.
 
+Due sostituzioni, entrambe dichiarate nel file generato:
+  - le immagini del brand diventano data URI (nel bundle Vite le risolve lui);
+  - Supabase non esiste in preview, quindi il client e' uno stub a null e
+    l'iscrizione email non parte (il flusso prosegue comunque, come in
+    produzione quando le variabili non sono configurate).
+
     python3 tools/build_preview.py [destinazione.html]
 """
 import base64
@@ -18,6 +24,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC = ROOT / "src"
 
 ORDER = [
+    "i18n/index.ts",
     "lib/percentilesHadlock1991.ts",
     "lib/efwHadlock.ts",
     "lib/efwWho.ts",
@@ -27,16 +34,18 @@ ORDER = [
     "lib/customCurveGardosiLite.ts",
     "lib/gestationalAge.ts",
     "lib/analysis.ts",
+    "lib/projection.ts",
+    "lib/emailSignup.ts",
+    "lib/exportPdf.ts",
     "state/NasciTaraStore.tsx",
     "components/icons.tsx",
-    "components/StatusBadge.tsx",
-    "components/ModuleCard.tsx",
     "components/Field.tsx",
     "components/GrowthChart.tsx",
-    "components/ModulePregnancyAndParents.tsx",
-    "components/ModuleMeasurements.tsx",
-    "components/ModuleResults.tsx",
-    "components/AppLayout.tsx",
+    "pages/LandingPage.tsx",
+    "pages/PregnancyPage.tsx",
+    "pages/MeasurementsPage.tsx",
+    "pages/DashboardPage.tsx",
+    "components/AppShell.tsx",
     "App.tsx",
 ]
 
@@ -44,6 +53,7 @@ CDN = "https://cdnjs.cloudflare.com/ajax/libs"
 REACT = f"{CDN}/react/18.3.1/umd/react.production.min.js"
 REACT_DOM = f"{CDN}/react-dom/18.3.1/umd/react-dom.production.min.js"
 BABEL = f"{CDN}/babel-standalone/7.26.4/babel.min.js"
+JSPDF = f"{CDN}/jspdf/2.5.2/jspdf.umd.min.js"
 
 
 def strip_modules(src: str) -> str:
@@ -54,25 +64,41 @@ def strip_modules(src: str) -> str:
     src = re.sub(r"^\s*export\s+\{[\s\S]*?\};\s*$", "", src, flags=re.M)
     src = re.sub(r"^export default ", "", src, flags=re.M)
     src = re.sub(r"^export ", "", src, flags=re.M)
+    src = re.sub(r" as (number|string|boolean)\b", "", src)
     return src
+
+
+def data_uri(path: pathlib.Path) -> str:
+    return "data:image/png;base64," + base64.b64encode(path.read_bytes()).decode()
 
 
 def build() -> str:
     tokens = (SRC / "styles/tokens.css").read_text()
     glob = (SRC / "styles/global.css").read_text().replace("@import './tokens.css';", "")
 
-    logo = (SRC / "assets/logo-nascitara.svg").read_text()
-    logo_uri = "data:image/svg+xml;base64," + base64.b64encode(logo.encode()).decode()
+    logo = data_uri(SRC / "assets/brand/logo-mark.png")
+    wordmark = data_uri(SRC / "assets/brand/wordmark.png")
 
     parts = [
         "/* React UMD: runtime JSX classico, non automatico */",
-        "const { createContext, useContext, useMemo, useReducer, useState } = React;",
-        f'const logoUrl = "{logo_uri}";',
+        "const { createContext, useContext, useCallback, useEffect, useMemo, useReducer, useRef, useState } = React;",
+        "",
+        "/* sostituzione 1: nel bundle Vite questi URL li risolve il bundler */",
+        f'const logoUrl = "{logo}";',
+        f'const wordmarkUrl = "{wordmark}";',
+        "",
+        "/* sostituzione 2: senza backend l'iscrizione email non parte, come in",
+        "   produzione quando VITE_SUPABASE_URL non e' configurata */",
+        "const supabase = null;",
     ]
     for rel in ORDER:
         parts.append(f"\n/* ===================== {rel} ===================== */")
         parts.append(strip_modules((SRC / rel).read_text()))
-    parts.append("\nReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));")
+    parts.append(
+        "\n/* montaggio: App resta nello scope della funzione compilata,"
+        "\n   quindi il render va fatto qui dentro e non da fuori */"
+        "\nReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));"
+    )
     source = "\n".join(parts)
 
     return f"""<title>NasciTara</title>
@@ -83,13 +109,14 @@ def build() -> str:
 {tokens}
 {glob}
 #boot-error{{white-space:pre-wrap;font-family:ui-monospace,Menlo,monospace;font-size:12px;
-  color:#b3261e;background:#fff5f4;border:1px solid #b3261e;border-radius:8px;padding:16px;margin:24px}}
+  color:#333;background:#ffd0d7;border-radius:12px;padding:16px;margin:24px}}
 </style>
 <div id="root"></div>
 <pre id="boot-error" hidden></pre>
 
 <script src="{REACT}"></script>
 <script src="{REACT_DOM}"></script>
+<script src="{JSPDF}"></script>
 <script src="{BABEL}"></script>
 
 <script type="text/plain" id="nascitara-source">

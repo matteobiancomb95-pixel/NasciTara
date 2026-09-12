@@ -1,0 +1,13 @@
+{
+  "name": "NasciTara",
+  "short_name": "NasciTara",
+  "description": "Il peso del tuo bambino, da tutte le ecografie. Non da una sola.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    { "src": "/favicon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/favicon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

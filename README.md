@@ -48,28 +48,39 @@ supabase/migrations/         schema
 
 ---
 
-## I tre moduli
+## Le quattro schermate
 
-L'app **non è più un wizard**. I tre moduli sono indipendenti e sempre
-compilabili: su desktop stanno tutti sullo stesso schermo, sotto gli 860 px
-diventano tre schede. I moduli non attivi vengono nascosti ma **restano
-montati**, quindi passando da una scheda all'altra non si perde né lo stato né
-il fuoco.
+Navigazione sequenziale dentro la stessa finestra, con header e footer fissi.
+L'unico indicatore di avanzamento è la barra alta 3 px sul bordo inferiore
+dell'header.
 
-| Modulo | Contenuto | Stato |
-|---|---|---|
-| 1 · Gravidanza & Genitori | epoca + data di riferimento (obbligatori), dati costituzionali di mamma e papà (facoltativi) | Completo / Parziale / In attesa |
-| 2 · Misurazioni ecografiche | HC, AC, FL, BPD per ogni ecografia | idem |
-| 3 · Risultati NasciTara | peso, percentile, lunghezza, curva e proiezione | idem |
+| # | Schermata | Contenuto | Come si prosegue |
+|---|---|---|---|
+| 1 | Atterraggio | spiegazione, raccolta email + consenso, toggle IT/EN | **Inizia** |
+| 2 | Gravidanza & Genitori | epoca e data (obbligatorie), dati costituzionali (facoltativi) | **Continua** |
+| 3 | Misure ecografiche | una riga orizzontale per ecografia | **Scopri peso e lunghezza del bebè** |
+| 4 | Dashboard | peso, percentile, lunghezza, curva, proiezione, PDF | — |
 
-Il peso stimato è anche un **readout in header**, aggiornato in tempo reale
-mentre si compilano i moduli 1 e 2.
+Dalla schermata 2 in poi compare una **striscia di riepilogo** che cresce:
+*33+2 settimane · 3 ecografie · nascita prevista il 29 ottobre*.
 
-**Ogni sessione parte vuota.** L'esempio non si carica mai da solo: serve il
-pulsante *Carica un esempio* nello stato iniziale, oppure `#demo` nell'URL.
+**Ogni sessione parte vuota**, dalla pagina di atterraggio. L'esempio si carica
+solo su richiesta: link *Guarda un esempio*, oppure `#demo` nell'URL.
 
-Le ecografie incomplete non bloccano nulla: vengono ignorate, con il messaggio
-*"2 di 3 ecografie complete — le incomplete verranno ignorate."*
+La schermata 3 si apre con **una sola ecografia**: tre blocchi vuoti in apertura
+sono ciò che fa sembrare la pagina un modulo clinico. Le incomplete non bloccano
+nulla, vengono ignorate con un messaggio esplicito.
+
+### Raccolta email e GDPR
+
+Dalla pagina di atterraggio esce **solo l'indirizzo email**, e solo con consenso
+esplicito (tabella `email_signups`, migrazione `0002`). I dati della gravidanza
+e delle ecografie **non lasciano mai il dispositivo**: il calcolo è interamente
+client-side, e il testo del consenso lo dichiara. Senza email si prosegue lo
+stesso.
+
+Il toggle di lingua sta sulla pagina di atterraggio, come da specifica: una
+volta dentro il flusso la lingua resta quella scelta.
 
 ---
 
@@ -89,6 +100,9 @@ estratti sul caso di riferimento (33+2 settimane, tre ecografie, mamma 167 cm /
 | Intervallo 95 % | 1874 – 2534 g | **1874 – 2534 g** |
 | Percentile personalizzato | 62° | **62,00** |
 
+I numeri sono rimasti identici anche dopo il passaggio a quattro schermate e la
+proiezione a 45 settimane.
+
 `src/__tests__/efwRegression.test.ts` blocca questi valori, più:
 
 - la curva Hadlock 1991 riprodotta entro lo **0,03 %** sulla mediana e lo
@@ -97,7 +111,26 @@ estratti sul caso di riferimento (33+2 settimane, tre ecografie, mamma 167 cm /
 - la contrazione della pendenza (un trend netto sopravvive, una serie piatta e
   rumorosa non genera accelerazioni spurie);
 - la garanzia che **i dati paterni non tocchino** peso stimato né percentile di
-  popolazione.
+  popolazione;
+- la coerenza fra dashboard e grafico: `pointAt(oggi)` deve coincidere
+  esattamente con la stima principale, altrimenti la stessa schermata
+  mostrerebbe due numeri diversi per lo stesso istante;
+- il formato del nome del PDF (`yyyy_mm_dd`), con date locali e non UTC.
+
+### Proiezione oltre il termine
+
+Il grafico arriva a **45 settimane** come richiesto, ma oltre la **42ª** i
+numeri non hanno più dati dietro:
+
+- la curva di Hadlock 1991 è adattata su dati fra la 20ª e la 40ª settimana.
+  `exp(0,578 + 0,332·EG − 0,00354·EG²)` continua a salire fino alla 47ª, ma è il
+  polinomio che prosegue, non la biologia;
+- dopo la nascita la crescita cambia regime e segue curve completamente diverse
+  (standard di crescita infantile OMS), non quella intrauterina.
+
+Per questo `isExtrapolated` marca ogni punto oltre la soglia, il grafico mostra
+la zona come campitura grigia etichettata, e la dashboard aggiunge la nota. È
+un prolungamento matematico, non una previsione.
 
 ---
 
@@ -125,27 +158,51 @@ cosa si regge: *nessun dato* / *solo mamma* / *solo papà* / *mamma e papà*.
 
 ## Design system
 
-Palette di marca conservata per intero, ma separata per **ruolo**: tre colori
-richiesti non possono portare testo su bianco.
+Palette di marca conservata per intero, ma **separata per ruolo**: tre dei sei
+colori non reggono testo su bianco.
 
-| Token | Hex | Contrasto su bianco | Ruolo |
+| Token | Hex | Su bianco | Ruolo |
 |---|---|---|---|
-| `--color-terra` | `#E2725B` | 3,09:1 | grafica e icone. **Non testo** |
-| `--color-terra-soft` | `#FFC8B0` | 1,49:1 | riempimenti e badge. **Mai testo** |
-| `--color-primary` | `#7FBF9E` | 2,13:1 | riempimenti decorativi. **Mai testo né bordi** |
-| `--color-terra-ink` | `#BC4A30` | **5,05:1** | testo e link terracotta (AA) |
-| `--color-primary-btn` | `#3C7D5D` | **4,90:1** | bottoni primari, testo bianco (AA) |
-| `--color-primary-ui` | `#52A47A` | **3,02:1** | bordi e focus (SC 1.4.11) |
-| `--color-border` | `#8B9592` | **3,08:1** | bordo dei campi (SC 1.4.11) |
-| `--color-text` | `#333333` | 12,63:1 | testo 15–16 px (AA) |
-| `--color-text-muted` | `#5F5F5F` | 6,39:1 | testo secondario (AA) |
+| `--brand` | `#ff395c` | 3,50:1 | forma e campitura. Testo solo ≥ 24 px/400 o 19 px/600 |
+| `--brand-soft` | `#ffa0ae` | 1,93:1 | solo decorazione. **Mai testo, mai bordo indispensabile** |
+| `--fill` | `#ffd0d7` | 1,38:1 | solo campitura. Sopra ci va `#333333` (9,18:1) |
+| `--ink` | `#333333` | 12,63:1 | tutto il testo, e il fondo dei bottoni |
+| `--ink-2` | `rgba(51,51,51,.72)` | **5,25:1** | testo secondario |
+| `--ink-on-fill` | `rgba(51,51,51,.75)` | **4,79:1** su rosa | testo sopra le campiture |
+| `--hairline` | `#8e8e8e` | 3,28:1 | **declassato a non testuale**: griglie, divisori, disabilitati |
+| `--btn-bg` / `--btn-ink` | `#333333` / `#ffffff` | 12,63:1 | bottoni primari |
 
-Il **wordmark** del logo usa `#E2725B`: WCAG 1.4.3 esenta esplicitamente i
-logotipi dal requisito di contrasto.
+Due decisioni che vale la pena conoscere:
 
-Font **Nunito Sans** da Google Fonts, caricato in `index.html` con `preconnect`
-su `fonts.googleapis.com` e `fonts.gstatic.com`. Titoli 20–24 px SemiBold/Bold,
-testo 15–16 px Regular, bottoni 16 px SemiBold con `letter-spacing: 0.03em`.
+- **`#8e8e8e` non è il grigio del testo secondario.** Su bianco fa 3,28:1 e
+  sopra il rosa crolla a 2,38:1. Il testo secondario è lo stesso `#333333` con
+  meno voce. Se in un CSS compare `color: #8e8e8e`, quasi certamente è un bug.
+- **Il campo a riposo è campito di rosa, quello attivo diventa bianco** e si
+  solleva. Un bordo in `#ffa0ae` a 1,93:1 per molti utenti non esisterebbe: se
+  un controllo deve avere un perimetro percepibile va campito, non contornato.
+
+`#ff395c` compare **una volta sola per schermata**: la barra di avanzamento
+nelle schermate 1-3, il punto sulla settimana scelta nella 4.
+
+Font **Nunito Sans** da Google Fonts con `preconnect`. Sei gradini
+(64/32/20/17/15/13, ridotti a 44/26 su mobile) e due soli pesi, 400 e 600: il
+700 resta al wordmark. Nessun maiuscoletto con letter-spacing positivo — è la
+firma tipografica del referto, ed è ciò da cui il prodotto doveva allontanarsi.
+
+### Brand kit
+
+Gli originali stanno in `Brand Identity/`. I derivati usati dall'app sono
+generati da lì:
+
+```bash
+python3 tools/png_tools.py trim "Brand Identity/wordmark-nascitara.png" src/assets/brand/wordmark.png
+sips -Z 256 src/assets/brand/logo-mark.png --out src/assets/brand/logo-mark.png
+for s in 32 180 192 512; do sips -Z $s "Brand Identity/Favicon.png" --out public/favicon-$s.png; done
+```
+
+`tools/png_tools.py` è un decoder PNG in Python puro: serve perché su questa
+macchina non c'è Pillow e `sips` sa ridimensionare ma non ritagliare sul
+contenuto.
 
 ---
 

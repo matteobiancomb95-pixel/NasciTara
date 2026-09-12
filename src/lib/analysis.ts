@@ -72,6 +72,10 @@ export interface AnalysisResult {
   customScale: number;
   /** True quando c'e' una sola ecografia utile: nessuna traiettoria. */
   singleObservation: boolean;
+  /** Punti della traiettoria, per ricalcolare la stima a un'epoca qualsiasi. */
+  trajectory: TrajectoryPoint[];
+  /** L'ecografia piu' recente fra quelle complete: ancora della stima di lunghezza. */
+  lastScan: UltrasoundResult;
 }
 
 function isFiniteNum(v: unknown): v is number {
@@ -149,5 +153,7 @@ export function analysePregnancy(input: PregnancyInput): AnalysisResult | null {
     custom,
     customScale,
     singleObservation: points.length === 1,
+    trajectory: traj,
+    lastScan: last,
   };
 }

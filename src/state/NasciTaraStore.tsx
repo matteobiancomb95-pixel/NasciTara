@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useMemo,
   useReducer,
@@ -8,20 +9,24 @@ import {
 } from 'react';
 
 import { analysePregnancy, type AnalysisResult, type UltrasoundInput } from '../lib/analysis';
-import { isGaValid, toDecimalWeeks, toISO, todayUTC, addDays } from '../lib/gestationalAge';
+import { addDays, isGaValid, toDecimalWeeks, toISO, todayUTC } from '../lib/gestationalAge';
+import { translate, type Key, type Lang } from '../i18n';
 
 /**
  * Stato globale NasciTara.
  *
- * I tre moduli sono indipendenti e leggono/scrivono tutti da qui: non esiste
- * piu' il concetto di passo attivo o bloccato del prototipo a wizard. Ogni
- * modulo puo' essere compilato in qualsiasi momento e i risultati si
- * ricalcolano da soli.
+ * La navigazione e' sequenziale: quattro schermate dentro la stessa finestra,
+ * ognuna raggiungibile solo dopo la precedente. Header e footer restano fissi.
  */
+
+export type Page = 'landing' | 'pregnancy' | 'measurements' | 'dashboard';
+
+export const PAGE_ORDER: Page[] = ['landing', 'pregnancy', 'measurements', 'dashboard'];
 
 export type NumField = number | '';
 
 export interface ParentsState {
+  /** Peso medio della mamma PRIMA della gravidanza, non quello attuale. */
   motherWeightKg: NumField;
   motherHeightCm: NumField;
   motherAgeYears: NumField;
@@ -40,16 +45,24 @@ export interface ScanState {
 }
 
 export interface NasciTaraState {
+  lang: Lang;
+  page: Page;
+  /** Schermata piu' avanzata raggiunta: consente di tornare indietro liberamente. */
+  reached: Page;
+  email: string;
+  emailConsent: boolean;
   gaWeeks: NumField;
   gaDays: NumField;
   referenceDate: string;
   parents: ParentsState;
   scans: ScanState[];
-  /** True finche' i dati caricati sono quelli di esempio. */
-  isDemo: boolean;
 }
 
 export type Action =
+  | { type: 'setLang'; value: Lang }
+  | { type: 'goTo'; page: Page }
+  | { type: 'setEmail'; value: string }
+  | { type: 'setConsent'; value: boolean }
   | { type: 'setGa'; field: 'gaWeeks' | 'gaDays'; value: NumField }
   | { type: 'setReferenceDate'; value: string }
   | { type: 'setParent'; field: keyof ParentsState; value: NumField }
@@ -62,7 +75,7 @@ export type Action =
 let scanSeq = 0;
 function newScanId(): string {
   scanSeq += 1;
-  return `scan-${Date.now().toString(36)}-${scanSeq}`;
+  return `scan-${scanSeq}`;
 }
 
 function emptyScan(date = ''): ScanState {
@@ -78,21 +91,34 @@ export const EMPTY_PARENTS: ParentsState = {
   fatherAgeYears: '',
 };
 
+function detectLang(): Lang {
+  if (typeof navigator === 'undefined') return 'it';
+  return navigator.language?.toLowerCase().startsWith('en') ? 'en' : 'it';
+}
+
+/** Ogni sessione parte da zero: nessun dato precompilato, nessuna persistenza. */
 export function emptyState(): NasciTaraState {
   return {
+    lang: detectLang(),
+    page: 'landing',
+    reached: 'landing',
+    email: '',
+    emailConsent: false,
     gaWeeks: '',
     gaDays: '',
     referenceDate: toISO(todayUTC()),
     parents: { ...EMPTY_PARENTS },
     scans: [emptyScan()],
-    isDemo: false,
   };
 }
 
-/** Gravidanza di esempio: la stessa del prototipo, 33+2 con tre ecografie. */
+/** Gravidanza di esempio, per provare l'app senza avere un referto sottomano. */
 export function demoState(): NasciTaraState {
   const today = todayUTC();
   return {
+    ...emptyState(),
+    page: 'dashboard',
+    reached: 'dashboard',
     gaWeeks: 33,
     gaDays: 2,
     referenceDate: toISO(today),
@@ -109,34 +135,44 @@ export function demoState(): NasciTaraState {
       { ...emptyScan(toISO(addDays(today, -37))), hcMm: 262, acMm: 243, flMm: 53, bpdMm: 72 },
       { ...emptyScan(toISO(addDays(today, -6))), hcMm: 298, acMm: 285, flMm: 62, bpdMm: 83 },
     ],
-    isDemo: true,
   };
 }
 
+function furthest(a: Page, b: Page): Page {
+  return PAGE_ORDER.indexOf(a) >= PAGE_ORDER.indexOf(b) ? a : b;
+}
+
 function reducer(state: NasciTaraState, action: Action): NasciTaraState {
-  const touched = { ...state, isDemo: false };
   switch (action.type) {
+    case 'setLang':
+      return { ...state, lang: action.value };
+    case 'goTo':
+      return { ...state, page: action.page, reached: furthest(state.reached, action.page) };
+    case 'setEmail':
+      return { ...state, email: action.value };
+    case 'setConsent':
+      return { ...state, emailConsent: action.value };
     case 'setGa':
-      return { ...touched, [action.field]: action.value };
+      return { ...state, [action.field]: action.value };
     case 'setReferenceDate':
-      return { ...touched, referenceDate: action.value };
+      return { ...state, referenceDate: action.value };
     case 'setParent':
-      return { ...touched, parents: { ...state.parents, [action.field]: action.value } };
+      return { ...state, parents: { ...state.parents, [action.field]: action.value } };
     case 'setScan':
       return {
-        ...touched,
+        ...state,
         scans: state.scans.map((s) => (s.id === action.id ? { ...s, [action.field]: action.value } : s)),
       };
     case 'addScan':
-      return { ...touched, scans: [...state.scans, emptyScan(state.referenceDate)] };
+      return { ...state, scans: [...state.scans, emptyScan(state.referenceDate)] };
     case 'removeScan': {
       const scans = state.scans.filter((s) => s.id !== action.id);
-      return { ...touched, scans: scans.length > 0 ? scans : [emptyScan()] };
+      return { ...state, scans: scans.length > 0 ? scans : [emptyScan()] };
     }
     case 'loadDemo':
-      return demoState();
+      return { ...demoState(), lang: state.lang };
     case 'reset':
-      return emptyState();
+      return { ...emptyState(), lang: state.lang };
     default:
       return state;
   }
@@ -149,13 +185,13 @@ function n(v: NumField): number | null {
 export interface StoreValue {
   state: NasciTaraState;
   dispatch: Dispatch<Action>;
-  /** Risultati, oppure `null` senza nemmeno un'ecografia completa. */
   analysis: AnalysisResult | null;
-  /** Epoca di riferimento in settimane decimali. */
   ga: number;
   gaValid: boolean;
-  /** Quante ecografie sono complete. */
   completeScans: number;
+  /** Traduce una chiave nella lingua corrente. */
+  t: (key: Key, vars?: Record<string, string | number>) => string;
+  lang: Lang;
 }
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -168,6 +204,11 @@ export function NasciTaraProvider({
   initial?: NasciTaraState;
 }) {
   const [state, dispatch] = useReducer(reducer, initial ?? emptyState());
+
+  const t = useCallback(
+    (key: Key, vars?: Record<string, string | number>) => translate(state.lang, key, vars),
+    [state.lang],
+  );
 
   const value = useMemo<StoreValue>(() => {
     const gaValid = isGaValid(Number(state.gaWeeks), Number(state.gaDays || 0));
@@ -206,8 +247,10 @@ export function NasciTaraProvider({
       ga,
       gaValid,
       completeScans: analysis ? analysis.points.length : 0,
+      t,
+      lang: state.lang,
     };
-  }, [state]);
+  }, [state, t]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

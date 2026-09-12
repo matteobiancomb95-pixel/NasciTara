@@ -6,4 +6,5 @@ export * from './customCurveGardosiLite';
 export * from './fetalLength';
 export * from './biometry';
 export * from './gestationalAge';
+export * from './projection';
 export * from './analysis';

@@ -7,6 +7,14 @@ import { CV, refAt, refMean, Z } from '../lib/percentilesHadlock1991';
 import { fitTrajectory } from '../lib/trajectory';
 import { customCurve, termOptimalWeightMaternal } from '../lib/customCurveGardosiLite';
 import { sensitivity } from '../lib/biometry';
+import {
+  buildProjection,
+  EXTRAPOLATION_FROM_WEEKS,
+  isExtrapolated,
+  pointAt,
+  PROJECTION_MAX_WEEKS,
+  selectableWeeks,
+} from '../lib/projection';
 
 /**
  * Test di regressione del refactor.
@@ -281,5 +289,65 @@ describe('sensibilita alle singole misure', () => {
 
   it('le quote sommano a 100', () => {
     expect(s.reduce((t, x) => t + x.share, 0)).toBeCloseTo(100, 6);
+  });
+});
+
+
+describe('proiezione fino alla 45a settimana', () => {
+  const r = analysePregnancy(REFERENCE_CASE)!;
+
+  it('il punto calcolato a oggi coincide con la stima principale', () => {
+    // La dashboard e il grafico leggono da qui: se divergessero, la stessa
+    // schermata mostrerebbe due numeri diversi per lo stesso istante.
+    const now = pointAt(r, r.ga)!;
+    expect(now.efw).toBeCloseTo(r.now.efw, 6);
+    expect(now.lengthCm).toBeCloseTo(r.lengthNow.cm, 6);
+    expect(now.pct).toBeCloseTo(r.now.pct, 6);
+  });
+
+  it('a 40 settimane coincide con la proiezione a termine', () => {
+    const term = pointAt(r, 40)!;
+    expect(term.efw).toBeCloseTo(r.term.efw, 6);
+    expect(term.lengthCm).toBeCloseTo(r.lengthTerm.cm, 6);
+  });
+
+  it('la serie arriva alla 45a settimana', () => {
+    const series = buildProjection(r);
+    expect(series[series.length - 1].ga).toBeCloseTo(PROJECTION_MAX_WEEKS, 6);
+    expect(selectableWeeks(r).slice(-1)[0]).toBe(45);
+  });
+
+  it('oltre la 42a i punti sono marcati come estrapolati', () => {
+    expect(isExtrapolated(40)).toBe(false);
+    expect(isExtrapolated(EXTRAPOLATION_FROM_WEEKS)).toBe(false);
+    expect(isExtrapolated(43)).toBe(true);
+    expect(pointAt(r, 45)!.isExtrapolated).toBe(true);
+    expect(pointAt(r, 40)!.isExtrapolated).toBe(false);
+  });
+
+  it('peso e lunghezza continuano a crescere in modo monotono', () => {
+    const series = buildProjection(r, 1);
+    for (let i = 1; i < series.length; i++) {
+      expect(series[i].efw).toBeGreaterThan(series[i - 1].efw);
+      expect(series[i].lengthCm).toBeGreaterThan(series[i - 1].lengthCm);
+    }
+  });
+
+  it('i valori a 45 settimane restano in un ordine di grandezza plausibile', () => {
+    const p = pointAt(r, 45)!;
+    expect(p.efw).toBeGreaterThan(4000);
+    expect(p.efw).toBeLessThan(5000);
+    expect(p.lengthCm).toBeGreaterThan(52);
+    expect(p.lengthCm).toBeLessThan(60);
+  });
+});
+
+describe('nome del file PDF', () => {
+  it('usa il formato yyyy_mm_dd', async () => {
+    const { pdfFilename } = await import('../lib/exportPdf');
+    // Date locale, non UTC: pdfFilename legge l'ora locale, e con Date.UTC il
+    // test fallirebbe in ogni fuso a ovest di Greenwich.
+    expect(pdfFilename(new Date(2026, 8, 7))).toBe('2026_09_07.pdf');
+    expect(pdfFilename(new Date(2026, 11, 25))).toBe('2026_12_25.pdf');
   });
 });

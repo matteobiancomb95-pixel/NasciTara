@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "NasciTara — stima del peso, del percentile e della lunghezza del nascituro combinando piu ecografie.",
+  "description": "NasciTara \u2014 stima del peso, del percentile e della lunghezza del nascituro combinando piu ecografie.",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
+    "jspdf": "^2.5.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
