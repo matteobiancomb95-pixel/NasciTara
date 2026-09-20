@@ -13,3 +13,8 @@ coverage
 # build della preview a file singolo
 preview.html
 _preview.html
+
+.vercel/
+supabase/.temp/
+.vercel
+.env*

@@ -47,7 +47,7 @@ export function NumberField({
 }: NumberFieldProps) {
   return (
     <label className={`field${unit ? ' field--unit' : ''}`}>
-      <span className="field__label">{label}</span>
+      <span className="field__label">{/peso|weight|altezza|height|età|age/i.test(label) ? <svg className="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d={/altezza|height/i.test(label) ? 'M8 3h8v18H8zM8 7h4M8 11h3M8 15h4' : /età|age/i.test(label) ? 'M4 6h16v15H4zM8 3v6M16 3v6M4 11h16' : 'M5 8h14l2 13H3zM9 8V5a3 3 0 016 0v3'} /></svg> : null}{label}</span>
       {hint ? <span className="field__hint">{hint}</span> : null}
       <span className="field__box">
         <input
@@ -77,7 +77,7 @@ interface DateFieldProps extends BaseProps {
 export function DateField({ label, hint, footnote, ariaLabel, value, onChange, max }: DateFieldProps) {
   return (
     <label className="field">
-      <span className="field__label">{label}</span>
+      <span className="field__label">{/peso|weight|altezza|height|età|age/i.test(label) ? <svg className="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d={/altezza|height/i.test(label) ? 'M8 3h8v18H8zM8 7h4M8 11h3M8 15h4' : /età|age/i.test(label) ? 'M4 6h16v15H4zM8 3v6M16 3v6M4 11h16' : 'M5 8h14l2 13H3zM9 8V5a3 3 0 016 0v3'} /></svg> : null}{label}</span>
       {hint ? <span className="field__hint">{hint}</span> : null}
       <span className="field__box">
         <input
@@ -103,11 +103,12 @@ interface EmailFieldProps extends BaseProps {
 export function EmailField({ label, hint, value, onChange, placeholder, error }: EmailFieldProps) {
   return (
     <label className="field">
-      <span className="field__label">{label}</span>
+      <span className="field__label">{/peso|weight|altezza|height|età|age/i.test(label) ? <svg className="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d={/altezza|height/i.test(label) ? 'M8 3h8v18H8zM8 7h4M8 11h3M8 15h4' : /età|age/i.test(label) ? 'M4 6h16v15H4zM8 3v6M16 3v6M4 11h16' : 'M5 8h14l2 13H3zM9 8V5a3 3 0 016 0v3'} /></svg> : null}{label}</span>
       {hint ? <span className="field__hint">{hint}</span> : null}
       <span className="field__box">
         <input
           type="email"
+          required
           inputMode="email"
           autoComplete="email"
           value={value}

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 
+import { ParentsContext } from '../components/ParentsContext';
 import { GrowthChart } from '../components/GrowthChart';
 import { IconBack, IconDownload } from '../components/icons';
 import { useNasciTara } from '../state/NasciTaraStore';
@@ -17,7 +18,7 @@ import { coverageKey, formatDecimal, localeOf } from '../i18n';
  * blocco richiudibile in fondo.
  */
 export function DashboardPage() {
-  const { analysis, dispatch, t, lang } = useNasciTara();
+  const { analysis, state, dispatch, t, lang } = useNasciTara();
   const [metric, setMetric] = useState<Metric>('weight');
   const [pdfState, setPdfState] = useState<'idle' | 'working' | 'error'>('idle');
 
@@ -89,7 +90,7 @@ export function DashboardPage() {
           <IconBack />
           {t('dash.editScans')}
         </button>
-        <h1 className="h1">{t('dash.title')}</h1>
+        <h1 className="h1">{lang === 'it' ? (state.babySex === 'female' ? 'La tua bambina' : state.babySex === 'male' ? 'Il tuo bambino' : 'Il tuo bebè') : t('dash.title')}</h1>
         <p className="lead">
           {analysis.singleObservation
             ? t('dash.basedOnOne')
@@ -196,6 +197,8 @@ export function DashboardPage() {
           </p>
         </div>
       </div>
+
+      <ParentsContext analysis={analysis} selectedGa={selectedGa} />
 
       {/* ---- tutto il gergo, in un solo blocco richiudibile ---- */}
       <details className="disclosure">

@@ -19,6 +19,7 @@
  * ====================================================================
  */
 
+import { maternalContextAt, type MaternalObservation } from './nasciTara';
 import { estimateAt, type Estimate } from './trajectory';
 import { estimateLength, refLength } from './fetalLength';
 import { refAt, refMean, Z } from './percentilesHadlock1991';
@@ -34,6 +35,7 @@ export const TERM_WEEKS = 40;
 export type Metric = 'weight' | 'length';
 
 export interface ProjectionPoint {
+  maternalContext: MaternalObservation | null;
   ga: number;
   /** Peso stimato in grammi. */
   efw: number;
@@ -68,6 +70,7 @@ export function pointAt(analysis: AnalysisResult, ga: number): ProjectionPoint |
   return {
     ga,
     efw: est.efw,
+    maternalContext: maternalContextAt(analysis.nasciTara, ga),
     lo: est.lo,
     hi: est.hi,
     lengthCm: len.cm,
@@ -84,11 +87,16 @@ export function buildProjection(
   step = 0.25,
   maxWeeks = PROJECTION_MAX_WEEKS,
 ): ProjectionPoint[] {
+  if (!Number.isFinite(step) || step <= 0) throw new RangeError('step must be positive');
   const from = analysis.points[0].ga;
   const out: ProjectionPoint[] = [];
   for (let ga = from; ga <= maxWeeks + 1e-9; ga += step) {
     const p = pointAt(analysis, Math.min(ga, maxWeeks));
     if (p) out.push(p);
+  }
+  if (from <= maxWeeks && (!out.length || out[out.length - 1].ga < maxWeeks)) {
+    const endpoint = pointAt(analysis, maxWeeks);
+    if (endpoint) out.push(endpoint);
   }
   return out;
 }

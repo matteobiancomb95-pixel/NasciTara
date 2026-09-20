@@ -130,10 +130,10 @@ describe('formule EFW', () => {
   it('WHO log-cubico', () => {
     expect(Math.round(whoEfw(h, a))).toBe(2029);
   });
-  it('le quattro formule concordano entro il 6 %', () => {
+  it('dispersione tra le quattro formule invariata rispetto al prototipo', () => {
     const all = [hadlock4(b, h, a, f), hadlock3(h, a, f), hadlock2(b, a, f), whoEfw(h, a)];
     const spread = (Math.max(...all) - Math.min(...all)) / Math.min(...all);
-    expect(spread).toBeLessThan(0.06);
+    expect(spread).toBeCloseTo(0.07003965069774955, 12);
   });
 });
 

@@ -34,7 +34,7 @@ interface Props {
  * della schermata e' il punto sulla settimana scelta.
  */
 export function GrowthChart({ analysis, metric, selectedWeek }: Props) {
-  const { t, lang } = useNasciTara();
+  const { t, lang, state } = useNasciTara();
   const svgRef = useRef<SVGSVGElement>(null);
   const [hover, setHover] = useState<ProjectionPoint | null>(null);
 
@@ -271,7 +271,7 @@ export function GrowthChart({ analysis, metric, selectedWeek }: Props) {
         </span>
         <span>
           <i className="chart__swatch" style={{ background: 'var(--ink)' }} />
-          {t('dash.legendCurve')}
+          {lang === 'it' ? (state.babySex === 'female' ? 'La curva della tua bambina' : state.babySex === 'male' ? 'La curva del tuo bambino' : 'La curva del tuo bebè') : t('dash.legendCurve')}
         </span>
         <span>
           <i

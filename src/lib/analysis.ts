@@ -7,6 +7,7 @@
  * stessi passaggi del prototipo `curva-di-matilde.html`.
  */
 
+import { buildNasciTaraModel, nasciTaraParentsFromLegacy, legacyParentsFromNasciTara, type NasciTaraParentsInput, type NasciTaraModel } from './nasciTara';
 import { hadlock2, hadlock3, hadlock4 } from './efwHadlock';
 import { whoEfwOrNull } from './efwWho';
 import { percentileFromZ, refMean, zFromEfw } from './percentilesHadlock1991';
@@ -16,6 +17,7 @@ import { estimateLength, type LengthEstimate } from './fetalLength';
 import { gaAtDate, toDecimalWeeks, TERM_GA_WEEKS } from './gestationalAge';
 
 export interface UltrasoundInput {
+  pesoMammaOsservazione?: number | null;
   id: string;
   /** Data dell'esame. Ignorata se `ga` e' fornita direttamente. */
   date?: string | null;
@@ -32,6 +34,7 @@ export interface PregnancyInput {
   gaDays: number;
   referenceDate?: string | null;
   parents?: ParentsInput;
+  nasciTaraParents?: NasciTaraParentsInput;
   ultrasounds: UltrasoundInput[];
 }
 
@@ -55,6 +58,7 @@ export interface UltrasoundResult {
 }
 
 export interface AnalysisResult {
+  nasciTara: NasciTaraModel;
   /** Epoca di riferimento in settimane decimali. */
   ga: number;
   /** Ecografie complete, ordinate per epoca. */
@@ -125,7 +129,18 @@ export function analysePregnancy(input: PregnancyInput): AnalysisResult | null {
 
   if (points.length === 0) return null;
 
-  const custom = customCurve(input.parents ?? {});
+  const parents = { ...nasciTaraParentsFromLegacy(input.parents ?? {}), ...input.nasciTaraParents };
+  const observations = input.ultrasounds.map(u => ({
+    id: u.id, date: u.date,
+    ga: isFiniteNum(u.ga) ? u.ga : gaAtDate(u.date, input.referenceDate, ga),
+    pesoMammaOsservazione: u.pesoMammaOsservazione,
+  }));
+  if (parents.pesoMammaOsservazione != null) observations.push({
+    id: 'reference', ga, date: input.referenceDate,
+    pesoMammaOsservazione: parents.pesoMammaOsservazione,
+  });
+  const nasciTara = buildNasciTaraModel(parents, observations);
+  const custom = customCurve(legacyParentsFromNasciTara(parents));
   const customScale = custom.termOptimalWeight / refMean(TERM_GA_WEEKS);
 
   const traj: TrajectoryPoint[] = points.map((p) => ({ ga: p.ga, z: p.z }));
@@ -146,6 +161,7 @@ export function analysePregnancy(input: PregnancyInput): AnalysisResult | null {
     ga,
     points,
     totalUltrasounds: input.ultrasounds.length,
+    nasciTara,
     now,
     term,
     lengthNow,

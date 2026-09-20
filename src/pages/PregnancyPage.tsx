@@ -1,5 +1,5 @@
 import { DateField, NumberField } from '../components/Field';
-import { IconArrow, IconBack } from '../components/icons';
+import { IconArrow, IconBack, IconPerson } from '../components/icons';
 import { useNasciTara } from '../state/NasciTaraStore';
 import { estimatedDueDate, MAX_GA_WEEKS, MIN_GA_WEEKS } from '../lib/gestationalAge';
 import { motherBmi } from '../lib/customCurveGardosiLite';
@@ -33,7 +33,7 @@ export function PregnancyPage() {
         <p className="lead">{t('preg.lead')}</p>
       </div>
 
-      <section className="stack stack--tight">
+      <section className="pregnancy-box stack stack--tight">
         <h2 className="h2">{t('preg.section.pregnancy')}</h2>
         <p className="note">{t('preg.section.pregnancyHint')}</p>
 
@@ -45,7 +45,6 @@ export function PregnancyPage() {
             max={MAX_GA_WEEKS}
             value={state.gaWeeks}
             onChange={(v) => dispatch({ type: 'setGa', field: 'gaWeeks', value: v })}
-            footnote={gaValid ? undefined : t('preg.gaHint')}
           />
           <NumberField
             label={t('preg.gaDays')}
@@ -57,6 +56,12 @@ export function PregnancyPage() {
           />
         </div>
 
+        <label className="field"><span className="field__label">{lang === 'it' ? 'Sesso del bebè' : 'Baby’s sex'}</span>
+          <select value={state.babySex} onChange={e => dispatch({ type: 'setBabySex', value: e.target.value as 'male' | 'female' | '' })}>
+            <option value="">{lang === 'it' ? 'Seleziona' : 'Select'}</option><option value="male">{lang === 'it' ? 'Maschio' : 'Boy'}</option><option value="female">{lang === 'it' ? 'Femmina' : 'Girl'}</option>
+          </select>
+          <span className="field__hint">{lang === 'it' ? 'Il modello attuale ricava peso e lunghezza dalle misure ecografiche: non applica correzioni numeriche per sesso.' : 'The current model estimates weight and length from scan measurements, without a sex adjustment.'}</span>
+        </label>
         <DateField
           label={t('preg.refDate')}
           hint={t('preg.refDateHint')}
@@ -83,7 +88,7 @@ export function PregnancyPage() {
           {t('preg.section.parentsHint')}
         </p>
 
-        <div className="grid-2">
+        <details className="parent-fields"><summary><IconPerson kind="female" />{lang === 'it' ? 'Mamma · dati facoltativi' : 'Mother · optional details'}</summary>
           <NumberField
             label={t('preg.motherWeight')}
             hint={t('preg.motherWeightHint')}
@@ -102,12 +107,10 @@ export function PregnancyPage() {
             }
           />
           <NumberField
-            label={t('preg.motherHeight')}
-            unit={t('unit.cm')}
-            min={130}
-            max={210}
-            value={p.motherHeightCm}
-            onChange={(v) => dispatch({ type: 'setParent', field: 'motherHeightCm', value: v })}
+            label={lang === 'it' ? 'Peso mamma alla data di riferimento' : 'Mother’s weight at the reference date'}
+            hint={lang === 'it' ? 'Facoltativo: per seguire la variazione rispetto al peso pre-gravidanza.' : 'Optional: track the change from pre-pregnancy weight.'}
+            unit="kg" min={1} max={300} step={0.1} value={p.motherObservationWeightKg}
+            onChange={value => dispatch({ type: 'setParent', field: 'motherObservationWeightKg', value })}
           />
           <NumberField
             label={t('preg.motherAge')}
@@ -118,6 +121,15 @@ export function PregnancyPage() {
             onChange={(v) => dispatch({ type: 'setParent', field: 'motherAgeYears', value: v })}
           />
           <NumberField
+            label={t('preg.motherHeight')}
+            unit={t('unit.cm')}
+            min={130}
+            max={210}
+            value={p.motherHeightCm}
+            onChange={(v) => dispatch({ type: 'setParent', field: 'motherHeightCm', value: v })}
+          />
+        </details><details className="parent-fields"><summary><IconPerson kind="male" />{lang === 'it' ? 'Papà · dati facoltativi' : 'Father · optional details'}</summary>
+          <NumberField
             label={t('preg.fatherWeight')}
             unit={t('unit.kg')}
             step={0.5}
@@ -127,14 +139,6 @@ export function PregnancyPage() {
             onChange={(v) => dispatch({ type: 'setParent', field: 'fatherWeightKg', value: v })}
           />
           <NumberField
-            label={t('preg.fatherHeight')}
-            unit={t('unit.cm')}
-            min={130}
-            max={230}
-            value={p.fatherHeightCm}
-            onChange={(v) => dispatch({ type: 'setParent', field: 'fatherHeightCm', value: v })}
-          />
-          <NumberField
             label={t('preg.fatherAge')}
             unit={t('unit.years')}
             min={14}
@@ -142,7 +146,15 @@ export function PregnancyPage() {
             value={p.fatherAgeYears}
             onChange={(v) => dispatch({ type: 'setParent', field: 'fatherAgeYears', value: v })}
           />
-        </div>
+          <NumberField
+            label={t('preg.fatherHeight')}
+            unit={t('unit.cm')}
+            min={130}
+            max={230}
+            value={p.fatherHeightCm}
+            onChange={(v) => dispatch({ type: 'setParent', field: 'fatherHeightCm', value: v })}
+          />
+        </details>
 
         <p className="fine" style={{ color: 'var(--ink-on-fill)' }}>
           {t('preg.ageNote')}

@@ -37,7 +37,8 @@ interface JsPdfDoc {
     x1: number, y1: number, x2: number, y2: number, x3: number, y3: number, style?: string,
   ): void;
   splitTextToSize(text: string, width: number): string[];
-  save(filename: string): void;
+  save(filename: string, options?: { returnPromise: boolean }): Promise<void>;
+  addPage(): void;
 }
 
 async function resolveJsPdf(): Promise<JsPdfCtor> {
@@ -206,6 +207,7 @@ export async function exportResultPdf({ analysis, lang, now }: PdfInput): Promis
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   for (const p of analysis.points) {
+    if (y > 265) { doc.addPage(); y = M; }
     doc.setTextColor(...INK);
     doc.text(
       `${formatGA(p.ga)} ${t('unit.weeks')}   AC ${p.acMm}   FL ${p.flMm}   HC ${p.hcMm}   BPD ${p.bpdMm}`,
@@ -226,11 +228,12 @@ export async function exportResultPdf({ analysis, lang, now }: PdfInput): Promis
   const notes = [t('dash.extrapolationNote'), t('footer.disclaimer')];
   for (const n of notes) {
     const lines = doc.splitTextToSize(n, W - 2 * M);
+    if (y + lines.length * 3.6 > 280) { doc.addPage(); y = M; }
     doc.text(lines, M, y);
     y += lines.length * 3.6 + 3;
   }
 
   const filename = pdfFilename(now);
-  doc.save(filename);
+  await doc.save(filename, { returnPromise: true });
   return filename;
 }

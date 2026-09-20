@@ -36,20 +36,20 @@ export const it = {
     'NasciTara è uno strumento di calcolo, non un dispositivo medico. Il valore che conta resta quello del referto del ginecologo.',
 
   // ---- atterraggio ----
-  'landing.title': 'Quanto pesa il tuo bambino, adesso',
+  'landing.title': 'Stima il peso e la lunghezza del tuo bebè fino a 45 settimane.',
   'landing.lead':
-    'A ogni ecografia il ginecologo stima un peso. Ma da una sola misurazione l’errore è grande. NasciTara mette insieme tutte le ecografie che hai fatto e ne ricava la curva di crescita del tuo bambino: quanto pesa oggi, quanto sarà lungo, e dove arriverà al momento della nascita.',
+    'NasciTara riunisce le tue ecografie per stimare quanto pesa oggi il tuo bebè, la sua lunghezza e la proiezione alla nascita. Puoi esplorare anche oltre, fino a 45 settimane: dopo la 42ª è solo un prolungamento matematico, non una stima della crescita dopo la nascita.',
   'landing.how1.title': 'Racconti la gravidanza',
   'landing.how1.body': 'A che settimana sei, e qualche dato su mamma e papà.',
   'landing.how2.title': 'Inserisci le ecografie',
-  'landing.how2.body': 'Le quattro misure che trovi sul referto. Una o dieci, fa lo stesso.',
+  'landing.how2.body': 'HC - Circonferenza cranica, AC - Circonferenza addominale, FL - Lunghezza femore e BPD - Diametro biparietale.',
   'landing.how3.title': 'Scopri la curva',
-  'landing.how3.body': 'Peso, lunghezza e percentile, con la proiezione fino alla nascita.',
-  'landing.emailLabel': 'La tua email',
-  'landing.emailPlaceholder': 'nome@esempio.it',
+  'landing.how3.body': 'Peso, lunghezza e percentile, con la proiezione fino alla nascita e il prolungamento della curva fino a 45 settimane.',
+  'landing.emailLabel': 'E-mail obbligatoria',
+  'landing.emailPlaceholder': 'E-mail',
   'landing.emailHelp': 'Ti scriviamo solo per aggiornarti su NasciTara. Niente altro.',
   'landing.gdpr':
-    'Acconsento al trattamento del mio indirizzo email per ricevere aggiornamenti su NasciTara. Raccogliamo esclusivamente l’email: i dati della gravidanza e delle ecografie restano sul tuo dispositivo, non vengono salvati né inviati a nessuno.',
+    'Acconsento alla raccolta della mia e-mail per conteggiare gli utenti di NasciTara. Non verrà usata per marketing diretto. I dati della gravidanza e delle ecografie restano nel browser.',
   'landing.start': 'Inizia',
   'landing.emailInvalid': 'Controlla l’indirizzo: manca qualcosa.',
   'landing.gdprRequired': 'Per continuare serve il consenso sull’email.',
@@ -57,7 +57,7 @@ export const it = {
 
   // ---- pagina 2: gravidanza e genitori ----
   'preg.title': 'La tua gravidanza',
-  'preg.lead': 'Bastano la settimana e la data. Il resto lo puoi saltare.',
+  'preg.lead': 'Per stimare peso e lunghezza bastano i dati della gravidanza e le misure ecografiche. Se vuoi personalizzare la curva di riferimento, puoi aggiungere anche i dati di Mamma e Papà.',
   'preg.section.pregnancy': 'A che punto sei',
   'preg.section.pregnancyHint':
     'L’epoca di oggi fissa il riferimento: la data di ogni ecografia viene poi riportata indietro su questa scala.',
@@ -87,7 +87,7 @@ export const it = {
   // ---- pagina 3: misure ----
   'meas.title': 'Le tue ecografie',
   'meas.lead':
-    'Copia le quattro misure dal referto, in millimetri. Se ne hai più di una, aggiungile tutte: è da lì che nasce la curva.',
+    'Inserisci le quattro misure di ogni referto, in millimetri: HC - Circonferenza cranica, AC - Circonferenza addominale, FL - Lunghezza femore e BPD - Diametro biparietale. Se hai effettuato più visite, premi “Aggiungi misurazione ecografia ostetrica”.',
   'meas.scan': 'Ecografia {n}',
   'meas.date': 'Data dell’esame',
   'meas.ga': '{ga} settimane',
@@ -216,27 +216,27 @@ export const en: Record<Key, string> = {
   'footer.disclaimer':
     'NasciTara is a calculation tool, not a medical device. The number that counts is the one on your doctor’s report.',
 
-  'landing.title': 'How much your baby weighs, right now',
+  'landing.title': 'Estimate your baby’s weight and length up to 45 weeks.',
   'landing.lead':
-    'At every scan your doctor estimates a weight. But from a single measurement the error is wide. NasciTara brings together all the scans you’ve had and draws your baby’s own growth curve: how much they weigh today, how long they’ll be, and where they’ll land at birth.',
+    'Explore estimated weight, length and the projection at birth, with a mathematical extension up to week 45. This extension does not predict growth after birth.',
   'landing.how1.title': 'Tell us about the pregnancy',
   'landing.how1.body': 'How far along you are, plus a little about mum and dad.',
   'landing.how2.title': 'Add your scans',
   'landing.how2.body': 'The four measurements on the report. One or ten, it works either way.',
   'landing.how3.title': 'See the curve',
   'landing.how3.body': 'Weight, length and percentile, projected all the way to birth.',
-  'landing.emailLabel': 'Your email',
-  'landing.emailPlaceholder': 'name@example.com',
+  'landing.emailLabel': 'Required e-mail',
+  'landing.emailPlaceholder': 'E-mail',
   'landing.emailHelp': 'We’ll only write to you about NasciTara. Nothing else.',
   'landing.gdpr':
-    'I agree to my email address being processed so I can receive updates about NasciTara. We collect the email only: your pregnancy and scan data stay on your device — never stored, never sent to anyone.',
+    'I consent to my email being collected to count NasciTara users, not for direct marketing. Pregnancy and scan data stay in the browser.',
   'landing.start': 'Start',
   'landing.emailInvalid': 'Check the address — something’s missing.',
   'landing.gdprRequired': 'We need your consent on the email to continue.',
   'landing.skip': 'Continue without leaving your email',
 
   'preg.title': 'Your pregnancy',
-  'preg.lead': 'The week and the date are enough. The rest you can skip.',
+  'preg.lead': 'Pregnancy details and scan measurements are enough to estimate weight and length. Add optional parent details to personalize the reference curve.',
   'preg.section.pregnancy': 'How far along you are',
   'preg.section.pregnancyHint':
     'Today’s week sets the reference: each scan date is then mapped back onto this scale.',

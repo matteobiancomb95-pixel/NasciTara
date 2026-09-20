@@ -33,6 +33,7 @@ ORDER = [
     "lib/trajectory.ts",
     "lib/customCurveGardosiLite.ts",
     "lib/gestationalAge.ts",
+    "lib/nasciTara.ts",
     "lib/analysis.ts",
     "lib/projection.ts",
     "lib/emailSignup.ts",
@@ -44,6 +45,7 @@ ORDER = [
     "pages/LandingPage.tsx",
     "pages/PregnancyPage.tsx",
     "pages/MeasurementsPage.tsx",
+    "components/ParentsContext.tsx",
     "pages/DashboardPage.tsx",
     "components/AppShell.tsx",
     "App.tsx",
@@ -99,7 +101,7 @@ def build() -> str:
         "\n   quindi il render va fatto qui dentro e non da fuori */"
         "\nReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));"
     )
-    source = "\n".join(parts)
+    source = "\n".join(parts).replace("import.meta.env.DEV", "true").replace("import.meta.env.VITE_SUPABASE_URL", "undefined")
 
     return f"""<title>NasciTara</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">

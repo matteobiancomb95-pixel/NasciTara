@@ -1,5 +1,5 @@
 import { DateField, NumberField } from '../components/Field';
-import { IconArrow, IconBack, IconPlus } from '../components/icons';
+import { IconArrow, IconBack, IconPlus, IconTrash } from '../components/icons';
 import { useNasciTara, type ScanState } from '../state/NasciTaraStore';
 import { analyseUltrasound } from '../lib/analysis';
 import { expectedMm, isMeasurePlausible, type MeasureKey } from '../lib/biometry';
@@ -35,7 +35,7 @@ const MEASURES: Array<{
  * misure sulla stessa linea, come sul referto.
  */
 export function MeasurementsPage() {
-  const { state, dispatch, ga, gaValid, completeScans, t, lang } = useNasciTara();
+  const { state, dispatch, completeScans, t } = useNasciTara();
   const total = state.scans.length;
   const canContinue = completeScans >= 1;
 
@@ -82,7 +82,10 @@ export function MeasurementsPage() {
     </div>
   );
 
-  function ScanRow({ scan, index, canRemove }: { scan: ScanState; index: number; canRemove: boolean }) {
+}
+
+function ScanRow({ scan, index, canRemove }: { scan: ScanState; index: number; canRemove: boolean }) {
+    const { state, dispatch, ga, gaValid, t, lang } = useNasciTara();
     const scanGa = gaValid ? gaAtDate(scan.date, state.referenceDate, ga) : NaN;
     const hasGa = Number.isFinite(scanGa);
 
@@ -115,7 +118,7 @@ export function MeasurementsPage() {
               onClick={() => dispatch({ type: 'removeScan', id: scan.id })}
               aria-label={`${t('meas.remove')} — ${t('meas.scan', { n: index + 1 })}`}
             >
-              {t('meas.remove')}
+              <IconTrash />
             </button>
           ) : null}
         </header>
@@ -138,8 +141,7 @@ export function MeasurementsPage() {
               return (
                 <NumberField
                   key={m.key}
-                  label={t(m.short)}
-                  hint={t('meas.onReportShort', { abbr: m.abbr })}
+                  label={`${m.abbr} - ${t(m.full)}`}
                   ariaLabel={`${t(m.full)} (${m.abbr}) — ${t('meas.scan', { n: index + 1 })}`}
                   unit={t('unit.mm')}
                   min={1}
@@ -159,6 +161,14 @@ export function MeasurementsPage() {
           </div>
         </div>
 
+        <div className="scan__maternal">
+          <NumberField
+            label={lang === 'it' ? 'Peso mamma il giorno della visita' : 'Mother’s weight on the scan date'}
+            hint={lang === 'it' ? 'Facoltativo · usato solo nel livello NasciTara' : 'Optional · NasciTara layer only'}
+            unit="kg" min={1} max={300} step={0.1} value={scan.pesoMammaOsservazione}
+            onChange={value => dispatch({ type: 'setScan', id: scan.id, field: 'pesoMammaOsservazione', value })}
+          />
+        </div>
         <div className="scan__foot">
           {result ? (
             <>
@@ -176,4 +186,3 @@ export function MeasurementsPage() {
       </article>
     );
   }
-}

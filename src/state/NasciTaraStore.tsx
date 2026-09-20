@@ -26,6 +26,7 @@ export const PAGE_ORDER: Page[] = ['landing', 'pregnancy', 'measurements', 'dash
 export type NumField = number | '';
 
 export interface ParentsState {
+  motherObservationWeightKg: NumField;
   /** Peso medio della mamma PRIMA della gravidanza, non quello attuale. */
   motherWeightKg: NumField;
   motherHeightCm: NumField;
@@ -36,6 +37,7 @@ export interface ParentsState {
 }
 
 export interface ScanState {
+  pesoMammaOsservazione: NumField;
   id: string;
   date: string;
   hcMm: NumField;
@@ -49,6 +51,7 @@ export interface NasciTaraState {
   page: Page;
   /** Schermata piu' avanzata raggiunta: consente di tornare indietro liberamente. */
   reached: Page;
+  babySex: 'male' | 'female' | '';
   email: string;
   emailConsent: boolean;
   gaWeeks: NumField;
@@ -59,6 +62,7 @@ export interface NasciTaraState {
 }
 
 export type Action =
+  | { type: 'setBabySex'; value: 'male' | 'female' | '' }
   | { type: 'setLang'; value: Lang }
   | { type: 'goTo'; page: Page }
   | { type: 'setEmail'; value: string }
@@ -79,10 +83,11 @@ function newScanId(): string {
 }
 
 function emptyScan(date = ''): ScanState {
-  return { id: newScanId(), date, hcMm: '', acMm: '', flMm: '', bpdMm: '' };
+  return { id: newScanId(), date, pesoMammaOsservazione: '', hcMm: '', acMm: '', flMm: '', bpdMm: '' };
 }
 
 export const EMPTY_PARENTS: ParentsState = {
+  motherObservationWeightKg: '',
   motherWeightKg: '',
   motherHeightCm: '',
   motherAgeYears: '',
@@ -102,6 +107,7 @@ export function emptyState(): NasciTaraState {
     lang: detectLang(),
     page: 'landing',
     reached: 'landing',
+    babySex: '',
     email: '',
     emailConsent: false,
     gaWeeks: '',
@@ -123,6 +129,7 @@ export function demoState(): NasciTaraState {
     gaDays: 2,
     referenceDate: toISO(today),
     parents: {
+      motherObservationWeightKg: '',
       motherWeightKg: 64,
       motherHeightCm: 167,
       motherAgeYears: 34,
@@ -144,6 +151,8 @@ function furthest(a: Page, b: Page): Page {
 
 function reducer(state: NasciTaraState, action: Action): NasciTaraState {
   switch (action.type) {
+    case 'setBabySex':
+      return { ...state, babySex: action.value };
     case 'setLang':
       return { ...state, lang: action.value };
     case 'goTo':
@@ -216,6 +225,7 @@ export function NasciTaraProvider({
 
     const ultrasounds: UltrasoundInput[] = state.scans.map((s) => ({
       id: s.id,
+      pesoMammaOsservazione: n(s.pesoMammaOsservazione),
       date: s.date || null,
       hcMm: n(s.hcMm),
       acMm: n(s.acMm),
@@ -235,6 +245,15 @@ export function NasciTaraProvider({
             fatherHeightCm: n(state.parents.fatherHeightCm),
             fatherWeightKg: n(state.parents.fatherWeightKg),
             fatherAgeYears: n(state.parents.fatherAgeYears),
+          },
+          nasciTaraParents: {
+            pesoPreGravidanzaMamma: n(state.parents.motherWeightKg),
+            pesoMammaOsservazione: n(state.parents.motherObservationWeightKg),
+            altezzaMamma: n(state.parents.motherHeightCm),
+            pesoPapa: n(state.parents.fatherWeightKg),
+            altezzaPapa: n(state.parents.fatherHeightCm),
+            etaMamma: n(state.parents.motherAgeYears),
+            etaPapa: n(state.parents.fatherAgeYears),
           },
           ultrasounds,
         })

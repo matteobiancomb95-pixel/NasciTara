@@ -93,3 +93,7 @@ export function IconLinkedIn() {
     </svg>
   );
 }
+
+export function IconTrash() { return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14M10 11v6M14 11v6" /></svg>; }
+export function IconJourney({kind = 2}: {kind?: number}) { return <svg className="journey-icon" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">{kind === 0 ? <><circle cx="12" cy="6" r="3"/><path d="M8 12c10-3 13 9 4 9H7"/></> : kind === 1 ? <><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M7 15q5-10 10 0M8 8h1"/></> : <><path d="M4 19h16M5 15c7 0 8-9 14-10"/><circle cx="19" cy="5" r="2"/></>}</svg>; }
+export function IconPerson({kind}: {kind: 'male' | 'female'}) { return <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><circle cx="12" cy="6" r="3"/><path d={kind === 'female' ? 'M9 11h6l3 8H6zM10 19v3M14 19v3' : 'M8 22V11h8v11M12 16v6'} /></svg>; }

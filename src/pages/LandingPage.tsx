@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import { Checkbox, EmailField } from '../components/Field';
-import { IconArrow } from '../components/icons';
+import { IconArrow, IconJourney } from '../components/icons';
 import { useNasciTara } from '../state/NasciTaraStore';
 import { saveEmailSignup } from '../lib/emailSignup';
 import type { Lang } from '../i18n';
@@ -19,21 +19,25 @@ export function LandingPage() {
   const { state, dispatch, t } = useNasciTara();
   const [touched, setTouched] = useState(false);
   const [sending, setSending] = useState(false);
+  const [saveError, setSaveError] = useState(false);
 
   const emailFilled = state.email.trim().length > 0;
   const emailValid = EMAIL_RE.test(state.email.trim());
-  const emailError = touched && emailFilled && !emailValid ? t('landing.emailInvalid') : undefined;
+  const emailError = touched && !emailValid ? t('landing.emailInvalid') : undefined;
   const consentMissing = touched && emailFilled && !state.emailConsent;
 
-  // L'email e' facoltativa: chi non la lascia prosegue comunque.
-  const canStart = !emailFilled || (emailValid && state.emailConsent);
+  // Email valida e consenso alla raccolta sono obbligatori.
+  const canStart = emailValid && state.emailConsent;
 
   async function start() {
     setTouched(true);
     if (!canStart) return;
     if (emailFilled && emailValid && state.emailConsent) {
       setSending(true);
-      await saveEmailSignup(state.email.trim(), state.lang);
+      const outcome = await saveEmailSignup(state.email.trim(), state.lang);
+      if (!outcome.saved && !(import.meta.env.DEV && outcome.reason === 'not-configured')) {
+        setSaveError(true); setSending(false); return;
+      }
       setSending(false);
     }
     dispatch({ type: 'goTo', page: 'pregnancy' });
@@ -54,9 +58,7 @@ export function LandingPage() {
             EN
           </button>
         </div>
-        <button type="button" className="btn-text" onClick={() => dispatch({ type: 'loadDemo' })}>
-          {t('landing.demo')}
-        </button>
+
       </div>
 
       <div>
@@ -66,23 +68,28 @@ export function LandingPage() {
 
       <div className="steps">
         <div>
+          <IconJourney kind={0} />
           <div className="steps__title">{t('landing.how1.title')}</div>
           <div className="steps__body">{t('landing.how1.body')}</div>
         </div>
         <div>
+          <IconJourney kind={1} />
           <div className="steps__title">{t('landing.how2.title')}</div>
           <div className="steps__body">{t('landing.how2.body')}</div>
         </div>
         <div>
+          <IconJourney kind={2} />
           <div className="steps__title">{t('landing.how3.title')}</div>
           <div className="steps__body">{t('landing.how3.body')}</div>
         </div>
       </div>
 
       <div className="stack stack--tight">
+        {saveError ? <p role="alert">{state.lang === 'it' ? 'E-mail non salvata. Riprova tra poco.' : 'Email not saved. Please try again.'}</p> : null}
+        {import.meta.env.DEV && !import.meta.env.VITE_SUPABASE_URL ? <p className="fine">Preview locale: l’e-mail è obbligatoria ma non viene salvata finché Supabase non è configurato.</p> : null}
         <EmailField
           label={t('landing.emailLabel')}
-          hint={t('landing.emailHelp')}
+
           placeholder={t('landing.emailPlaceholder')}
           value={state.email}
           error={emailError}
@@ -99,14 +106,14 @@ export function LandingPage() {
       </div>
 
       <div>
-        <button type="button" className="btn btn--block" onClick={start} disabled={sending}>
+        <button type="button" className="btn btn--block" onClick={start} disabled={sending || !canStart}>
           {t('landing.start')}
           <IconArrow />
         </button>
-        <p className="btn-note">{emailFilled ? t('landing.startNote') : t('landing.skip')}</p>
+
       </div>
 
-      <p className="fine">{t('footer.disclaimer')}</p>
+
     </div>
   );
 }

@@ -1010,3 +1010,84 @@ button {
   gap: var(--s4);
   flex-wrap: wrap;
 }
+
+/* NasciTara 0.2 preparation */
+.page-markers {display:flex;justify-content:center;gap:clamp(8px,4vw,40px);padding:12px 10px;background:white}
+.page-markers button {display:flex;align-items:center;gap:6px;border:0;background:none;color:#333;cursor:pointer;font:inherit;font-size:13px;min-height:36px}
+.page-markers span {display:grid;place-items:center;width:25px;height:25px;border:1px solid #ff395c;border-radius:50%}
+.page-markers [aria-current] span {background:#ffa0ae;font-weight:700}
+.page-markers button:disabled {opacity:.4;cursor:default}
+.field input,.field select {background:#fff3f5;border:1px solid #ff395c}
+.field select {width:100%;padding:14px;border-radius:12px;font:inherit;color:#333}
+.field input:hover,.field input:focus {background:#fff3f5}
+.pregnancy-box,.block:has(.parent-fields) {padding:24px;border:1px solid #ff395c;border-radius:18px;background:white}
+.parent-fields {border-top:1px solid #ffa0ae;padding:16px 0}
+.parent-fields summary {display:flex;align-items:center;gap:12px;cursor:pointer;font-weight:600;min-height:44px}
+.parent-fields .field {margin-top:16px}
+.scan {background:#ffa0ae;border:1px solid #ff395c}
+.scan__row {grid-template-columns:repeat(5,minmax(170px,1fr));align-items:start}
+.scan__row .field__label {min-height:54px;display:flex;align-items:end}
+.scan__row .field__box {margin-top:0}
+.scan__remove {min-width:44px;min-height:44px;display:grid;place-items:center}
+.steps {border:0!important;padding-left:0!important}
+.steps>div {border:0!important;position:relative;padding-left:46px}
+.steps>div::before,.steps::before {display:none!important}
+.journey-icon {position:absolute;left:0;top:2px;color:#ffa0ae}
+.disclosure {background:#fff3f5}
+.release {text-align:center;flex:1;color:#555}
+@media(max-width:600px){.footer__inner{flex-wrap:wrap}.release{order:2;flex-basis:100%}.page-markers{gap:5px}.page-markers button{font-size:11px}}
+
+.header {height:auto}
+.main {padding-top:calc(var(--header-h) + 68px + var(--s7))}
+.field-icon {margin-right:8px;vertical-align:middle;color:#bf2341}
+@media(max-width:600px){.main{padding-top:calc(var(--header-h) + 68px + var(--s5))}}
+
+.header__inner {height:var(--header-h)}
+.scan__scroll {overflow-x:auto}
+.scan__row {grid-template-columns:repeat(5,minmax(0,1fr))}
+.scan__row .field__label {min-height:78px}
+.scan__head {background:#ffa0ae}
+.parent-fields summary::after {content:'+';margin-left:auto;font-size:24px;color:#bf2341}
+.parent-fields[open] summary::after {content:'−'}
+@media(max-width:900px){.scan__row{min-width:950px}}
+
+/* v0.3: readable mobile forms, no horizontal scan form, no fixed footer obstruction */
+.parents-context {border:1px solid #ff395c;border-radius:18px;padding:24px;background:#fff3f5}
+.parent-values {margin:0;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.parent-values dt {font-size:14px;color:#555}
+.parent-values dd {margin:2px 0 0;font-weight:600}
+.maternal-history {list-style:none;margin:0;padding:0}
+.maternal-history li {display:flex;gap:12px;justify-content:space-between;flex-wrap:wrap;padding:12px 0;border-top:1px solid #f7bbc5}
+.delta-highlight {font-size:18px}
+.scan__maternal {padding:0 16px 20px;max-width:480px}
+.field,.field__box {min-width:0}
+.field input,.field select {min-width:0;max-width:100%;font-size:16px}
+.footer {position:static;margin-top:auto;padding-bottom:env(safe-area-inset-bottom)}
+.main {padding-bottom:32px}
+.page-markers button,.footer__social a,.back,.btn-text,.lang button {min-height:44px;min-width:44px}
+@media(max-width:900px){
+  .scan__row {min-width:0;grid-template-columns:1fr 1fr}
+  .scan__row>.field:first-child {grid-column:1/-1}
+  .scan__scroll {overflow:visible}
+  .scan__row .field__label {min-height:52px;align-items:center}
+  .scan__row>.field:first-child .field__label {min-height:0}
+}
+@media(max-width:640px){
+  .parents-context,.pregnancy-box,.block:has(.parent-fields) {padding:18px}
+  .parent-values {grid-template-columns:1fr}
+  .controls {display:flex;flex-direction:column;align-items:stretch}
+  .control,.week-slider {width:100%;min-width:0}
+  .page-markers {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;padding:8px}
+  .page-markers button {flex-direction:column;font-size:12px;gap:3px}
+  .main {padding-top:calc(var(--header-h) + 100px)}
+  .chart svg {width:100%;min-width:0;height:auto;touch-action:pan-y}
+  .chart__legend {gap:12px;font-size:13px}
+  .footer__inner {display:grid;grid-template-columns:1fr auto;gap:12px}
+  .release {grid-column:1/-1;grid-row:2;order:0}
+  .btn,.btn-ghost {white-space:normal;text-wrap:balance}
+  .lead,.note,.fine,.field__hint {overflow-wrap:anywhere}
+}
+@media(max-width:360px){.scan__row{grid-template-columns:1fr}.scan__row .field__label{min-height:0}}
+
+/* Contain the page-entry animation without horizontal scrolling. */
+.app-main { overflow-x: clip; }
