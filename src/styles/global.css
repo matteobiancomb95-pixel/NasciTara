@@ -1091,3 +1091,12 @@ button {
 
 /* Contain the page-entry animation without horizontal scrolling. */
 .app-main { overflow-x: clip; }
+
+.report-import {border:1px solid #ff395c;background:#fff3f5;padding:24px;border-radius:24px;min-width:0;}
+.report-review {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start;}
+.report-photo {width:100%;height:auto;max-height:620px;object-fit:contain;background:white;border-radius:12px;}
+.report-import input[type=file] {width:100%;max-width:100%;font-size:16px;min-width:0;}
+.report-import input[type=file]::file-selector-button {padding:12px;border:1px solid #ff395c;border-radius:8px;background:white;cursor:pointer;}
+.report-import progress {width:100%;accent-color:#ff395c;}
+.main {overflow-x:clip;}
+@media(max-width:640px){.report-review{grid-template-columns:1fr}.report-import{padding:16px}.report-photo{max-height:360px}}

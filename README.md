@@ -1,3 +1,11 @@
+## Versione pubblicata 0.5
+
+App: https://nascitara.vercel.app
+
+- Monitoraggio facoltativo delle sessioni e delle fasi: [guida 0.4](docs/release-0.4.md). In Supabase, aprire le viste `usage_session_report` e `usage_funnel`; email dichiarate, non login verificati.
+- Importazione foto referti con OCR locale e conferma obbligatoria: [guida 0.5](docs/release-0.5.md). JPG/PNG/WebP; PDF/HEIC non supportati direttamente. Nessun invio di foto o misure al server.
+- `npm ci`, `npm test`, `npm run build`. `prebuild`/`predev` preparano automaticamente gli asset OCR locali. Non lanciare direttamente Vite senza questo passaggio su una nuova copia.
+
 # NasciTara
 
 Stima il peso, il percentile e la lunghezza del nascituro combinando **tutte** le

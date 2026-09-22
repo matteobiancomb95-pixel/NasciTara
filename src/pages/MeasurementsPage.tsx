@@ -1,3 +1,4 @@
+import { ReportImport } from '../components/ReportImport';
 import { DateField, NumberField } from '../components/Field';
 import { IconArrow, IconBack, IconPlus, IconTrash } from '../components/icons';
 import { useNasciTara, type ScanState } from '../state/NasciTaraStore';
@@ -50,6 +51,7 @@ export function MeasurementsPage() {
         <p className="lead">{t('meas.lead')}</p>
       </div>
 
+      <ReportImport />
       <div className="stack stack--tight">
         {state.scans.map((scan, index) => (
           <ScanRow key={scan.id} scan={scan} index={index} canRemove={total > 1} />

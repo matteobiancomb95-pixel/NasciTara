@@ -1,3 +1,4 @@
+import type { ReportDraft } from '../lib/reportParser';
 import {
   createContext,
   useCallback,
@@ -62,6 +63,7 @@ export interface NasciTaraState {
 }
 
 export type Action =
+  | { type: 'importScan'; scan: ReportDraft }
   | { type: 'setBabySex'; value: 'male' | 'female' | '' }
   | { type: 'setLang'; value: Lang }
   | { type: 'goTo'; page: Page }
@@ -149,8 +151,14 @@ function furthest(a: Page, b: Page): Page {
   return PAGE_ORDER.indexOf(a) >= PAGE_ORDER.indexOf(b) ? a : b;
 }
 
-function reducer(state: NasciTaraState, action: Action): NasciTaraState {
+export function reducer(state: NasciTaraState, action: Action): NasciTaraState {
   switch (action.type) {
+    case 'importScan': {
+      const imported = { ...emptyScan(), ...action.scan };
+      const blank = state.scans.findIndex(s => !s.date && s.hcMm === '' && s.acMm === '' && s.flMm === '' && s.bpdMm === '' && s.pesoMammaOsservazione === '');
+      const scans = blank >= 0 ? state.scans.map((s,i) => i===blank ? {...imported,id:s.id} : s) : [...state.scans, imported];
+      return {...state,scans};
+    }
     case 'setBabySex':
       return { ...state, babySex: action.value };
     case 'setLang':

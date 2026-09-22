@@ -82,7 +82,7 @@ export function AppShell() {
             <small>{t('footer.credits')}</small>
             <small>{t('footer.fiscalCode')}</small>
           </div>
-          <small className="release">NasciTara v0.4</small>
+          <small className="release">NasciTara v0.5</small>
           <div className="footer__social">
             <a href={INSTAGRAM_URL} target="_blank" rel="noreferrer noopener" aria-label={t('footer.instagram')}>
               <IconInstagram />

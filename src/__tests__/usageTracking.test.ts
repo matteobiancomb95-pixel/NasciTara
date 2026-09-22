@@ -11,7 +11,14 @@ describe('usage collection',()=>{
   const t=await import('../lib/usageTracking');t.setUsageConsent(true);t.trackUsage('identify',' Demo@Example.com ');t.trackUsage('measurements');await flush();
   expect(rpc.mock.calls.map((c:any)=>c[1].p_action)).toEqual(['start','identify','measurements']);
   const args=(rpc.mock.calls as any)[1][1];expect(args.p_email).toBe('demo@example.com');
-  expect(Object.keys(args).sort()).toEqual(['p_action','p_email','p_id','p_secret']);
+  expect(Object.keys(args).sort()).toEqual(['p_action','p_email','p_id','p_release','p_secret']);
+ });
+ it('starts a separate session if the declared email changes',async()=>{
+  const t=await import('../lib/usageTracking');t.setUsageConsent(true);t.trackUsage('identify','first@example.com');await flush();
+  const first=(rpc.mock.calls as any)[0][1].p_id;rpc.mockClear();
+  t.trackUsage('identify','second@example.com');await flush();
+  expect(rpc.mock.calls.map((c:any)=>c[1].p_action)).toEqual(['start','identify']);
+  expect((rpc.mock.calls as any)[0][1].p_id).not.toBe(first);
  });
  it('stops on withdrawal and does not send queued events',async()=>{
   const t=await import('../lib/usageTracking');t.setUsageConsent(true);await flush();rpc.mockClear();t.trackUsage('pregnancy');t.setUsageConsent(false);await flush();expect(rpc).not.toHaveBeenCalled();

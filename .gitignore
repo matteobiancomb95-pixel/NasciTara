@@ -18,3 +18,5 @@ _preview.html
 supabase/.temp/
 .vercel
 .env*
+
+public/ocr/
