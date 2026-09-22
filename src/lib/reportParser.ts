@@ -24,7 +24,7 @@ export function parseReport(text: string): ParsedReport {
  // Reject unbounded input and do not interpret document text as instructions.
  const content=text.slice(0,100000);
  for(const field of REPORT_FIELDS){
-  const regex=new RegExp('\\b(?:'+aliases[field]+')\\b[ \\t]*(?:[:=]|[-–])?[ \\t]*(\\d{1,3}(?:[.,]\\d{1,2})?)[ \\t]*(mm|cm)\\b','gi');
+  const regex=new RegExp('\\b(?:'+aliases[field]+')\\b[ \\t]*[:=]?[ \\t]*(\\d{1,3}(?:[.,]\\d{1,2})?)[ \\t]*(mm|cm)\\b','gi');
   const found=[...content.matchAll(regex)];
   const values=[...new Set(found.map(m=>Math.round(Number(m[1].replace(',','.'))*(m[2].toLowerCase()==='cm'?10:1)*100)/100))];
   sources[field]=found.map(m=>m[0]).join(' · ');

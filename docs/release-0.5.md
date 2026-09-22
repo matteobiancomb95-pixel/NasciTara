@@ -12,4 +12,4 @@ Monitoraggio opt-in: import_started, import_confirmed, import_error, senza nome 
 
 Limiti: immagini sfocate, ruotate, manoscritti, tabelle con unità separate o referti con più feti/date possono richiedere inserimento manuale. Verificata su referto sintetico con lettura reale nel browser; non dichiarata una percentuale di accuratezza o validazione clinica. Prossima valutazione: campione anonimizzato di referti reali e formati differenti.
 
-Verifiche: 65 test superati, build riuscita, conversione reale OCR su immagine sintetica e prova browser di conferma/annullamento/formato non supportato. Nessun errore JavaScript o overflow nei risultati a 390 px. Audit delle dipendenze di produzione: zero vulnerabilità rilevate.
+Verifiche: 66 test superati, build riuscita, conversione reale OCR su immagine sintetica e prova browser di conferma/annullamento/formato non supportato. Nessun errore JavaScript o overflow nei risultati a 390 px. Audit delle dipendenze di produzione: zero vulnerabilità rilevate.
