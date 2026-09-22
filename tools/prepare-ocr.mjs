@@ -7,5 +7,5 @@ for(const name of await readdir('node_modules/tesseract.js-core')) {
 }
 await copyFile('node_modules/@tesseract.js-data/eng/4.0.0/eng.traineddata.gz','public/ocr/lang/eng.traineddata.gz');
 
-await copyFile('node_modules/tesseract.js/LICENSE','public/ocr/LICENSE-tesseract.txt');
+await copyFile('node_modules/tesseract.js/LICENSE.md','public/ocr/LICENSE-tesseract.txt');
 await copyFile('node_modules/tesseract.js-core/LICENSE','public/ocr/LICENSE-core.txt');
