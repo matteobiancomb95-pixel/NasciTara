@@ -1,3 +1,4 @@
+import { trackUsage } from '../lib/usageTracking';
 import { useMemo, useState } from 'react';
 
 import { ParentsContext } from '../components/ParentsContext';
@@ -73,8 +74,10 @@ export function DashboardPage() {
     setPdfState('working');
     try {
       await exportResultPdf({ analysis: analysis!, lang, now: new Date() });
+      trackUsage('pdf_download');
       setPdfState('idle');
     } catch {
+      trackUsage('pdf_error');
       setPdfState('error');
     }
   }

@@ -1,3 +1,4 @@
+import { hasUsageConsent, setUsageConsent, trackUsage } from '../lib/usageTracking';
 import { useState } from 'react';
 
 import { Checkbox, EmailField } from '../components/Field';
@@ -17,6 +18,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
  */
 export function LandingPage() {
   const { state, dispatch, t } = useNasciTara();
+  const [tracking, setTracking] = useState(hasUsageConsent);
   const [touched, setTouched] = useState(false);
   const [sending, setSending] = useState(false);
   const [saveError, setSaveError] = useState(false);
@@ -40,6 +42,7 @@ export function LandingPage() {
       }
       setSending(false);
     }
+    trackUsage('identify', state.email);
     dispatch({ type: 'goTo', page: 'pregnancy' });
   }
 
@@ -101,6 +104,11 @@ export function LandingPage() {
           onChange={(v) => dispatch({ type: 'setConsent', value: v })}
         >
           {t('landing.gdpr')}
+        </Checkbox>
+        <Checkbox checked={tracking} onChange={value => { setTracking(value); setUsageConsent(value); }}>
+          {state.lang === 'it'
+            ? 'Facoltativo: acconsento a collegare la mia e-mail alle pagine raggiunte e alle azioni nell’app, per capire dove migliorare. Nessuna misura o foto viene raccolta. Posso disattivarlo tornando qui; i dati di utilizzo sono conservati per 90 giorni.'
+            : 'Optional: I consent to linking my email to pages reached and actions in the app to help improve it. No measurements or photos are collected. I can turn this off by returning here; usage data is kept for 90 days.'}
         </Checkbox>
         {consentMissing ? <p className="field__error">{t('landing.gdprRequired')}</p> : null}
       </div>

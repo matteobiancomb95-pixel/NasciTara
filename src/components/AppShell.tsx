@@ -1,3 +1,4 @@
+import { UsageTracker } from './UsageTracker';
 import { useEffect, useRef } from 'react';
 
 import logoUrl from '../assets/brand/logo-mark.png';
@@ -35,6 +36,7 @@ export function AppShell() {
 
   return (
     <div className="shell">
+      <UsageTracker />
       <header className="header">
         <div className="header__inner">
           <img className="header__logo" src={logoUrl} alt={t('app.name')} width={250} height={256} />
@@ -80,7 +82,7 @@ export function AppShell() {
             <small>{t('footer.credits')}</small>
             <small>{t('footer.fiscalCode')}</small>
           </div>
-          <small className="release">NasciTara v0.3</small>
+          <small className="release">NasciTara v0.4</small>
           <div className="footer__social">
             <a href={INSTAGRAM_URL} target="_blank" rel="noreferrer noopener" aria-label={t('footer.instagram')}>
               <IconInstagram />
