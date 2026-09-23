@@ -38,6 +38,7 @@ interface JsPdfDoc {
   ): void;
   splitTextToSize(text: string, width: number): string[];
   save(filename: string, options?: { returnPromise: boolean }): Promise<void>;
+  output(type: 'datauristring'): string;
   addPage(): void;
 }
 
@@ -63,7 +64,7 @@ export interface PdfInput {
   now: Date;
 }
 
-export async function exportResultPdf({ analysis, lang, now }: PdfInput): Promise<string> {
+async function buildResultPdf({ analysis, lang, now }: PdfInput): Promise<JsPdfDoc> {
   const JsPDF = await resolveJsPdf();
   const doc = new JsPDF({ unit: 'mm', format: 'a4' });
   const t = (k: Parameters<typeof translate>[1], v?: Record<string, string | number>) =>
@@ -233,7 +234,13 @@ export async function exportResultPdf({ analysis, lang, now }: PdfInput): Promis
     y += lines.length * 3.6 + 3;
   }
 
-  const filename = pdfFilename(now);
-  await doc.save(filename, { returnPromise: true });
-  return filename;
+  return doc;
+}
+
+export async function exportResultPdf(input:PdfInput):Promise<string> {
+ const doc=await buildResultPdf(input);const filename=pdfFilename(input.now);
+ await doc.save(filename,{returnPromise:true});return filename;
+}
+export async function resultPdfBase64(input:PdfInput):Promise<string> {
+ const doc=await buildResultPdf(input);return doc.output('datauristring').split(',')[1];
 }

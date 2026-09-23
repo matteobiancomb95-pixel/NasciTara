@@ -5,6 +5,12 @@ describe('report extraction',()=>{
  it('reads explicit mm and cm, decimal comma and Italian aliases',()=>{
   expect(parseReport('Data esame: 14/09/2026\nCC 29,8 cm\nCA: 285 mm\nLF 6.2 cm\nDBP 83 mm').draft).toEqual({date:'2026-09-14',hcMm:298,acMm:285,flMm:62,bpdMm:83});
  });
+ it('reads multiline ultrasound overlays and units before values',()=>{
+  expect(parseReport('HC\n298\nmm\nAC (mm): 285\nFL1 = 6.2 c m\nBPD\n83 mm').draft).toEqual({...EMPTY_REPORT,hcMm:298,acMm:285,flMm:62,bpdMm:83});
+ });
+ it('does not pair a missing value with another measurement label',()=>{
+  expect(parseReport('HC\nAC 285 mm\nFL (cm) -6.2').draft).toEqual({...EMPTY_REPORT,acMm:285});
+ });
  it('does not infer units, birth dates, percentiles or estimated weights',()=>{
   expect(parseReport('Data nascita 01/01/1990\nEFW 2204 g\nHC 298\nAC 47%\nFL 32w\nBPD 83').draft).toEqual(EMPTY_REPORT);
  });

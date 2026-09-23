@@ -1,3 +1,4 @@
+import { ScreeningDelivery } from '../components/ScreeningDelivery';
 import { trackUsage } from '../lib/usageTracking';
 import { useMemo, useState } from 'react';
 
@@ -19,7 +20,7 @@ import { coverageKey, formatDecimal, localeOf } from '../i18n';
  * blocco richiudibile in fondo.
  */
 export function DashboardPage() {
-  const { analysis, state, dispatch, t, lang } = useNasciTara();
+  const { analysis, state, dispatch, t, lang, newScreening } = useNasciTara();
   const [metric, setMetric] = useState<Metric>('weight');
   const [pdfState, setPdfState] = useState<'idle' | 'working' | 'error'>('idle');
 
@@ -84,6 +85,7 @@ export function DashboardPage() {
 
   return (
     <div className="col col--wide stack--loose stack">
+      <ScreeningDelivery />
       <div>
         <button
           type="button"
@@ -264,7 +266,7 @@ export function DashboardPage() {
         </p>
       </div>
 
-      <button type="button" className="btn-text" onClick={() => dispatch({ type: 'reset' })}>
+      <button type="button" className="btn-text" onClick={newScreening}>
         {t('dash.restart')}
       </button>
     </div>

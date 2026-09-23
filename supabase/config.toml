@@ -1,0 +1,4 @@
+project_id = "wgvsclworxvtuepxbmmg"
+[functions.send-screening]
+# JWT is verified inside the function via auth.getUser; supports current signing keys.
+verify_jwt = false

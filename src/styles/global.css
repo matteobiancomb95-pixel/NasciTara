@@ -1100,3 +1100,20 @@ button {
 .report-import progress {width:100%;accent-color:#ff395c;}
 .main {overflow-x:clip;}
 @media(max-width:640px){.report-review{grid-template-columns:1fr}.report-import{padding:16px}.report-photo{max-height:360px}}
+
+/* NasciTara 0.51: device history and photo actions. */
+.profile-bar {max-width:1100px;margin:auto;padding:0 var(--gutter) 8px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.profile-button,.photo-button {display:inline-flex;align-items:center;justify-content:center;gap:10px;border:1px solid #ff395c;border-radius:14px;padding:12px 18px;background:#fff3f5;color:#333;font:600 16px var(--font);min-height:44px;cursor:pointer}
+.profile-button {padding:6px 12px;font-size:14px}
+.photo-button--camera {background:#ffa0ae}
+.photo-actions {display:flex;flex-wrap:wrap;gap:12px}
+.photo-button:disabled {opacity:.6;cursor:wait}
+.ocr-text {white-space:pre-wrap;overflow-wrap:anywhere;max-height:220px;overflow:auto;font-size:14px}
+.screening-dialog {width:min(640px,calc(100vw - 24px));max-height:90dvh;border:1px solid #ff395c;border-radius:24px;padding:24px;color:#333;background:white;overflow:auto}
+.screening-dialog::backdrop {background:rgba(30,20,25,.4)}
+.screening-dialog p {margin:12px 0}
+.account-panel,.screening-card,.delivery-status {border:1px solid #ff395c;background:#fff3f5;border-radius:16px;padding:16px;margin:16px 0;overflow-wrap:anywhere}
+.account-panel input {display:block;width:100%;padding:12px;font:inherit;border:1px solid #ff395c;background:white;border-radius:8px;box-sizing:border-box}
+.screening-list {margin:20px 0}
+.main {padding-top:calc(var(--header-h) + 124px + var(--s5))}
+@media(max-width:600px){.photo-actions>.photo-button{flex:1 1 180px}.screening-dialog{padding:16px}.profile-bar{padding-bottom:8px}.screening-card .photo-actions{gap:6px}}
