@@ -23,6 +23,7 @@ const INSTAGRAM_URL = 'https://www.instagram.com/nascitara?stkn=MWo4ZDJzcW45enYz
 export function AppShell() {
   const { state, dispatch, t } = useNasciTara();
   const mainRef = useRef<HTMLElement>(null);
+  const navRef=useRef<HTMLElement>(null);
   const headerRef = useRef<HTMLElement>(null);
 
   const index = PAGE_ORDER.indexOf(state.page);
@@ -47,6 +48,11 @@ export function AppShell() {
     mainRef.current?.focus({ preventScroll: true });
   }, [state.page]);
 
+  useEffect(()=>{
+    const nav=navRef.current;const active=nav?.querySelector<HTMLButtonElement>('[aria-current="step"]');
+    if(nav&&active)nav.scrollTo({left:active.offsetLeft-(nav.clientWidth-active.offsetWidth)/2,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
+  },[state.page]);
+
   return (
     <div className="shell">
       <UsageTracker />
@@ -55,7 +61,6 @@ export function AppShell() {
           {/* Logo e area riservata nella stessa colonna: l'icona resta centrata sotto il logo per costruzione. */}
           <div className="header__brand">
             <img className="header__logo" src={logoUrl} alt={t('app.name')} width={250} height={256} />
-            <MyScreenings />
           </div>
           <img className="header__wordmark" src={wordmarkUrl} alt={t('app.name')} width={640} height={110} />
         </div>
@@ -69,14 +74,18 @@ export function AppShell() {
         >
           <div className="progress__fill" style={{ width: `${progress}%` }} />
         </div>
-        <nav className="page-markers" aria-label="Pagine">
+        <div className="header__navigation"><MyScreenings />
+        <nav ref={navRef} className="page-markers" aria-label={state.lang==='it'?'Percorso dello screening':'Screening steps'}>
+          <div className="wizard-track">
+          <span className="wizard-thumb" aria-hidden="true" style={{transform:`translateX(${index*100}%)`}} />
           {PAGE_ORDER.map((page, n) => <button key={page} type="button"
             disabled={n > PAGE_ORDER.indexOf(state.reached)}
             aria-current={state.page === page ? 'step' : undefined}
             onClick={() => dispatch({ type: 'goTo', page })}>
             <span>{n + 1}</span>{(state.lang === 'it' ? ['Inizio', 'Gravidanza', 'Ecografie', 'Risultati'] : ['Start', 'Pregnancy', 'Scans', 'Results'])[n]}
           </button>)}
-        </nav>
+          </div>
+        </nav></div>
       </header>
 
       <main

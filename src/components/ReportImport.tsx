@@ -1,3 +1,4 @@
+import { prepareReportFile } from '../lib/reportImageFile';
 import { useEffect, useRef, useState } from 'react';
 import { Checkbox, DateField, NumberField } from './Field';
 import { useNasciTara } from '../state/NasciTaraStore';
@@ -13,33 +14,41 @@ export function ReportImport(){
  const [busy,setBusy]=useState(false);const [progress,setProgress]=useState(0);
  const [preview,setPreview]=useState('');const [parsed,setParsed]=useState<ParsedReport|null>(null);
  const [draft,setDraft]=useState<ReportDraft>({...EMPTY_REPORT});const [confirmed,setConfirmed]=useState(false);
- const [error,setError]=useState('');const [done,setDone]=useState(false);
+ const [error,setError]=useState('');const dateArea=useRef<HTMLDivElement>(null);const [done,setDone]=useState(false);
  const controller=useRef<AbortController|null>(null);const job=useRef(0);const url=useRef('');
  const cameraInput=useRef<HTMLInputElement>(null);
  const fileInput=useRef<HTMLInputElement>(null);
- const clear=()=>{
+ const clear=(resetInputs=true)=>{
   job.current++;controller.current?.abort();controller.current=null;
   if(url.current)URL.revokeObjectURL(url.current);url.current='';setPreview('');
   setRecognizedText('');setBusy(false);setParsed(null);setDraft({...EMPTY_REPORT});setConfirmed(false);setError('');
-  if(fileInput.current)fileInput.current.value='';
-  if(cameraInput.current)cameraInput.current.value='';
+  if(resetInputs&&fileInput.current)fileInput.current.value='';
+  if(resetInputs&&cameraInput.current)cameraInput.current.value='';
  };
  useEffect(()=>()=>{job.current++;controller.current?.abort();if(url.current)URL.revokeObjectURL(url.current);},[]);
  async function read(file?:File){
-  clear();setDone(false);if(!file)return;
-  if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>12*1024*1024){
-   setError(it?'Scegli una foto JPG, PNG o WebP fino a 12 MB. Per HEIC o PDF usa uno screenshot della sezione delle misure.':'Choose JPG, PNG or WebP up to 12 MB. For HEIC or PDF use a screenshot of the measurements.');return;
-  }
-  const current=job.current;controller.current=new AbortController();
-  url.current=URL.createObjectURL(file);setPreview(url.current);setBusy(true);setProgress(0);trackUsage('import_started');
+  clear(false);setDone(false);if(!file)return;
+  const current=job.current;controller.current=new AbortController();setBusy(true);setProgress(0);trackUsage('import_started');
   try{
-   const text=await readReportImage(file,controller.current.signal,n=>{if(current===job.current)setProgress(n);});
+   const prepared=await prepareReportFile(file);
+   if(current!==job.current)return;
+   url.current=URL.createObjectURL(prepared);setPreview(url.current);
+   const text=await readReportImage(prepared,controller.current!.signal,n=>{if(current===job.current)setProgress(n);});
    if(current!==job.current)return;
    setRecognizedText(text);const result=parseReport(text);setParsed(result);setDraft(result.draft);
-  }catch{
+  }catch(cause){
    if(current!==job.current)return;
-   setError(it?'Non riesco a leggere questa foto. Prova un ritaglio nitido, diritto e ben illuminato, oppure inserisci i dati a mano.':'Unable to read this photo. Try a clear, upright crop or enter the values manually.');trackUsage('import_error');
-  }finally{if(current===job.current)setBusy(false);}
+   const code=cause instanceof Error?cause.message:'';
+   if(code==='image-decode'){if(url.current)URL.revokeObjectURL(url.current);url.current='';setPreview('');}
+   const messages:Record<string,[string,string]>={
+    'file-size':['La foto supera 12 MB. Esporta una copia più leggera o ritaglia le misure.','The image exceeds 12 MB. Export a smaller copy or crop the measurements.'],
+    'file-read':['Il file non è accessibile. Scaricalo prima sul computer, poi selezionalo di nuovo.','The file is not accessible. Download it to your computer first, then select it again.'],
+    'file-format':['Il contenuto non è un PNG, JPG o WebP valido, anche se il nome termina con .png. Esporta una nuova copia o uno screenshot.','The file content is not a valid PNG, JPG or WebP. Export a new copy or screenshot.'],
+    'image-decode':['Il browser non riesce ad aprire questa immagine. Prova a esportarla di nuovo come PNG o JPG.','The browser cannot open this image. Try exporting it again as PNG or JPG.'],
+    'too-large':['La foto supera 24 megapixel. Ritaglia la sola sezione delle misure.','The image exceeds 24 megapixels. Crop the measurements section.'],
+   };
+   setError((messages[code]??['Lettura non riuscita. Controlla la connessione e riprova, oppure inserisci i valori a mano.','Reading failed. Check your connection and try again, or enter the values manually.'])[it?0:1]);trackUsage('import_error');
+  }finally{if(current===job.current){setBusy(false);if(fileInput.current)fileInput.current.value='';if(cameraInput.current)cameraInput.current.value='';}}
  }
  // Everything the reader had to decide is spelled out next to the field, so the review is informed.
  const notes=(field:ReportField)=>{
@@ -54,7 +63,9 @@ export function ReportImport(){
  const hasValues=REPORT_FIELDS.some(f=>draft[f]!=='');
  const valid=REPORT_FIELDS.every(f=>validReportValue(f,draft[f]));
  const apply=()=>{
-  if(!confirmed||!dateValid||!hasValues||!valid||busy)return;
+  if(busy)return;
+  if(!dateValid){dateArea.current?.scrollIntoView({block:'center',behavior:'smooth'});dateArea.current?.querySelector('input')?.focus({preventScroll:true});return;}
+  if(!confirmed||!hasValues||!valid)return;
   dispatch({type:'importScan',scan:{...draft}});trackUsage('import_confirmed');clear();setDone(true);
  };
  return <section className="report-import stack" aria-label={it?'Importa referto':'Import report'}>
@@ -79,17 +90,21 @@ export function ReportImport(){
     <h3 className="h2">{it?'Verifica i dati letti':'Review extracted values'}</h3>
     <p className="note">{it?'I campi vuoti non sono stati riconosciuti o contengono valori discordanti. Puoi correggere o completare tutto qui. La data deve essere quella della visita, non di nascita.':'Empty fields were not recognized or contain conflicting values. Correct or complete them here. Use the exam date, not the date of birth.'}</p>
     {parsed.inferred.length>0&&<p className="note report-inferred">{it?'Per alcune misure non è stata riconosciuta l’unità. NasciTara propone mm o cm in base al valore (per esempio 7,7 interpretato come cm → 77 mm). Verifica la conversione e le eventuali note a mano prima di confermare.':'Units were not recognized for some measurements. NasciTara proposes mm or cm based on the value (e.g. 7.7 interpreted as cm → 77 mm). Check the conversion and any handwritten notes before confirming.'}</p>}
-    <DateField label={it?'Data esame da confermare':'Exam date to confirm'} value={draft.date} max={state.referenceDate} onChange={date=>{setDraft(d=>({...d,date}));setConfirmed(false);}}/>
     {REPORT_FIELDS.map(field=><NumberField key={field} label={LABELS[field][it?0:1]} unit="mm" step={0.1} value={draft[field]}
       hint={parsed.sources[field]?(it?'Testo letto: ':'Extracted text: ')+parsed.sources[field]:undefined}
       footnote={notes(field)}
       onChange={value=>{setDraft(d=>({...d,[field]:value}));setConfirmed(false);}}/>)}
+    <div className="report-confirm" ref={dateArea}>
+    <div className="report-confirm__title">{it?'Ultimo controllo prima di importare':'Final check before importing'}</div>
+    <DateField label={it?'Data di questa ecografia':'Date of this scan'} value={draft.date} max={state.referenceDate} onChange={date=>{setDraft(d=>({...d,date}));setConfirmed(false);}}/>
+    {!dateValid&&<p className="validation-hint" role="status">{!draft.date?(it?'Manca la data della visita: inseriscila qui per poter usare le misure.':'The exam date is missing: enter it here to use the measurements.'):!validReportDate(draft.date)?(it?'Inserisci una data valida.':'Enter a valid date.'):(it?'La visita è successiva alla data di riferimento della gravidanza ('+state.referenceDate+'). Controlla entrambe le date.':'This scan is later than the pregnancy reference date ('+state.referenceDate+'). Check both dates.')}</p>}
     <Checkbox checked={confirmed} onChange={setConfirmed}>{it?'Ho confrontato data, valori e unità con il referto.':'I checked the date, values and units against the report.'}</Checkbox>
-    <button type="button" className="btn" disabled={!confirmed||!dateValid||!hasValues||!valid} onClick={apply}>{it?'Usa i dati verificati':'Use reviewed values'}</button>
+    <button type="button" className="btn" disabled={!confirmed||!hasValues||!valid} onClick={apply}>{!dateValid?(it?'Completa la data della visita':'Enter the exam date'):(it?'Usa i dati verificati':'Use reviewed values')}</button>
     <p className="fine">{it?'Serve una data valida e almeno una misura. Le ecografie incomplete restano escluse dal calcolo. Una visita già compilata non viene sovrascritta.':'A valid date and at least one measurement are required. Incomplete scans stay excluded from calculations. Existing measurements are not overwritten.'}</p>
+    </div>
    </div>}
   </div>}
-  {preview&&<button type="button" className="btn-ghost" onClick={clear}>{it?'Annulla e rimuovi foto':'Cancel and remove photo'}</button>}
+  {preview&&<button type="button" className="btn-ghost" onClick={()=>clear()}>{it?'Annulla e rimuovi foto':'Cancel and remove photo'}</button>}
   {done&&<p role="status">{it?'Dati aggiunti alle ecografie. Puoi caricare un’altra foto.':'Values added to your scans. You can load another photo.'}</p>}
  </section>;
 }

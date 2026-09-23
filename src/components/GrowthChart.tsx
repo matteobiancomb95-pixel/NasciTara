@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { AnalysisResult } from '../lib/analysis';
 import {
@@ -35,8 +35,11 @@ interface Props {
  */
 export function GrowthChart({ analysis, metric, selectedWeek }: Props) {
   const { t, lang, state } = useNasciTara();
+  const scrollRef=useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [hover, setHover] = useState<ProjectionPoint | null>(null);
+
+  useEffect(()=>setHover(null),[selectedWeek,metric]);
 
   const geom = useMemo(() => {
     const series = buildProjection(analysis, 0.25, PROJECTION_MAX_WEEKS);
@@ -99,6 +102,10 @@ export function GrowthChart({ analysis, metric, selectedWeek }: Props) {
     return { series, gaMin, gaMax, X, Y, bandPath: bandPath(), medianPath, solid, dashed, yTicks, xTicks, observed, vMax };
   }, [analysis, metric]);
 
+  useEffect(()=>{
+    const scroll=scrollRef.current,svg=svgRef.current;
+    if(scroll&&svg)scroll.scrollTo({left:geom.X(selectedWeek)/C.w*svg.getBoundingClientRect().width-scroll.clientWidth/2,behavior:'auto'});
+  },[selectedWeek,geom]);
   const { X, Y } = geom;
   // Il valore esatto all'epoca scelta, non il campione piu' vicino: altrimenti
   // il grafico mostrerebbe un numero leggermente diverso da quello in evidenza.
@@ -122,7 +129,7 @@ export function GrowthChart({ analysis, metric, selectedWeek }: Props) {
 
   return (
     <figure className="chart">
-      <svg
+      <div className="chart__scroll" ref={scrollRef}><svg
         ref={svgRef}
         viewBox={`0 0 ${C.w} ${C.h}`}
         role="img"
@@ -131,7 +138,7 @@ export function GrowthChart({ analysis, metric, selectedWeek }: Props) {
         onMouseLeave={() => setHover(null)}
         onTouchStart={(e) => onMove(e.touches[0].clientX)}
         onTouchMove={(e) => onMove(e.touches[0].clientX)}
-        onTouchEnd={() => setHover(null)}
+        onTouchCancel={() => setHover(null)}
       >
         {/* zona di estrapolazione: oltre la 42a settimana non c'e' piu' un riferimento */}
         <rect
@@ -253,9 +260,9 @@ export function GrowthChart({ analysis, metric, selectedWeek }: Props) {
           fill="transparent"
           style={{ cursor: 'crosshair' }}
         />
-      </svg>
+      </svg></div>
 
-      <div className="chart__readout">
+      <div className="chart__readout" aria-live="polite">
         <strong>{t('dash.tooltipWeek', { ga: formatGA(shown.ga) })}</strong>
         {' · '}
         {t('dash.weight')} {formatMetric(shown.efw, 'weight', lang)}

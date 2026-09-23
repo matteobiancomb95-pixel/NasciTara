@@ -1,3 +1,4 @@
+import { ResultIcon } from '../components/ResultIcon';
 import { ScreeningDelivery } from '../components/ScreeningDelivery';
 import { trackUsage } from '../lib/usageTracking';
 import { useMemo, useState } from 'react';
@@ -84,8 +85,7 @@ export function DashboardPage() {
   }
 
   return (
-    <div className="col col--wide stack--loose stack">
-      <ScreeningDelivery />
+    <div className="col col--wide stack--loose stack results-page">
       <div>
         <button
           type="button"
@@ -141,8 +141,8 @@ export function DashboardPage() {
         </div>
       </div>
 
-      {/* ---- il numero, senza contenitore ---- */}
-      <div>
+      <div className="result-hero">
+        <div className="result-eyebrow"><ResultIcon kind={metric==='weight'?'weight':'length'}/><span>{isToday?(lang==='it'?'La stima di oggi':'Today’s estimate'):(lang==='it'?'La tua proiezione':'Your projection')} · {formatGA(selectedGa)} {lang==='it'?'settimane':'weeks'}</span></div>
         <div className="hero-number">
           {metric === 'weight'
             ? Math.round(at.efw).toLocaleString(loc)
@@ -163,7 +163,12 @@ export function DashboardPage() {
         {at.isExtrapolated ? <p className="caution">{t('dash.extrapolationNote')}</p> : null}
       </div>
 
-      {/* ---- il percentile come frase, mai come numero isolato ---- */}
+      <div className="result-metrics">
+       <div className="result-tile"><ResultIcon kind="length"/><span>{t('dash.length')}</span><strong>{formatDecimal(at.lengthCm,1,lang)} <small>cm</small></strong></div>
+       <div className="result-tile"><ResultIcon kind="percentile"/><span>{t('dash.percentile')}</span><strong>{Math.round(at.pct)}<small>°</small></strong></div>
+       <div className="result-tile"><ResultIcon kind="growth"/><span>{lang==='it'?'Ecografie complete':'Complete scans'}</span><strong>{analysis.points.length}</strong></div>
+      </div>
+      {/* Percentile interpreted in context. */}
       <div className="block">
         <p className="sentence">
           {t('dash.percentileBefore', { ga: sliderWeek })} <strong>{Math.round(at.pct)}</strong>{' '}
@@ -171,12 +176,17 @@ export function DashboardPage() {
         </p>
       </div>
 
-      <GrowthChart analysis={analysis} metric={metric} selectedWeek={selectedGa} />
+      <section className="growth-panel">
+       <div className="result-eyebrow"><ResultIcon kind="growth"/><h2 className="h2">{lang==='it'?'La crescita, un’ecografia alla volta':'Growth, one scan at a time'}</h2></div>
+       <p className="note">{lang==='it'?'Tocca la curva per esplorarla; su telefono puoi scorrere il grafico lateralmente. Il tratteggio indica la proiezione, i punti le ecografie inserite.':'Touch the curve to explore it; on your phone, scroll the chart sideways. Dashes show the projection; dots show your scans.'}</p>
+       <div className="chart-shortcuts"><button type="button" onClick={()=>setWeek(null)} aria-pressed={isToday}>{t('dash.today')}</button><button type="button" onClick={()=>setWeek(40)} aria-pressed={week===40}>{lang==='it'?'40 settimane':'40 weeks'}</button></div>
+       <GrowthChart analysis={analysis} metric={metric} selectedWeek={selectedGa} />
+      </section>
 
       {/* ---- proiezione alla nascita e curva personalizzata ---- */}
       <div className="grid-2">
-        <div className="stack stack--tight">
-          <h2 className="h2">{t('dash.atBirth')}</h2>
+        <div className="stack stack--tight result-card">
+          <ResultIcon kind="birth"/><h2 className="h2">{t('dash.atBirth')}</h2>
           <p className="sentence">
             <strong>{formatDecimal(analysis.term.efw / 1000, 2, lang)}</strong> {t('unit.kg')} ·{' '}
             {Math.round(analysis.lengthTerm.cm)} {t('unit.cm')}
@@ -188,8 +198,8 @@ export function DashboardPage() {
             })}
           </p>
         </div>
-        <div className="stack stack--tight">
-          <h2 className="h2">{t('dash.custom')}</h2>
+        <div className="stack stack--tight result-card">
+          <ResultIcon kind="percentile"/><h2 className="h2">{t('dash.custom')}</h2>
           <p className="sentence">
             <strong>{Math.round(analysis.now.pctc)}</strong>
             {t('dash.customUnit')}
@@ -203,6 +213,7 @@ export function DashboardPage() {
         </div>
       </div>
 
+      <ScreeningDelivery />
       <ParentsContext analysis={analysis} selectedGa={selectedGa} />
 
       {/* ---- tutto il gergo, in un solo blocco richiudibile ---- */}

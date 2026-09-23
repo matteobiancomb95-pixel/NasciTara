@@ -1,3 +1,4 @@
+import { decodeReportFile } from './reportImageFile';
 import { parseReport, rowsFromWords, REPORT_FIELDS, type OcrWord } from './reportParser';
 import { flattenBackground } from './ocrImage';
 import type { Worker } from 'tesseract.js';
@@ -12,14 +13,14 @@ export async function readReportImage(file: File, signal: AbortSignal, progress:
  const cancelled=new Promise<never>((_,reject)=>{rejectAbort=reject;});
  signal.addEventListener('abort',abort,{once:true});
  const run=async()=>{
-  const bitmap=await createImageBitmap(file);
+  const bitmap=await decodeReportFile(file,signal);
   if(bitmap.width*bitmap.height>24000000){bitmap.close();throw new Error('too-large');}
   // About 2000 px on the long side keeps printed text at a size Tesseract reads well; small screenshots are enlarged.
   const canvas=document.createElement('canvas');
   const scale=Math.min(2,2000/Math.max(bitmap.width,bitmap.height));
   canvas.width=Math.round(bitmap.width*scale);canvas.height=Math.round(bitmap.height*scale);
   const ctx=canvas.getContext('2d',{willReadFrequently:true});if(!ctx){bitmap.close();throw new Error('canvas');}
-  ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);bitmap.close();
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(bitmap.source,0,0,canvas.width,canvas.height);bitmap.close();
   const original=ctx.getImageData(0,0,canvas.width,canvas.height);
   if(signal.aborted||stopped)throw new Error('cancelled');
   const count=(text:string)=>{const r=parseReport(text);return REPORT_FIELDS.filter(f=>r.draft[f]!=='').length;};
