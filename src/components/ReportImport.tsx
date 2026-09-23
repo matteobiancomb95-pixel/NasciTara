@@ -5,7 +5,7 @@ import { EMPTY_REPORT, REPORT_FIELDS, parseReport, validReportDate, validReportV
 import { readReportImage } from '../lib/readReportImage';
 import { trackUsage } from '../lib/usageTracking';
 
-const LABELS:Record<ReportField,[string,string]>={hcMm:['HC · Circonferenza cranica','HC · Head circumference'],acMm:['AC · Circonferenza addominale','AC · Abdominal circumference'],flMm:['FL · Lunghezza femore','FL · Femur length'],bpdMm:['BPD · Diametro biparietale','BPD · Biparietal diameter']};
+const LABELS:Record<ReportField,[string,string]>={hcMm:['HC / CC · Circonferenza cranica','HC · Head circumference'],acMm:['AC / CA · Circonferenza addominale','AC · Abdominal circumference'],flMm:['FL / LF · Lunghezza femore','FL · Femur length'],bpdMm:['BPD / DBP · Diametro biparietale','BPD · Biparietal diameter']};
 export function ReportImport(){
  const {state,dispatch,lang}=useNasciTara();
  const it=lang==='it';
@@ -41,6 +41,15 @@ export function ReportImport(){
    setError(it?'Non riesco a leggere questa foto. Prova un ritaglio nitido, diritto e ben illuminato, oppure inserisci i dati a mano.':'Unable to read this photo. Try a clear, upright crop or enter the values manually.');trackUsage('import_error');
   }finally{if(current===job.current)setBusy(false);}
  }
+ // Everything the reader had to decide is spelled out next to the field, so the review is informed.
+ const notes=(field:ReportField)=>{
+  if(!parsed)return undefined;
+  const list:string[]=[];
+  if(!validReportValue(field,draft[field]))list.push(it?'Controlla valore e unità.':'Check value and unit.');
+  if(parsed.ambiguous.includes(field))list.push(it?'Letti valori discordanti o non plausibili: inserisci il valore a mano.':'Conflicting or implausible values: enter the value manually.');
+  if(parsed.others[field].length&&draft[field]===parsed.draft[field])list.push((it?'Sulla stessa riga c’è anche ':'The same line also shows ')+parsed.others[field].join(', ')+(it?' (forse una nota a mano): controlla quale valore usare.':' (maybe a handwritten note): check which value to use.'));
+  return list.length?list.join(' '):undefined;
+ };
  const dateValid=validReportDate(draft.date)&&draft.date<=state.referenceDate;
  const hasValues=REPORT_FIELDS.some(f=>draft[f]!=='');
  const valid=REPORT_FIELDS.every(f=>validReportValue(f,draft[f]));
@@ -59,20 +68,21 @@ export function ReportImport(){
     <input hidden aria-label="Scegli foto referto" ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>void read(e.target.files?.[0])}/>
     <input hidden aria-label="Scatta foto referto" ref={cameraInput} type="file" accept="image/*" capture="environment" onChange={e=>void read(e.target.files?.[0])}/>
   </div>
-  <p className="fine">JPG, PNG, WebP · max 12 MB · {it?'Inquadra le sigle HC, AC, FL, BPD e i relativi valori. Se sono piccoli, ritaglia la foto prima di caricarla.':'Frame HC, AC, FL, BPD and their values. Crop small text before uploading.'}</p>
+  <p className="fine">JPG, PNG, WebP · max 12 MB · {it?'Inquadra le sigle (HC o CC, AC o CA, FL o LF, BPD o DBP) con i relativi valori, con la pagina dritta e senza riflessi.':'Frame HC, AC, FL, BPD and their values, with the page straight and without glare.'}</p>
   {busy&&<div role="status"><p>{it?'Lettura in corso…':'Reading…'} {progress}%</p><progress max="100" value={progress} aria-label={it?'Lettura foto':'Reading photo'}/></div>}
   {error&&<p role="alert">{error}</p>}
   {preview&&<div className="report-review">
    <div><img src={preview} alt={it?'Foto del referto da confrontare con i valori':'Report photo to compare with the values'} className="report-photo"/></div>
    {parsed&&<div className="stack">
     {!REPORT_FIELDS.some(f=>parsed.draft[f]!=='')&&<p role="status">{it?'Nessuna misura riconosciuta. Prova un ritaglio più vicino dei numeri: l’immagine del bebè da sola non contiene le quattro misure necessarie. Puoi anche compilare i campi qui sotto.':'No measurements recognized. Try a closer crop of the numbers, or fill the fields below.'}</p>}
-    <details><summary>{it?'Controlla il testo riconosciuto':'Review recognized text'}</summary><p>{it?'Il lettore non deduce valori o unità mancanti.':'Missing values or units are not inferred.'}</p><pre className="ocr-text">{recognizedText}</pre></details>
+    <details><summary>{it?'Controlla il testo riconosciuto':'Review recognized text'}</summary><p>{it?'Il lettore non inventa misure. Se manca l’unità, propone una conversione in mm da verificare.':'The reader does not invent measurements. When a unit is missing, it proposes a conversion to mm for you to review.'}</p><pre className="ocr-text">{recognizedText}</pre></details>
     <h3 className="h2">{it?'Verifica i dati letti':'Review extracted values'}</h3>
-    <p className="note">{it?'I campi vuoti non sono stati riconosciuti con unità esplicite o contengono valori discordanti. Puoi correggere o completare tutto qui. La data deve essere quella della visita, non di nascita.':'Empty fields were not found with explicit units or contain conflicting values. Correct or complete them here. Use the exam date, not the date of birth.'}</p>
+    <p className="note">{it?'I campi vuoti non sono stati riconosciuti o contengono valori discordanti. Puoi correggere o completare tutto qui. La data deve essere quella della visita, non di nascita.':'Empty fields were not recognized or contain conflicting values. Correct or complete them here. Use the exam date, not the date of birth.'}</p>
+    {parsed.inferred.length>0&&<p className="note report-inferred">{it?'Per alcune misure non è stata riconosciuta l’unità. NasciTara propone mm o cm in base al valore (per esempio 7,7 interpretato come cm → 77 mm). Verifica la conversione e le eventuali note a mano prima di confermare.':'Units were not recognized for some measurements. NasciTara proposes mm or cm based on the value (e.g. 7.7 interpreted as cm → 77 mm). Check the conversion and any handwritten notes before confirming.'}</p>}
     <DateField label={it?'Data esame da confermare':'Exam date to confirm'} value={draft.date} max={state.referenceDate} onChange={date=>{setDraft(d=>({...d,date}));setConfirmed(false);}}/>
     {REPORT_FIELDS.map(field=><NumberField key={field} label={LABELS[field][it?0:1]} unit="mm" step={0.1} value={draft[field]}
       hint={parsed.sources[field]?(it?'Testo letto: ':'Extracted text: ')+parsed.sources[field]:undefined}
-      footnote={!validReportValue(field,draft[field])?(it?'Controlla valore e unità.':'Check value and unit.'):undefined}
+      footnote={notes(field)}
       onChange={value=>{setDraft(d=>({...d,[field]:value}));setConfirmed(false);}}/>)}
     <Checkbox checked={confirmed} onChange={setConfirmed}>{it?'Ho confrontato data, valori e unità con il referto.':'I checked the date, values and units against the report.'}</Checkbox>
     <button type="button" className="btn" disabled={!confirmed||!dateValid||!hasValues||!valid} onClick={apply}>{it?'Usa i dati verificati':'Use reviewed values'}</button>

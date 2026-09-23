@@ -1,6 +1,6 @@
 import { MyScreenings } from './MyScreenings';
 import { UsageTracker } from './UsageTracker';
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 
 import logoUrl from '../assets/brand/logo-mark.png';
 import wordmarkUrl from '../assets/brand/wordmark.png';
@@ -23,11 +23,23 @@ const INSTAGRAM_URL = 'https://www.instagram.com/nascitara?stkn=MWo4ZDJzcW45enYz
 export function AppShell() {
   const { state, dispatch, t } = useNasciTara();
   const mainRef = useRef<HTMLElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
 
   const index = PAGE_ORDER.indexOf(state.page);
   const completedIndex = PAGE_ORDER.indexOf(state.reached);
   const progress = ((completedIndex + 1) / PAGE_ORDER.length) * 100;
 
+
+  // L'header e' fisso e la sua altezza cambia con larghezza e lingua: il contenuto parte sempre subito sotto.
+  useLayoutEffect(() => {
+    const header = headerRef.current;
+    if (!header) return;
+    const update = () => document.documentElement.style.setProperty('--header-total', `${header.offsetHeight}px`);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(header);
+    return () => observer.disconnect();
+  }, []);
 
   // Ogni cambio schermata riporta in cima: su mobile si resterebbe a meta' pagina.
   useEffect(() => {
@@ -38,12 +50,15 @@ export function AppShell() {
   return (
     <div className="shell">
       <UsageTracker />
-      <header className="header">
+      <header className="header" ref={headerRef}>
         <div className="header__inner">
-          <img className="header__logo" src={logoUrl} alt={t('app.name')} width={250} height={256} />
+          {/* Logo e area riservata nella stessa colonna: l'icona resta centrata sotto il logo per costruzione. */}
+          <div className="header__brand">
+            <img className="header__logo" src={logoUrl} alt={t('app.name')} width={250} height={256} />
+            <MyScreenings />
+          </div>
           <img className="header__wordmark" src={wordmarkUrl} alt={t('app.name')} width={640} height={110} />
         </div>
-        <MyScreenings />
         <div
           className="progress"
           role="progressbar"

@@ -53,12 +53,13 @@
   /* ---- tipografia ---- */
   --font: 'Nunito Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --fs-display: 64px;
-  --fs-h1: 32px;
-  --fs-h2: 20px;
-  --fs-label: 17px;
-  --fs-body: 17px;
-  --fs-note: 15px;
-  --fs-fine: 13px;
+  --fs-h1: 40px;
+  --fs-h2: 24px;
+  --fs-lead: 20px;
+  --fs-label: 18px;
+  --fs-body: 18px;
+  --fs-note: 16px;
+  --fs-fine: 14px;
   --fw-regular: 400;
   --fw-semi: 600;
 
@@ -74,12 +75,14 @@
 
   /* ---- raggi: il raggio scala col componente ---- */
   --r-sm: 8px;   /* checkbox, badge, chip */
-  --r-md: 12px;  /* campi, bottoni */
-  --r-lg: 20px;  /* card e blocchi campiti */
+  --r-md: 14px;  /* campi, bottoni */
+  --r-lg: 24px;  /* card e blocchi campiti */
   --r-pill: 999px;
 
   /* ---- una sola ombra, e solo sul campo attivo ---- */
   --shadow-focus: 0 2px 8px rgba(51, 51, 51, 0.1), 0 1px 2px rgba(51, 51, 51, 0.06);
+  /* card in rilievo morbido: un velo rosato sotto, mai un bordo scuro */
+  --shadow-card: 0 1px 2px rgba(51, 51, 51, 0.04), 0 12px 32px -14px rgba(255, 57, 92, 0.28);
 
   /* ---- struttura ---- */
   --header-h: 64px;
@@ -93,7 +96,12 @@
 @media (max-width: 640px) {
   :root {
     --fs-display: 44px;
-    --fs-h1: 26px;
+    --fs-h1: 31px;
+    --fs-h2: 21px;
+    --fs-lead: 18px;
+    --fs-body: 17px;
+    --fs-label: 17px;
+    --fs-note: 15.5px;
     --header-h: 56px;
     --footer-h: 44px;
     --gutter: 16px;

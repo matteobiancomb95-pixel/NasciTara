@@ -42,7 +42,7 @@ export const it = {
   'landing.how1.title': 'Racconti la gravidanza',
   'landing.how1.body': 'A che settimana sei, e qualche dato su mamma e papà.',
   'landing.how2.title': 'Inserisci le ecografie',
-  'landing.how2.body': 'HC - Circonferenza cranica, AC - Circonferenza addominale, FL - Lunghezza femore e BPD - Diametro biparietale.',
+  'landing.how2.body': 'HC o CC - Circonferenza cranica, AC o CA - Circonferenza addominale, FL o LF - Lunghezza femore e BPD o DBP - Diametro biparietale.',
   'landing.how3.title': 'Scopri la curva',
   'landing.how3.body': 'Peso, lunghezza e percentile, con la proiezione fino alla nascita e il prolungamento della curva fino a 45 settimane.',
   'landing.emailLabel': 'E-mail obbligatoria',
@@ -87,7 +87,7 @@ export const it = {
   // ---- pagina 3: misure ----
   'meas.title': 'Le tue ecografie',
   'meas.lead':
-    'Inserisci le quattro misure di ogni referto, in millimetri: HC - Circonferenza cranica, AC - Circonferenza addominale, FL - Lunghezza femore e BPD - Diametro biparietale. Se hai effettuato più visite, premi “Aggiungi misurazione ecografia ostetrica”.',
+    'Inserisci le quattro misure di ogni referto, in millimetri: HC o CC - Circonferenza cranica, AC o CA - Circonferenza addominale, FL o LF - Lunghezza femore e BPD o DBP - Diametro biparietale. Se hai effettuato più visite, premi “Aggiungi misurazione ecografia ostetrica”.',
   'meas.scan': 'Ecografia {n}',
   'meas.date': 'Data dell’esame',
   'meas.ga': '{ga} settimane',
