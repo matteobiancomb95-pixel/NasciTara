@@ -16,3 +16,6 @@
 - Test browser a 375 e 1280 px: asse logo/profilo coincidente, nessun overflow orizzontale, focus conservato durante la digitazione, dialogo chiudibile con Escape.
 - Il campo fotocamera usa la stessa procedura OCR del caricamento: provato con il file reale. L'apertura della fotocamera nativa richiede una prova su telefono fisico.
 - Foto di prova rimossa da public/ e dist/. Il prebuild blocca file estranei agli asset OCR autorizzati. Nessun referto personale incluso nel repository o nella pubblicazione.
+
+## Dominio pubblico
+L’endpoint email accetta anche l’origine https://nascitara.app. L’URL di ritorno dello stesso dominio viene aggiunto alla lista Supabase preservando gli indirizzi già configurati.
