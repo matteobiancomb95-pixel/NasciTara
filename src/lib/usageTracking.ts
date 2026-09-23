@@ -21,7 +21,7 @@ export function trackUsage(action: UsageAction, email?: string): void {
   queue = queue.then(async () => {
     if (!enabled || current !== session) return;
     const { error } = await client.rpc('record_usage', {
-      p_id: current.id, p_secret: current.secret, p_action: action, p_release: '0.5',
+      p_id: current.id, p_secret: current.secret, p_action: action, p_release: '0.51',
       p_email: action === 'identify' ? email?.trim().toLowerCase() ?? null : null,
     });
     if (error) throw new Error('Usage collection unavailable');

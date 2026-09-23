@@ -1,4 +1,4 @@
-import { hasUsageConsent, setUsageConsent, trackUsage } from '../lib/usageTracking';
+import { setUsageConsent, trackUsage } from '../lib/usageTracking';
 import { useState } from 'react';
 
 import { Checkbox, EmailField } from '../components/Field';
@@ -9,16 +9,8 @@ import type { Lang } from '../i18n';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-/**
- * Schermata 1 — atterraggio.
- *
- * Raccoglie SOLO l'indirizzo email. I dati della gravidanza e delle ecografie
- * non lasciano mai il dispositivo: il calcolo e' interamente sul client, e il
- * testo del consenso lo dice esplicitamente.
- */
 export function LandingPage() {
   const { state, dispatch, t } = useNasciTara();
-  const [tracking, setTracking] = useState(hasUsageConsent);
   const [touched, setTouched] = useState(false);
   const [sending, setSending] = useState(false);
   const [saveError, setSaveError] = useState(false);
@@ -101,15 +93,11 @@ export function LandingPage() {
 
         <Checkbox
           checked={state.emailConsent}
-          onChange={(v) => dispatch({ type: 'setConsent', value: v })}
+          onChange={(v) => {setUsageConsent(v);dispatch({ type: 'setConsent', value: v });}}
         >
-          {t('landing.gdpr')}
+          {state.lang==='it'?<>Acconsento alla raccolta della mia email <strong>e delle mie attività all’interno di NasciTara</strong>, per conteggiare gli utenti e migliorare il servizio. Non verrà usata per marketing diretto. <strong>Al termine riceverò il PDF all’indirizzo email indicato, dopo averlo verificato tramite il link di accesso.</strong></>:<>I consent to collecting my email <strong>and my activity within NasciTara</strong> to count users and improve the service. It will not be used for direct marketing. <strong>On completion, the PDF will be emailed to me after I verify my address using the sign-in link.</strong></>}
         </Checkbox>
-        <Checkbox checked={tracking} onChange={value => { setTracking(value); setUsageConsent(value); }}>
-          {state.lang === 'it'
-            ? 'Facoltativo: acconsento a collegare la mia e-mail alle pagine raggiunte e alle azioni nell’app, per capire dove migliorare. Nessuna misura o foto viene raccolta. Posso disattivarlo tornando qui; i dati di utilizzo sono conservati per 90 giorni.'
-            : 'Optional: I consent to linking my email to pages reached and actions in the app to help improve it. No measurements or photos are collected. I can turn this off by returning here; usage data is kept for 90 days.'}
-        </Checkbox>
+        <p className="fine">{state.lang==='it'?'Le attività sono conservate per 90 giorni, senza foto né misure nei dati di utilizzo. Gli screening restano su questo dispositivo; dopo l’accesso vengono salvati anche nel tuo account. Puoi eliminarli da “I miei screening”.':'Activity is retained for 90 days, without photos or measurements in usage data. Screenings are stored on this device and, after sign-in, in your account. You can delete them in “My screenings”.'}</p>
         {consentMissing ? <p className="field__error">{t('landing.gdprRequired')}</p> : null}
       </div>
 

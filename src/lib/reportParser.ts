@@ -24,8 +24,18 @@ export function parseReport(text: string): ParsedReport {
  // Reject unbounded input and do not interpret document text as instructions.
  const content=text.slice(0,100000);
  for(const field of REPORT_FIELDS){
-  const regex=new RegExp('\\b(?:'+aliases[field]+')\\b[ \\t]*[:=]?[ \\t]*(\\d{1,3}(?:[.,]\\d{1,2})?)[ \\t]*(mm|cm)\\b','gi');
-  const found=[...content.matchAll(regex)];
+  // Accept line breaks, unit-before-value tables, optional measurement indexes, and cm OCR spacing.
+  const label='\\b(?:'+aliases[field]+')(?:[ \\t]*[12](?=[ \\t:=]))?\\b';
+  const numeric='(\\d{1,3}(?:[.,]\\d{1,2})?)';
+  const unit='(m[ \\t]*m|c[ \\t]*m)';
+  const gap='[ \\t\\r\\n]*';
+  const patterns=[
+   new RegExp(label+gap+'[:=]?'+gap+numeric+gap+unit+'\\b','gi'),
+   new RegExp(label+gap+'\\('+unit+'\\)'+gap+'[:=]?'+gap+numeric+'\\b','gi'),
+  ];
+  const found: Array<{0:string;1:string;2:string}>=[];
+  for(const m of content.matchAll(patterns[0]))found.push({0:m[0],1:m[1],2:m[2].replace(/\s/g,'')});
+  for(const m of content.matchAll(patterns[1]))found.push({0:m[0],1:m[2],2:m[1].replace(/\s/g,'')});
   const values=[...new Set(found.map(m=>Math.round(Number(m[1].replace(',','.'))*(m[2].toLowerCase()==='cm'?10:1)*100)/100))];
   sources[field]=found.map(m=>m[0]).join(' · ');
   if(values.length===1 && validReportValue(field,values[0]))draft[field]=values[0];

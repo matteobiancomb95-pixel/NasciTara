@@ -1,17 +1,35 @@
-import type { ReportDraft } from '../lib/reportParser';
+import {
+  loadArchive,
+  storeArchive,
+  type SavedScreening,
+} from "../lib/screeningStorage";
+import type { ReportDraft } from "../lib/reportParser";
 import {
   createContext,
+  useState,
+  useRef,
+  useEffect,
   useCallback,
   useContext,
   useMemo,
   useReducer,
   type Dispatch,
   type ReactNode,
-} from 'react';
+} from "react";
 
-import { analysePregnancy, type AnalysisResult, type UltrasoundInput } from '../lib/analysis';
-import { addDays, isGaValid, toDecimalWeeks, toISO, todayUTC } from '../lib/gestationalAge';
-import { translate, type Key, type Lang } from '../i18n';
+import {
+  analysePregnancy,
+  type AnalysisResult,
+  type UltrasoundInput,
+} from "../lib/analysis";
+import {
+  addDays,
+  isGaValid,
+  toDecimalWeeks,
+  toISO,
+  todayUTC,
+} from "../lib/gestationalAge";
+import { translate, type Key, type Lang } from "../i18n";
 
 /**
  * Stato globale NasciTara.
@@ -20,11 +38,16 @@ import { translate, type Key, type Lang } from '../i18n';
  * ognuna raggiungibile solo dopo la precedente. Header e footer restano fissi.
  */
 
-export type Page = 'landing' | 'pregnancy' | 'measurements' | 'dashboard';
+export type Page = "landing" | "pregnancy" | "measurements" | "dashboard";
 
-export const PAGE_ORDER: Page[] = ['landing', 'pregnancy', 'measurements', 'dashboard'];
+export const PAGE_ORDER: Page[] = [
+  "landing",
+  "pregnancy",
+  "measurements",
+  "dashboard",
+];
 
-export type NumField = number | '';
+export type NumField = number | "";
 
 export interface ParentsState {
   motherObservationWeightKg: NumField;
@@ -52,7 +75,7 @@ export interface NasciTaraState {
   page: Page;
   /** Schermata piu' avanzata raggiunta: consente di tornare indietro liberamente. */
   reached: Page;
-  babySex: 'male' | 'female' | '';
+  babySex: "male" | "female" | "";
   email: string;
   emailConsent: boolean;
   gaWeeks: NumField;
@@ -63,57 +86,69 @@ export interface NasciTaraState {
 }
 
 export type Action =
-  | { type: 'importScan'; scan: ReportDraft }
-  | { type: 'setBabySex'; value: 'male' | 'female' | '' }
-  | { type: 'setLang'; value: Lang }
-  | { type: 'goTo'; page: Page }
-  | { type: 'setEmail'; value: string }
-  | { type: 'setConsent'; value: boolean }
-  | { type: 'setGa'; field: 'gaWeeks' | 'gaDays'; value: NumField }
-  | { type: 'setReferenceDate'; value: string }
-  | { type: 'setParent'; field: keyof ParentsState; value: NumField }
-  | { type: 'setScan'; id: string; field: keyof Omit<ScanState, 'id'>; value: NumField | string }
-  | { type: 'addScan' }
-  | { type: 'removeScan'; id: string }
-  | { type: 'loadDemo' }
-  | { type: 'reset' };
+  | { type: "restore"; state: NasciTaraState }
+  | { type: "importScan"; scan: ReportDraft }
+  | { type: "setBabySex"; value: "male" | "female" | "" }
+  | { type: "setLang"; value: Lang }
+  | { type: "goTo"; page: Page }
+  | { type: "setEmail"; value: string }
+  | { type: "setConsent"; value: boolean }
+  | { type: "setGa"; field: "gaWeeks" | "gaDays"; value: NumField }
+  | { type: "setReferenceDate"; value: string }
+  | { type: "setParent"; field: keyof ParentsState; value: NumField }
+  | {
+      type: "setScan";
+      id: string;
+      field: keyof Omit<ScanState, "id">;
+      value: NumField | string;
+    }
+  | { type: "addScan" }
+  | { type: "removeScan"; id: string }
+  | { type: "loadDemo" }
+  | { type: "reset" };
 
-let scanSeq = 0;
 function newScanId(): string {
-  scanSeq += 1;
-  return `scan-${scanSeq}`;
+  return crypto.randomUUID();
 }
 
-function emptyScan(date = ''): ScanState {
-  return { id: newScanId(), date, pesoMammaOsservazione: '', hcMm: '', acMm: '', flMm: '', bpdMm: '' };
+function emptyScan(date = ""): ScanState {
+  return {
+    id: newScanId(),
+    date,
+    pesoMammaOsservazione: "",
+    hcMm: "",
+    acMm: "",
+    flMm: "",
+    bpdMm: "",
+  };
 }
 
 export const EMPTY_PARENTS: ParentsState = {
-  motherObservationWeightKg: '',
-  motherWeightKg: '',
-  motherHeightCm: '',
-  motherAgeYears: '',
-  fatherWeightKg: '',
-  fatherHeightCm: '',
-  fatherAgeYears: '',
+  motherObservationWeightKg: "",
+  motherWeightKg: "",
+  motherHeightCm: "",
+  motherAgeYears: "",
+  fatherWeightKg: "",
+  fatherHeightCm: "",
+  fatherAgeYears: "",
 };
 
 function detectLang(): Lang {
-  if (typeof navigator === 'undefined') return 'it';
-  return navigator.language?.toLowerCase().startsWith('en') ? 'en' : 'it';
+  if (typeof navigator === "undefined") return "it";
+  return navigator.language?.toLowerCase().startsWith("en") ? "en" : "it";
 }
 
-/** Ogni sessione parte da zero: nessun dato precompilato, nessuna persistenza. */
+/** Un nuovo screening parte vuoto; il provider ripristina le bozze salvate. */
 export function emptyState(): NasciTaraState {
   return {
     lang: detectLang(),
-    page: 'landing',
-    reached: 'landing',
-    babySex: '',
-    email: '',
+    page: "landing",
+    reached: "landing",
+    babySex: "",
+    email: "",
     emailConsent: false,
-    gaWeeks: '',
-    gaDays: '',
+    gaWeeks: "",
+    gaDays: "",
     referenceDate: toISO(todayUTC()),
     parents: { ...EMPTY_PARENTS },
     scans: [emptyScan()],
@@ -125,13 +160,13 @@ export function demoState(): NasciTaraState {
   const today = todayUTC();
   return {
     ...emptyState(),
-    page: 'dashboard',
-    reached: 'dashboard',
+    page: "dashboard",
+    reached: "dashboard",
     gaWeeks: 33,
     gaDays: 2,
     referenceDate: toISO(today),
     parents: {
-      motherObservationWeightKg: '',
+      motherObservationWeightKg: "",
       motherWeightKg: 64,
       motherHeightCm: 167,
       motherAgeYears: 34,
@@ -140,9 +175,27 @@ export function demoState(): NasciTaraState {
       fatherAgeYears: 36,
     },
     scans: [
-      { ...emptyScan(toISO(addDays(today, -89))), hcMm: 176, acMm: 152, flMm: 31, bpdMm: 47 },
-      { ...emptyScan(toISO(addDays(today, -37))), hcMm: 262, acMm: 243, flMm: 53, bpdMm: 72 },
-      { ...emptyScan(toISO(addDays(today, -6))), hcMm: 298, acMm: 285, flMm: 62, bpdMm: 83 },
+      {
+        ...emptyScan(toISO(addDays(today, -89))),
+        hcMm: 176,
+        acMm: 152,
+        flMm: 31,
+        bpdMm: 47,
+      },
+      {
+        ...emptyScan(toISO(addDays(today, -37))),
+        hcMm: 262,
+        acMm: 243,
+        flMm: 53,
+        bpdMm: 72,
+      },
+      {
+        ...emptyScan(toISO(addDays(today, -6))),
+        hcMm: 298,
+        acMm: 285,
+        flMm: 62,
+        bpdMm: 83,
+      },
     ],
   };
 }
@@ -153,42 +206,69 @@ function furthest(a: Page, b: Page): Page {
 
 export function reducer(state: NasciTaraState, action: Action): NasciTaraState {
   switch (action.type) {
-    case 'importScan': {
+    case "restore":
+      return action.state;
+    case "importScan": {
       const imported = { ...emptyScan(), ...action.scan };
-      const blank = state.scans.findIndex(s => !s.date && s.hcMm === '' && s.acMm === '' && s.flMm === '' && s.bpdMm === '' && s.pesoMammaOsservazione === '');
-      const scans = blank >= 0 ? state.scans.map((s,i) => i===blank ? {...imported,id:s.id} : s) : [...state.scans, imported];
-      return {...state,scans};
+      const blank = state.scans.findIndex(
+        (s) =>
+          !s.date &&
+          s.hcMm === "" &&
+          s.acMm === "" &&
+          s.flMm === "" &&
+          s.bpdMm === "" &&
+          s.pesoMammaOsservazione === "",
+      );
+      const scans =
+        blank >= 0
+          ? state.scans.map((s, i) =>
+              i === blank ? { ...imported, id: s.id } : s,
+            )
+          : [...state.scans, imported];
+      return { ...state, scans };
     }
-    case 'setBabySex':
+    case "setBabySex":
       return { ...state, babySex: action.value };
-    case 'setLang':
+    case "setLang":
       return { ...state, lang: action.value };
-    case 'goTo':
-      return { ...state, page: action.page, reached: furthest(state.reached, action.page) };
-    case 'setEmail':
-      return { ...state, email: action.value };
-    case 'setConsent':
-      return { ...state, emailConsent: action.value };
-    case 'setGa':
-      return { ...state, [action.field]: action.value };
-    case 'setReferenceDate':
-      return { ...state, referenceDate: action.value };
-    case 'setParent':
-      return { ...state, parents: { ...state.parents, [action.field]: action.value } };
-    case 'setScan':
+    case "goTo":
       return {
         ...state,
-        scans: state.scans.map((s) => (s.id === action.id ? { ...s, [action.field]: action.value } : s)),
+        page: action.page,
+        reached: furthest(state.reached, action.page),
       };
-    case 'addScan':
-      return { ...state, scans: [...state.scans, emptyScan(state.referenceDate)] };
-    case 'removeScan': {
+    case "setEmail":
+      return { ...state, email: action.value };
+    case "setConsent":
+      return { ...state, emailConsent: action.value };
+    case "setGa":
+      return { ...state, [action.field]: action.value };
+    case "setReferenceDate":
+      return { ...state, referenceDate: action.value };
+    case "setParent":
+      return {
+        ...state,
+        parents: { ...state.parents, [action.field]: action.value },
+      };
+    case "setScan":
+      return {
+        ...state,
+        scans: state.scans.map((s) =>
+          s.id === action.id ? { ...s, [action.field]: action.value } : s,
+        ),
+      };
+    case "addScan":
+      return {
+        ...state,
+        scans: [...state.scans, emptyScan(state.referenceDate)],
+      };
+    case "removeScan": {
       const scans = state.scans.filter((s) => s.id !== action.id);
       return { ...state, scans: scans.length > 0 ? scans : [emptyScan()] };
     }
-    case 'loadDemo':
+    case "loadDemo":
       return { ...demoState(), lang: state.lang };
-    case 'reset':
+    case "reset":
       return { ...emptyState(), lang: state.lang };
     default:
       return state;
@@ -196,11 +276,18 @@ export function reducer(state: NasciTaraState, action: Action): NasciTaraState {
 }
 
 function n(v: NumField): number | null {
-  return v === '' || !Number.isFinite(Number(v)) ? null : Number(v);
+  return v === "" || !Number.isFinite(Number(v)) ? null : Number(v);
 }
 
 export interface StoreValue {
   state: NasciTaraState;
+  screeningId: string;
+  screenings: SavedScreening[];
+  storageError: boolean;
+  openScreening: (record: SavedScreening) => void;
+  newScreening: () => void;
+  deleteScreening: (id: string) => void;
+  forgetDevice: () => void;
   dispatch: Dispatch<Action>;
   analysis: AnalysisResult | null;
   ga: number;
@@ -220,16 +307,99 @@ export function NasciTaraProvider({
   children: ReactNode;
   initial?: NasciTaraState;
 }) {
-  const [state, dispatch] = useReducer(reducer, initial ?? emptyState());
+  const [archive] = useState(() =>
+    initial
+      ? { version: 1 as const, activeId: null, records: [] }
+      : loadArchive(),
+  );
+  const resumed = archive.records.find((r) => r.id === archive.activeId);
+  const [screeningId, setScreeningId] = useState(
+    resumed?.id ?? crypto.randomUUID(),
+  );
+  const [screenings, setScreenings] = useState<SavedScreening[]>(
+    archive.records,
+  );
+  const [storageError, setStorageError] = useState(false);
+  const [state, dispatch] = useReducer(
+    reducer,
+    initial ?? resumed?.state ?? emptyState(),
+  );
+  const recordsRef = useRef(screenings);
+  const persist = useCallback(
+    (records: SavedScreening[], activeId: string | null) => {
+      try {
+        storeArchive({ version: 1, activeId, records });
+        setStorageError(false);
+      } catch {
+        setStorageError(true);
+        return false;
+      }
+      recordsRef.current = records;
+      setScreenings(records);
+      return true;
+    },
+    [],
+  );
+  const openScreening = useCallback((record: SavedScreening) => {
+    setScreeningId(record.id);
+    dispatch({ type: "restore", state: record.state });
+  }, []);
+  const newScreening = useCallback(() => {
+    persist(recordsRef.current, null);
+    setScreeningId(crypto.randomUUID());
+    dispatch({ type: "reset" });
+  }, [persist]);
+  const deleteScreening = useCallback(
+    (id: string) => {
+      const next = recordsRef.current.filter((r) => r.id !== id);
+      if (
+        persist(next, id === screeningId ? null : screeningId) &&
+        id === screeningId
+      ) {
+        setScreeningId(crypto.randomUUID());
+        dispatch({ type: "reset" });
+      }
+    },
+    [screeningId, persist],
+  );
+  const forgetDevice = useCallback(() => {
+    if (persist([], null)) {
+      setScreeningId(crypto.randomUUID());
+      dispatch({ type: "reset" });
+    }
+  }, [persist]);
+  useEffect(() => {
+    if (initial || !state.emailConsent) return;
+    const records = recordsRef.current;
+    const previous = records.find((r) => r.id === screeningId);
+    if (!previous && records.length >= 50) {
+      setStorageError(true);
+      return;
+    }
+    const record = {
+      id: screeningId,
+      createdAt: previous?.createdAt ?? new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      state,
+    };
+    persist(
+      [record, ...records.filter((r) => r.id !== screeningId)],
+      screeningId,
+    );
+  }, [state, screeningId, initial, persist]);
 
   const t = useCallback(
-    (key: Key, vars?: Record<string, string | number>) => translate(state.lang, key, vars),
+    (key: Key, vars?: Record<string, string | number>) =>
+      translate(state.lang, key, vars),
     [state.lang],
   );
 
   const value = useMemo<StoreValue>(() => {
     const gaValid = isGaValid(Number(state.gaWeeks), Number(state.gaDays || 0));
-    const ga = toDecimalWeeks(Number(state.gaWeeks) || 0, Number(state.gaDays) || 0);
+    const ga = toDecimalWeeks(
+      Number(state.gaWeeks) || 0,
+      Number(state.gaDays) || 0,
+    );
 
     const ultrasounds: UltrasoundInput[] = state.scans.map((s) => ({
       id: s.id,
@@ -269,6 +439,13 @@ export function NasciTaraProvider({
 
     return {
       state,
+      screeningId,
+      screenings,
+      storageError,
+      openScreening,
+      newScreening,
+      deleteScreening,
+      forgetDevice,
       dispatch,
       analysis,
       ga,
@@ -277,13 +454,25 @@ export function NasciTaraProvider({
       t,
       lang: state.lang,
     };
-  }, [state, t]);
+  }, [
+    state,
+    t,
+    screeningId,
+    screenings,
+    storageError,
+    openScreening,
+    newScreening,
+    deleteScreening,
+    forgetDevice,
+  ]);
 
-  return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
+  return (
+    <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
+  );
 }
 
 export function useNasciTara(): StoreValue {
   const ctx = useContext(StoreContext);
-  if (!ctx) throw new Error('useNasciTara va usato dentro <NasciTaraProvider>');
+  if (!ctx) throw new Error("useNasciTara va usato dentro <NasciTaraProvider>");
   return ctx;
 }

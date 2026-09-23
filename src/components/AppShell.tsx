@@ -1,3 +1,4 @@
+import { MyScreenings } from './MyScreenings';
 import { UsageTracker } from './UsageTracker';
 import { useEffect, useRef } from 'react';
 
@@ -42,6 +43,7 @@ export function AppShell() {
           <img className="header__logo" src={logoUrl} alt={t('app.name')} width={250} height={256} />
           <img className="header__wordmark" src={wordmarkUrl} alt={t('app.name')} width={640} height={110} />
         </div>
+        <MyScreenings />
         <div
           className="progress"
           role="progressbar"
@@ -82,7 +84,7 @@ export function AppShell() {
             <small>{t('footer.credits')}</small>
             <small>{t('footer.fiscalCode')}</small>
           </div>
-          <small className="release">NasciTara v0.5</small>
+          <small className="release">NasciTara v0.51</small>
           <div className="footer__social">
             <a href={INSTAGRAM_URL} target="_blank" rel="noreferrer noopener" aria-label={t('footer.instagram')}>
               <IconInstagram />
