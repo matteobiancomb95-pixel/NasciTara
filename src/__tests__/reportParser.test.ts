@@ -61,6 +61,13 @@ describe('Italian reports without units',()=>{
   expect(r.draft).toEqual({...EMPTY_REPORT,bpdMm:77,flMm:45,hcMm:275,acMm:229});
   expect([...r.inferred].sort()).toEqual(['acMm','bpdMm','flMm','hcMm']);
  });
+ it('never reads Italian gestational age (weeks+days) after a label as a measurement',()=>{
+  expect(parseReport('Biometria (cm)\nDBP 7,7   CC 27,5\nEG ecografica: CA 29+5, LF 29+6').draft).toEqual({...EMPTY_REPORT,bpdMm:77,hcMm:275});
+  expect(parseReport('EG (DBP): 30+2 sett\nCC 30-31 settimane\nCA 29 + 5\nHC (mm) 30+2').draft).toEqual(EMPTY_REPORT);
+  const r=parseReport(photo+'\nEpoca gestazionale per biometria: DBP 30+2, CC 30+0, CA 29+5, LF 29+6');
+  expect(r.draft).toEqual({...EMPTY_REPORT,bpdMm:77,flMm:45,hcMm:275,acMm:229});expect(r.ambiguous).toEqual([]);
+  expect(parseReport('DBP 7,7 (30+2)').others.bpdMm).toEqual([]);
+ });
  it('reports other numbers on the same line, such as handwritten notes',()=>{
   const r=parseReport(photo);
   expect(r.others.flMm).toEqual(['54']);expect(r.others.acMm).toEqual(['5.0']);expect(r.others.bpdMm).toEqual([]);

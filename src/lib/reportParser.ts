@@ -45,7 +45,8 @@ function inferMm(field: ReportField, value: number): number | null {
 }
 /** Numbers after an accepted value up to the next measurement label, skipping percentiles, weeks and indexes. */
 function trailingNumbers(rest: string): string[] {
- const line=rest.split('\n')[0];const next=line.search(anyLabel);
+ // Weeks+days ("30+2") are gestational age, not a second value.
+ const line=rest.split('\n')[0].replace(/(?<![\d.,])\d{1,2}[ \t]*\+[ \t]*\d(?!\d)/g,' ');const next=line.search(anyLabel);
  const tail=next<0?line:line.slice(0,next);
  return [...tail.matchAll(/(?<![A-Za-z\d.,/])\d{1,3}(?:[.,]\d{1,2})?(?![\d.,/])/g)]
   .filter(m=>!/^\s*(?:[%°]|(?:w|wk|wks|weeks?|sett\w*|gg|days?)(?![A-Za-z]))/i.test(tail.slice((m.index??0)+m[0].length)))
@@ -63,12 +64,14 @@ export function parseReport(text: string): ParsedReport {
   const numeric='(\\d{1,3}(?:[.,]\\d{1,2})?)';
   const unit='([mM][ \\t]*[mM]|[cC][ \\t]*[mM])';
   const gap='[ \\t\\r\\n]*', sameLine='[ \\t]*';
+  // Italian gestational age after a whole number: weeks+days ("29+5", "29 + 5") or a weeks range ("30-31 sett").
+  const weeksDays='(?<=(?<![\\d.,])\\d{1,2})(?:[ \\t]*\\+[ \\t]*\\d|[ \\t]*[\\-–][ \\t]*\\d{1,2}[ \\t]*(?:[wW]|[wW][kK][sS]?|[sS][eE][tT]{1,2}\\w*|[wW][eE][eE][kK][sS]?)(?![A-Za-z]))';
   const patterns:Array<[RegExp,number,number]>=[
    [new RegExp(label+description+gap+'[:=]?'+gap+numeric+gap+unit+'(?![A-Za-z])','g'),1,2],
-   [new RegExp(label+gap+'\\('+unit+'\\)'+gap+'[:=]?'+gap+numeric+'(?![\\d.,/]|[ \\t]*[%°/])','g'),2,1],
+   [new RegExp(label+gap+'\\('+unit+'\\)'+gap+'[:=]?'+gap+numeric+'(?![\\d.,/]|[ \\t]*[%°/]|'+weeksDays+')','g'),2,1],
    // No unit: same line only, and never a percentile, weeks, days, grams, date or longer number.
    // Other letters are tolerated: handwritten notes after the value are often read as "X50" or "NEN".
-   [new RegExp(label+description+sameLine+'[:=]?'+sameLine+numeric+'(?![\\d]|[.,]\\d|[ \\t]*(?:%|[°/]|(?:[wWsSgGdD]|[mMcCdD][mM]|[kK][gG]|[gG][rR]|[wW][kK][sS]?|[sS][eE][tT]{1,2}\\w*|[wW][eE][eE][kK][sS]?|[gG][gG]|[mM][lL]|[iI][nN](?:[cC][hH](?:[eE][sS])?)?)(?![A-Za-z])))','g'),1,0],
+   [new RegExp(label+description+sameLine+'[:=]?'+sameLine+numeric+'(?![\\d]|[.,]\\d|'+weeksDays+'|[ \\t]*(?:%|[°/]|(?:[wWsSgGdD]|[mMcCdD][mM]|[kK][gG]|[gG][rR]|[wW][kK][sS]?|[sS][eE][tT]{1,2}\\w*|[wW][eE][eE][kK][sS]?|[gG][gG]|[mM][lL]|[iI][nN](?:[cC][hH](?:[eE][sS])?)?)(?![A-Za-z])))','g'),1,0],
   ];
   const found:Array<{text:string;mm:number|null;inferred:boolean;rest:string}>=[];
   const explicitSpans:Array<[number,number]>=[];

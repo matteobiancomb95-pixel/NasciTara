@@ -10,7 +10,7 @@ const startWithDemo = /^#?(demo|esempio|example)$/i.test(window.location.hash);
 export default function App() {
   return (
     <NasciTaraProvider initial={startWithDemo ? demoState() : undefined}>
-      <AccountProvider><AppShell /></AccountProvider>
+      <AccountProvider><AppShell demo={startWithDemo} /></AccountProvider>
     </NasciTaraProvider>
   );
 }

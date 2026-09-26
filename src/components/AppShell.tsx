@@ -1,120 +1,101 @@
-import { MyScreenings } from './MyScreenings';
+import { useEffect, useState } from 'react';
 import { UsageTracker } from './UsageTracker';
-import { useEffect, useLayoutEffect, useRef } from 'react';
-
-import logoUrl from '../assets/brand/logo-mark.png';
-import wordmarkUrl from '../assets/brand/wordmark.png';
 import { IconInstagram } from './icons';
-import { LandingPage } from '../pages/LandingPage';
-import { PregnancyPage } from '../pages/PregnancyPage';
-import { MeasurementsPage } from '../pages/MeasurementsPage';
-import { DashboardPage } from '../pages/DashboardPage';
-import { PAGE_ORDER, useNasciTara } from '../state/NasciTaraStore';
+import { useNasciTara } from '../state/NasciTaraStore';
+import { useAccount } from '../state/AccountContext';
+import { setUsageConsent } from '../lib/usageTracking';
+import { parseISO, toISO, todayUTC } from '../lib/gestationalAge';
+import { AuthScreen } from '../screens/AuthScreen';
+import { Welcome } from '../screens/Welcome';
+import { Journey } from '../screens/Journey';
+import { Area } from '../screens/Area';
+import { AccountMenu } from '../screens/AccountMenu';
+import { belongsToEmail } from '../lib/screeningStorage';
 
 const INSTAGRAM_URL = 'https://www.instagram.com/nascitara?stkn=MWo4ZDJzcW45enYzcw%3D%3D&utm_source=qr';
+type View = 'welcome' | 'journey' | 'area';
 
 /**
- * Guscio dell'applicazione.
- *
- * Header e footer restano fissi su tutte e quattro le schermate. L'unico
- * indicatore di avanzamento e' la barra alta 3px sul bordo inferiore
- * dell'header: non serve scrivere "passo 2 di 4".
+ * Flusso NasciTara 0.6: account -> benvenuto -> percorso in quattro tab -> area riservata.
+ * Il percorso si completa una volta; dopo si atterra nell'area riservata.
+ * `#demo` apre un esempio senza account, mai salvato.
  */
-export function AppShell() {
-  const { state, dispatch, t } = useNasciTara();
-  const mainRef = useRef<HTMLElement>(null);
-  const navRef=useRef<HTMLElement>(null);
-  const headerRef = useRef<HTMLElement>(null);
+export function AppShell({ demo = false }: { demo?: boolean }) {
+  const { state, dispatch, newScreening, lang } = useNasciTara();
+  const account = useAccount();
+  const { user, profile } = account;
+  const it = lang === 'it';
+  const [view, setView] = useState<View>(() => (demo ? 'journey' : state.completed ? 'area' : 'welcome'));
+  const [menu, setMenu] = useState(false);
 
-  const index = PAGE_ORDER.indexOf(state.page);
-  const completedIndex = PAGE_ORDER.indexOf(state.reached);
-  const progress = ((completedIndex + 1) / PAGE_ORDER.length) * 100;
+  // The account is the source of email, consent and the week declared at sign-up.
+  useEffect(() => {
+    if (!user || !profile) return;
+    if (state.email && !belongsToEmail(state, user.email)) {
+      newScreening();
+      return;
+    }
+    if (user.email && state.email !== user.email) dispatch({ type: 'setEmail', value: user.email });
+    if (profile.consent && !state.emailConsent) {
+      setUsageConsent(true);
+      dispatch({ type: 'setConsent', value: true });
+    }
+    if (state.gaWeeks === '' && profile.gaWeeks !== null) {
+      // The declared week moves forward with the calendar since the day it was declared.
+      const from = parseISO(profile.gaReference) ?? todayUTC();
+      const elapsed = Math.max(0, Math.round((todayUTC().getTime() - from.getTime()) / 864e5));
+      const total = Math.min(42 * 7 + 6, profile.gaWeeks * 7 + elapsed);
+      dispatch({ type: 'setProfileGa', weeks: Math.floor(total / 7), days: total % 7, referenceDate: toISO(todayUTC()) });
+    }
+  }, [user, profile?.consent, profile?.gaWeeks, profile?.gaReference, state.email, state.emailConsent, state.gaWeeks, dispatch, newScreening]);
 
+  // A different screening (opened from history or new) decides its own landing screen.
+  useEffect(() => {
+    if (!demo) setView(state.completed ? 'area' : 'welcome');
+  }, [state.completed, demo]);
 
-  // L'header e' fisso e la sua altezza cambia con larghezza e lingua: il contenuto parte sempre subito sotto.
-  useLayoutEffect(() => {
-    const header = headerRef.current;
-    if (!header) return;
-    const update = () => document.documentElement.style.setProperty('--header-total', `${header.offsetHeight}px`);
-    update();
-    const observer = new ResizeObserver(update);
-    observer.observe(header);
-    return () => observer.disconnect();
-  }, []);
-
-  // Ogni cambio schermata riporta in cima: su mobile si resterebbe a meta' pagina.
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'auto' });
-    mainRef.current?.focus({ preventScroll: true });
-  }, [state.page]);
+  }, [view, state.page]);
 
-  useEffect(()=>{
-    const nav=navRef.current;const active=nav?.querySelector<HTMLButtonElement>('[aria-current="step"]');
-    if(nav&&active)nav.scrollTo({left:active.offsetLeft-(nav.clientWidth-active.offsetWidth)/2,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
-  },[state.page]);
+  const exit = () => {
+    if (demo) return void (window.location.hash = '');
+    if (window.confirm(it ? 'Vuoi uscire? Le tue misure restano salvate.' : 'Sign out? Your measurements stay saved.')) void account.signOut();
+  };
+
+  let screen;
+  if (!demo && !account.ready) screen = <div className="nt-screen nt-splash" aria-busy="true" />;
+  else if (!demo && account.recovering) screen = <AuthScreen key="recover" initialMode="recover" />;
+  else if (!demo && !user) screen = <AuthScreen key="auth" />;
+  else if (!demo && user && state.email && !belongsToEmail(state, user.email)) screen = <div className="nt-screen nt-splash" aria-busy="true" />;
+  else if (!demo && profile && (!profile.consent || (profile.gaWeeks === null && state.gaWeeks === ''))) screen = <AuthScreen key="complete" initialMode="complete" />;
+  else {
+    const first = profile?.firstName || (demo ? 'Giulia' : '');
+    const full = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ') || first;
+    screen =
+      view === 'welcome' ? (
+        <Welcome firstName={first} fullName={full} onAccount={() => setMenu(true)} onStart={() => setView('journey')} />
+      ) : view === 'area' ? (
+        <Area firstName={first} fullName={full} onAccount={() => setMenu(true)} />
+      ) : (
+        <Journey onExit={exit} onFinish={() => { dispatch({ type: 'complete' }); setView('area'); }} />
+      );
+    screen = (
+      <>
+        {screen}
+        {!demo ? <AccountMenu open={menu} onClose={() => setMenu(false)} onJourney={() => { dispatch({ type: 'goTo', page: 'landing' }); setView('journey'); }} name={full} /> : null}
+      </>
+    );
+  }
 
   return (
-    <div className="shell">
+    <div className="nt-app">
       <UsageTracker />
-      <header className="header" ref={headerRef}>
-        <div className="header__inner">
-          {/* Logo e area riservata nella stessa colonna: l'icona resta centrata sotto il logo per costruzione. */}
-          <div className="header__brand">
-            <img className="header__logo" src={logoUrl} alt={t('app.name')} width={250} height={256} />
-          </div>
-          <img className="header__wordmark" src={wordmarkUrl} alt={t('app.name')} width={640} height={110} />
-        </div>
-        <div
-          className="progress"
-          role="progressbar"
-          aria-valuenow={completedIndex + 1}
-          aria-valuemin={1}
-          aria-valuemax={PAGE_ORDER.length}
-          aria-label={t('nav.step', { n: index })}
-        >
-          <div className="progress__fill" style={{ width: `${progress}%` }} />
-        </div>
-        <div className="header__navigation"><MyScreenings />
-        <nav ref={navRef} className="page-markers" aria-label={state.lang==='it'?'Percorso dello screening':'Screening steps'}>
-          <div className="wizard-track">
-          <span className="wizard-thumb" aria-hidden="true" style={{transform:`translateX(${index*100}%)`}} />
-          {PAGE_ORDER.map((page, n) => <button key={page} type="button"
-            disabled={n > PAGE_ORDER.indexOf(state.reached)}
-            aria-current={state.page === page ? 'step' : undefined}
-            onClick={() => dispatch({ type: 'goTo', page })}>
-            <span>{n + 1}</span>{(state.lang === 'it' ? ['Inizio', 'Gravidanza', 'Ecografie', 'Risultati'] : ['Start', 'Pregnancy', 'Scans', 'Results'])[n]}
-          </button>)}
-          </div>
-        </nav></div>
-      </header>
-
-      <main
-        className="main"
-        ref={mainRef}
-        tabIndex={-1}
-        key={state.page}
-      >
-        <div className="page-enter">
-          {state.page === 'landing' ? <LandingPage /> : null}
-          {state.page === 'pregnancy' ? <PregnancyPage /> : null}
-          {state.page === 'measurements' ? <MeasurementsPage /> : null}
-          {state.page === 'dashboard' ? <DashboardPage /> : null}
-        </div>
-      </main>
-
-      <footer className="footer">
-        <div className="footer__inner">
-          <div className="footer__credits">
-            <small>{t('footer.credits')}</small>
-            <small>{t('footer.fiscalCode')}</small>
-          </div>
-          <small className="release">NasciTara v0.51</small>
-          <div className="footer__social">
-            <a href={INSTAGRAM_URL} target="_blank" rel="noreferrer noopener" aria-label={t('footer.instagram')}>
-              <IconInstagram />
-            </a>
-          </div>
-        </div>
+      {screen}
+      <footer className="nt-foot">
+        <span>{it ? 'Un progetto di Matteo Bianco' : 'A project by Matteo Bianco'} · CF BNCMTT95B02F027P</span>
+        <span>NasciTara v0.6{demo ? (it ? ' · esempio' : ' · demo') : ''}</span>
+        <a href={INSTAGRAM_URL} target="_blank" rel="noreferrer noopener" aria-label="Instagram"><IconInstagram /></a>
       </footer>
     </div>
   );

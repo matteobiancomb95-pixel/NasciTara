@@ -52,7 +52,7 @@ export function ScreeningDelivery() {
       clearTimeout(timer);
     };
   }, [analysis, state, screeningId, savedRevision, user]);
-  if (!analysis || !state.emailConsent) return null;
+  if (!analysis || !state.emailConsent || !supabase) return null;
   const it = state.lang === "it";
   const verified =
     user?.email_confirmed_at &&

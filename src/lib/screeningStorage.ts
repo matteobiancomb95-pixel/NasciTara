@@ -1,4 +1,8 @@
 import type { NasciTaraState } from "../state/NasciTaraStore";
+/** Local archives can contain multiple accounts; never relabel another account's screening. */
+export function belongsToEmail(state: Pick<NasciTaraState, 'email'>, email: string | undefined): boolean {
+  return !!email && !!state.email.trim() && state.email.trim().toLowerCase() === email.trim().toLowerCase();
+}
 export interface SavedScreening {
   id: string;
   createdAt: string;
@@ -48,8 +52,18 @@ export function validSavedState(s: unknown): s is NasciTaraState {
         typeof x.id === "string" &&
         typeof x.date === "string" &&
         x.date.length <= 10 &&
-        [x.hcMm, x.acMm, x.flMm, x.bpdMm, x.pesoMammaOsservazione].every(num),
-    )
+        [x.hcMm, x.acMm, x.flMm, x.bpdMm, x.pesoMammaOsservazione].every(num) &&
+        (x.source === undefined || ["report", "manual"].includes(x.source)) &&
+        (x.reportName === undefined ||
+          (typeof x.reportName === "string" && x.reportName.length <= 120)),
+    ) &&
+    (v.completed === undefined || typeof v.completed === "boolean") &&
+    (v.corredino === undefined ||
+      (!!v.corredino &&
+        [2, 3, 4].includes(v.corredino.washes) &&
+        Array.isArray(v.corredino.checked) &&
+        v.corredino.checked.length <= 200 &&
+        v.corredino.checked.every((k) => typeof k === "string" && k.length <= 80)))
   );
 }
 export function parseArchive(raw: string | null): ScreeningArchive {
