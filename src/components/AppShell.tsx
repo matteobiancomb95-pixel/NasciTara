@@ -63,6 +63,12 @@ export function AppShell({ demo = false }: { demo?: boolean }) {
     if (window.confirm(it ? 'Vuoi uscire? Le tue misure restano salvate.' : 'Sign out? Your measurements stay saved.')) void account.signOut();
   };
 
+  // Test environment (Vercel previews, `npm run dev:test`): always say so, never mistake it for the real site.
+  const testEnv = import.meta.env.VITE_APP_ENV === 'test';
+  useEffect(() => {
+    if (testEnv) document.title = 'NasciTara · TEST';
+  }, [testEnv]);
+
   let screen;
   if (!demo && !account.ready) screen = <div className="nt-screen nt-splash" aria-busy="true" />;
   else if (!demo && account.recovering) screen = <AuthScreen key="recover" initialMode="recover" />;
@@ -90,6 +96,7 @@ export function AppShell({ demo = false }: { demo?: boolean }) {
 
   return (
     <div className="nt-app">
+      {testEnv ? <div className="nt-testbar" role="note">{it ? 'Ambiente di test · dati di prova, non reali' : 'Test environment · sample data only'}</div> : null}
       <UsageTracker />
       {screen}
       <footer className="nt-foot">
