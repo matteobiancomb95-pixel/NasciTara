@@ -68,6 +68,18 @@ export interface ScanState {
   acMm: NumField;
   flMm: NumField;
   bpdMm: NumField;
+  /** Come sono arrivate le misure: dalla foto del referto o a mano. La foto non viene mai salvata. */
+  source?: "report" | "manual";
+  /** Nome del file del referto letto, solo per riconoscerlo nell'elenco. */
+  reportName?: string;
+}
+
+export type Washes = 2 | 3 | 4;
+
+export interface CorredinoState {
+  washes: Washes;
+  /** Capi spuntati, come chiave taglia+categoria. */
+  checked: string[];
 }
 
 export interface NasciTaraState {
@@ -83,6 +95,9 @@ export interface NasciTaraState {
   referenceDate: string;
   parents: ParentsState;
   scans: ScanState[];
+  /** Il percorso si completa una volta: poi si atterra nell'area riservata. */
+  completed?: boolean;
+  corredino?: CorredinoState;
 }
 
 export type Action =
@@ -103,15 +118,31 @@ export type Action =
       value: NumField | string;
     }
   | { type: "addScan" }
+  | { type: "saveScan"; scan: ScanState }
+  | { type: "complete" }
+  | { type: "setWashes"; value: Washes }
+  | { type: "toggleGarment"; key: string }
+  | { type: "setProfileGa"; weeks: NumField; days: NumField; referenceDate: string }
   | { type: "removeScan"; id: string }
   | { type: "loadDemo" }
   | { type: "reset" };
 
-function newScanId(): string {
+export function isBlankScan(s: ScanState): boolean {
+  return (
+    !s.date &&
+    s.hcMm === "" &&
+    s.acMm === "" &&
+    s.flMm === "" &&
+    s.bpdMm === "" &&
+    s.pesoMammaOsservazione === ""
+  );
+}
+
+export function newScanId(): string {
   return crypto.randomUUID();
 }
 
-function emptyScan(date = ""): ScanState {
+export function emptyScan(date = ""): ScanState {
   return {
     id: newScanId(),
     date,
@@ -209,16 +240,8 @@ export function reducer(state: NasciTaraState, action: Action): NasciTaraState {
     case "restore":
       return action.state;
     case "importScan": {
-      const imported = { ...emptyScan(), ...action.scan };
-      const blank = state.scans.findIndex(
-        (s) =>
-          !s.date &&
-          s.hcMm === "" &&
-          s.acMm === "" &&
-          s.flMm === "" &&
-          s.bpdMm === "" &&
-          s.pesoMammaOsservazione === "",
-      );
+      const imported: ScanState = { ...emptyScan(), ...action.scan, source: "report" };
+      const blank = state.scans.findIndex(isBlankScan);
       const scans =
         blank >= 0
           ? state.scans.map((s, i) =>
@@ -257,6 +280,29 @@ export function reducer(state: NasciTaraState, action: Action): NasciTaraState {
           s.id === action.id ? { ...s, [action.field]: action.value } : s,
         ),
       };
+    case "saveScan": {
+      const exists = state.scans.some((s) => s.id === action.scan.id);
+      const blank = state.scans.findIndex(isBlankScan);
+      const scans = exists
+        ? state.scans.map((s) => (s.id === action.scan.id ? action.scan : s))
+        : blank >= 0
+          ? state.scans.map((s, i) => (i === blank ? action.scan : s))
+          : [...state.scans, action.scan];
+      return { ...state, scans };
+    }
+    case "complete":
+      return { ...state, completed: true, page: "dashboard", reached: "dashboard" };
+    case "setWashes":
+      return { ...state, corredino: { checked: [], ...state.corredino, washes: action.value } };
+    case "toggleGarment": {
+      const current = state.corredino ?? { washes: 3 as Washes, checked: [] };
+      const checked = current.checked.includes(action.key)
+        ? current.checked.filter((k) => k !== action.key)
+        : [...current.checked, action.key];
+      return { ...state, corredino: { ...current, checked } };
+    }
+    case "setProfileGa":
+      return { ...state, gaWeeks: action.weeks, gaDays: action.days, referenceDate: action.referenceDate };
     case "addScan":
       return {
         ...state,
