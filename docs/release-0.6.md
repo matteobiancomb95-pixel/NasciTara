@@ -23,12 +23,13 @@ Il percorso si completa una volta (`completed` nello screening); dopo si atterra
 ## Configurazione Supabase (prima del deploy)
 1. **Authentication → Sign In / Providers → Email**: attivo, con *Confirm email* attivo.
    Password: almeno 8 caratteri (l'app chiede anche un numero).
-2. **Authentication → URL Configuration**: Site URL `https://nascitara.app`; Redirect URLs
-   `https://nascitara.app/`, `https://nascitara.vercel.app/`, `http://localhost:5173/`, `http://127.0.0.1:5173/`.
+2. **Authentication → URL Configuration**: Site URL `https://nascitara.vercel.app`; Redirect URLs
+   `https://nascitara.vercel.app/`, `https://nascitara-*-matteo-bianco.vercel.app/**` (anteprime), `http://localhost:5173/`, `http://127.0.0.1:5173/`.
+   Se c'è ancora `https://nascitara.app/` (aggiunto per errore), va rimosso: il dominio non è in uso.
 3. **Authentication → Emails → Templates**: tradurre in italiano *Confirm signup* e *Reset password*
    (il link resta `{{ .ConfirmationURL }}`). SMTP Brevo già configurato per l'invio.
 4. **Google**:
-   - Google Cloud Console → APIs & Services → OAuth consent screen (esterno, nome NasciTara, dominio nascitara.app).
+   - Google Cloud Console → APIs & Services → OAuth consent screen (esterno, nome NasciTara, dominio nascitara.vercel.app).
    - Credentials → Create OAuth client ID → *Web application*; Authorized redirect URI:
      `https://wgvsclworxvtuepxbmmg.supabase.co/auth/v1/callback`.
    - Supabase → Authentication → Sign In / Providers → Google: incollare Client ID e Client secret, abilitare.
