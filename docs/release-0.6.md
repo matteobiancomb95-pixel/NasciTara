@@ -20,6 +20,14 @@ Il percorso si completa una volta (`completed` nello screening); dopo si atterra
   quantità per lavatrici a settimana). Spunte salvate nello screening. Lista condivisibile e scaricabile in PDF.
 - Grigio secondario #8e8e8e usato per bordi e segnaposto; il testo secondario usa #767676 (contrasto AA).
 
+## Stato al 27/09/2026
+- Fatto su produzione: conferma email attiva, password ≥ 8 con lettere e numeri, SMTP Brevo, Site URL
+  `https://nascitara.vercel.app`, redirect URL corretti, email di conferma / recupero / cambio indirizzo / link di accesso
+  in italiano (`supabase/templates/*.html`, dichiarate in `supabase/config.toml`: `supabase config push` le mantiene).
+- Il progetto di test non accetta template personalizzati (piano gratuito senza SMTP): non invia email, le registrazioni
+  sono attive subito.
+- Da fare: Google (punto 4), che richiede l'account Google Cloud del titolare.
+
 ## Configurazione Supabase (prima del deploy)
 1. **Authentication → Sign In / Providers → Email**: attivo, con *Confirm email* attivo.
    Password: almeno 8 caratteri (l'app chiede anche un numero).
@@ -30,8 +38,12 @@ Il percorso si completa una volta (`completed` nello screening); dopo si atterra
    (il link resta `{{ .ConfirmationURL }}`). SMTP Brevo già configurato per l'invio.
 4. **Google**:
    - Google Cloud Console → APIs & Services → OAuth consent screen (esterno, nome NasciTara, dominio nascitara.vercel.app).
-   - Credentials → Create OAuth client ID → *Web application*; Authorized redirect URI:
-     `https://wgvsclworxvtuepxbmmg.supabase.co/auth/v1/callback`.
+   - Credentials → Create OAuth client ID → *Web application*; Authorized JavaScript origins:
+     `https://nascitara.vercel.app`; Authorized redirect URI: `https://wgvsclworxvtuepxbmmg.supabase.co/auth/v1/callback`.
+   - OAuth consent screen → *Publish app* (stato "In production"): con i soli dati base (email, nome) non serve la verifica
+     di Google; in stato "Testing" possono entrare solo gli utenti di prova elencati.
+   - Nella finestra di Google comparirà "continua su wgvsclworxvtuepxbmmg.supabase.co": per mostrare un dominio NasciTara
+     serve il dominio personalizzato di Supabase (piano a pagamento).
    - Supabase → Authentication → Sign In / Providers → Google: incollare Client ID e Client secret, abilitare.
    Finché Google non è abilitato, il pulsante mostra "L'accesso con Google non è ancora attivo".
 5. Nessuna migrazione nuova: nome, cognome, settimana e consenso stanno in `auth.users.raw_user_meta_data`

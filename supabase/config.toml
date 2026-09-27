@@ -2,3 +2,23 @@ project_id = "wgvsclworxvtuepxbmmg"
 [functions.send-screening]
 # JWT is verified inside the function via auth.getUser; supports current signing keys.
 verify_jwt = false
+
+# Account di produzione (applicato il 2026-09-27). `supabase config push` invia solo le voci dichiarate qui.
+[auth]
+site_url = "https://nascitara.vercel.app"
+
+[auth.email.template.confirmation]
+subject = "Conferma il tuo account NasciTara"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "Scegli una nuova password per NasciTara"
+content_path = "./supabase/templates/recovery.html"
+
+[auth.email.template.email_change]
+subject = "Conferma il nuovo indirizzo email su NasciTara"
+content_path = "./supabase/templates/email_change.html"
+
+[auth.email.template.magic_link]
+subject = "Il tuo link di accesso a NasciTara"
+content_path = "./supabase/templates/magic_link.html"
