@@ -8,7 +8,7 @@ export function welcomeMessage(lang: unknown) {
   return {
     subject: it ? 'Il tuo account NasciTara è attivo' : 'Your NasciTara account is ready',
     textContent: it
-      ? 'Benvenuto su NasciTara! La registrazione è completata e il tuo indirizzo email è verificato. Puoi accedere al tuo account, aggiungere le ecografie e ritrovare le tue stime su https://nascitara.tech/. Nella pagina dei risultati, premi “Manda la stima all’email” per ricevere il PDF. Questa è una comunicazione di servizio, non una newsletter.'
-      : 'Welcome to NasciTara! Registration is complete and your email address is verified. Sign in, add scans and find your estimates at https://nascitara.tech/. On the results page, select “Email my estimate” to receive the PDF. This is a service message, not a newsletter.',
+      ? 'Benvenuto su NasciTara! La registrazione è completata e il tuo indirizzo email è verificato. Puoi accedere al tuo account, aggiungere le ecografie e ritrovare le tue stime su https://nascitara.tech/. Dalla pagina dei risultati puoi scaricare la stima in PDF. Questa è una comunicazione di servizio, non una newsletter.'
+      : 'Welcome to NasciTara! Registration is complete and your email address is verified. Sign in, add scans and find your estimates at https://nascitara.tech/. From the results page you can download your estimate as a PDF. This is a service message, not a newsletter.',
   };
 }

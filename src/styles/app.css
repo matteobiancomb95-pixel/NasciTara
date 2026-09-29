@@ -480,3 +480,111 @@ button.nt-row:hover { box-shadow: 0 8px 22px rgba(255, 57, 92, 0.14); }
 .nt-row--active { background: var(--nt-soft); box-shadow: inset 0 0 0 2px var(--nt-brand-2); }
 @media (min-width: 1024px) { .nt-empty-panel { min-height: 480px; } }
 .nt-testbar { position: sticky; top: 0; z-index: 50; padding: 6px 12px; background: #1f6feb; color: #fff; font-size: 12px; font-weight: 900; letter-spacing: 0.04em; text-align: center; }
+
+/* ============================ 0.7: Home e nuovo Corredino (Claude Design 29/09/2026) ============================ */
+@keyframes nt-sway { 0%, 100% { transform: rotate(-5deg) translateY(0); } 50% { transform: rotate(4deg) translateY(-6px); } }
+@keyframes nt-kick { 0%, 62%, 100% { transform: rotate(0); } 74% { transform: rotate(-16deg); } 86% { transform: rotate(5deg); } }
+@keyframes nt-wave { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-12deg); } }
+@keyframes nt-beat { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.4); } 30% { transform: scale(1); } 45% { transform: scale(1.25); } }
+@keyframes nt-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.035); } }
+@keyframes nt-ring { 0% { transform: scale(0.95); opacity: 0.9; } 100% { transform: scale(1.08); opacity: 0; } }
+@keyframes nt-bubble { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: 0.9; } 100% { transform: translateY(-54px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .nt-fetus * { animation: none !important; } }
+
+.nt-stack4 { display: flex; flex-direction: column; gap: 4px; }
+.nt-nowrap { white-space: nowrap; }
+.nt-mob-contents, .nt-desk-contents { display: contents; }
+.nt-mob-inline { font-style: normal; }
+.nt-meter--lg { height: 10px; margin-top: 10px; }
+.nt-meter--white { background: #fff; height: 6px; margin-top: 8px; display: block; }
+
+.nt-home__grid { display: flex; flex-direction: column; gap: 12px; }
+.nt-home__hero { display: flex; flex-direction: column; gap: 14px; }
+.nt-home__hello { margin: 0; font-size: 28px; font-weight: 900; line-height: 1.1; letter-spacing: -0.01em; }
+.nt-sex { flex: none; border: 0; border-radius: 999px; padding: 8px 14px; background: var(--nt-tint); font: inherit; font-size: 13px; font-weight: 900; color: var(--nt-ink); cursor: pointer; white-space: nowrap; }
+.nt-sex:hover { background: var(--nt-layout); }
+.nt-home__stage { position: relative; height: 300px; border-radius: 32px; background: var(--nt-soft); overflow: hidden; display: grid; place-items: center; }
+.nt-home__stage .nt-fetus { width: 250px; height: 250px; }
+.nt-home__badge { position: absolute; background: #fff; border-radius: 16px; padding: 8px 12px; box-shadow: 0 4px 14px rgba(255, 57, 92, 0.1); }
+.nt-home__badge b { display: block; font-size: 20px; font-weight: 900; }
+.nt-home__badge--tl { left: 14px; top: 14px; }
+.nt-home__badge--br { right: 14px; bottom: 14px; text-align: right; }
+.nt-trimester { border-radius: 22px; padding: 14px 16px; }
+.nt-trimester__count { font-size: 13px; font-weight: 800; }
+.nt-trimester__count b { color: var(--nt-brand); font-weight: 900; }
+.nt-trimester__legend { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11px; font-weight: 800; color: var(--nt-muted); }
+.nt-home__tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.nt-home__tile { background: var(--nt-tint); border-radius: 20px; padding: 14px 16px; }
+.nt-home__tile--white { background: #fff; }
+.nt-home__value { margin-top: 2px; font-size: 24px; font-weight: 900; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.nt-home__value small { font-size: 13px; font-weight: 800; color: var(--nt-muted); letter-spacing: 0; }
+.nt-home__cor { display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 16px; border: 0; border-radius: 24px; background: var(--nt-layout); font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.nt-home__cor:hover { box-shadow: 0 10px 24px -12px rgba(255, 57, 92, 0.6); }
+.nt-home__dresser { flex: none; width: 64px; height: 64px; border-radius: 20px; background: #fff; display: grid; place-items: center; }
+.nt-home__cortitle { display: block; margin-top: 2px; font-size: 16px; font-weight: 900; }
+.nt-home__go { font-size: 20px; font-weight: 900; }
+.nt-home__new { padding: 12px 14px; border-radius: 22px; }
+
+.nt-garment { cursor: default; padding: 8px; gap: 10px; }
+.nt-garment.is-done { background: var(--nt-soft); }
+.nt-garment.is-done .nt-row__title { text-decoration: none; }
+.nt-garment__icon { flex: none; width: 44px; height: 44px; border-radius: 14px; background: var(--nt-tint); display: grid; place-items: center; }
+.nt-garment__icon svg { width: 70%; height: 70%; }
+.nt-counter { flex: none; display: flex; align-items: center; gap: 2px; padding: 2px; border-radius: 999px; background: var(--nt-tint); }
+.nt-counter button { width: 40px; height: 40px; border: 0; border-radius: 50%; background: #fff; font: inherit; font-size: 20px; font-weight: 900; color: var(--nt-ink); cursor: pointer; display: grid; place-items: center; }
+.nt-counter button.is-plus { background: var(--nt-ink); color: #fff; }
+.nt-counter button:disabled { opacity: 0.35; cursor: default; }
+.nt-counter button:focus-visible { outline: 3px solid var(--nt-ink); outline-offset: 1px; }
+.nt-counter output { min-width: 46px; text-align: center; font-size: 15px; font-weight: 900; }
+.nt-counter output span { color: var(--nt-line); }
+.nt-cor-total small { margin-left: auto; font-size: 13px; font-weight: 800; color: var(--nt-muted); }
+.nt-cor__actions { display: flex; gap: 10px; align-items: center; margin-top: auto; }
+.nt-cor__actions .nt-btn--block { flex: 1; width: auto; }
+.nt-editor-head .nt-round { width: 44px; height: 44px; }
+
+@media (max-width: 1023.98px) {
+  .nt-desk-contents { display: none; }
+}
+@media (min-width: 1024px) {
+  .nt-mob-contents { display: none; }
+  .nt-mob-inline { display: none; }
+  .nt-home__grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 24px; align-items: stretch; }
+  .nt-home__hero { background: var(--nt-soft); border-radius: 32px; padding: 32px; }
+  .nt-home__hello { font-size: 44px; letter-spacing: -0.02em; line-height: 1.05; }
+  .nt-home__hero .nt-sub { font-size: 17px; font-weight: 700; margin-top: 6px; }
+  .nt-sex { background: #fff; padding: 10px 16px; font-size: 15px; box-shadow: 0 4px 14px rgba(255, 57, 92, 0.1); }
+  .nt-home__stage { flex: 1; height: auto; min-height: 360px; background: none; }
+  .nt-home__stage .nt-fetus { width: 400px; height: 400px; }
+  .nt-home__today { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .nt-home__today .nt-home__value { font-size: 28px; }
+  .nt-trimester { border-radius: 28px; padding: 22px 24px; }
+  .nt-trimester .nt-eyebrow { font-size: 12px; }
+  .nt-trimester__count { font-size: 16px; }
+  .nt-trimester__count b { font-size: 30px; }
+  .nt-meter--lg { height: 12px; margin-top: 12px; }
+  .nt-trimester__legend { font-size: 13px; margin-top: 8px; }
+  .nt-home__tiles { gap: 14px; }
+  .nt-home__tiles .nt-home__tile { border-radius: 24px; padding: 20px 22px; }
+  .nt-home__tiles .nt-home__value { font-size: 34px; margin-top: 4px; }
+  .nt-home__tiles .nt-home__value small { font-size: 15px; }
+  .nt-home__cor { border-radius: 28px; padding: 22px 24px; gap: 20px; }
+  .nt-home__dresser { width: 104px; height: 104px; border-radius: 28px; }
+  .nt-home__dresser svg { width: 72px; height: 72px; }
+  .nt-home__cortitle { font-size: 24px; }
+  .nt-home__cor .nt-row__meta { margin-top: 6px; font-size: 14px; color: var(--nt-ink); }
+  .nt-home__go .nt-btn { height: 46px; }
+  .nt-home__new { border-radius: 24px; padding: 16px 18px; }
+  .nt-home__new .nt-row__title { font-size: 17px; }
+  .nt-home__new .nt-row__meta { font-size: 14px; }
+  .nt-cor__grid { grid-template-columns: 340px minmax(0, 1fr); }
+  .nt-cor__col { padding: 18px; }
+  .nt-cor__col .nt-cor__size { font-size: 30px; }
+  .nt-cor__col .nt-garment { padding: 6px; gap: 8px; border-radius: 16px; }
+  .nt-cor__col .nt-garment__icon { width: 40px; height: 40px; border-radius: 12px; }
+  .nt-cor__col .nt-row__title { font-size: 14px; line-height: 1.2; }
+  .nt-cor__col .nt-row__meta { font-size: 11px; }
+  .nt-cor__col .nt-counter button { width: 28px; height: 28px; font-size: 16px; }
+  .nt-cor__col .nt-counter output { min-width: 40px; font-size: 13px; }
+  .nt-cor__acc .nt-rows { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .nt-cor__acc .nt-cor__size { font-size: 26px; }
+}

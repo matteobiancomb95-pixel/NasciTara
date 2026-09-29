@@ -61,9 +61,16 @@ export function validSavedState(s: unknown): s is NasciTaraState {
     (v.corredino === undefined ||
       (!!v.corredino &&
         [2, 3, 4].includes(v.corredino.washes) &&
-        Array.isArray(v.corredino.checked) &&
-        v.corredino.checked.length <= 200 &&
-        v.corredino.checked.every((k) => typeof k === "string" && k.length <= 80)))
+        (v.corredino.dryer === undefined || typeof v.corredino.dryer === "boolean") &&
+        (v.corredino.bought === undefined ||
+          (typeof v.corredino.bought === "object" &&
+            !Array.isArray(v.corredino.bought) &&
+            Object.keys(v.corredino.bought).length <= 200 &&
+            Object.entries(v.corredino.bought).every(([k, n]) => k.length <= 80 && Number.isInteger(n) && n >= 0 && n <= 99))) &&
+        (v.corredino.checked === undefined ||
+          (Array.isArray(v.corredino.checked) &&
+            v.corredino.checked.length <= 200 &&
+            v.corredino.checked.every((k) => typeof k === "string" && k.length <= 80)))))
   );
 }
 export function parseArchive(raw: string | null): ScreeningArchive {

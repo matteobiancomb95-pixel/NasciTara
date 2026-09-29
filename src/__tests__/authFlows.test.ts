@@ -46,6 +46,6 @@ describe('transactional email outcomes', () => {
   it('welcome confirms the account and references the explicit PDF action', () => {
     expect(welcomeMessage('it').textContent).toContain('registrazione è completata');
     expect(welcomeMessage('it').textContent).toContain('https://nascitara.tech/');
-    expect(welcomeMessage('en').textContent).toContain('Email my estimate');
+    expect(welcomeMessage('en').textContent).toContain('download your estimate as a PDF');
   });
 });

@@ -2,20 +2,20 @@ import { useMemo, useState } from 'react';
 import { PAGE_ORDER, useNasciTara, type Page, type ScanState } from '../state/NasciTaraStore';
 import { analyseUltrasound } from '../lib/analysis';
 import { estimatedDueDate, formatGA, gaAtDate, MAX_GA_WEEKS, MIN_GA_WEEKS, toISO, todayUTC } from '../lib/gestationalAge';
-import { sizesFor } from '../lib/corredino';
-import { exportResultPdf, resultPdfBase64, pdfFilename } from '../lib/exportPdf';
+import { buildCorredino } from '../lib/corredino';
+import { HangerIcon } from '../ui/art';
+import { exportResultPdf } from '../lib/exportPdf';
 import { trackUsage } from '../lib/usageTracking';
 import { localeOf } from '../i18n';
 import { Logo, NumberInput, DateInput, Segmented, Sheet, grams } from '../ui/kit';
 import { ScanEditor, MEASURES } from './ScanEditor';
 import { ResultsDetails } from './ResultsDetails';
-import { ScreeningDelivery } from '../components/ScreeningDelivery';
 
 const FULL = { it: ['Inizio', 'Gravidanza', 'Ecografie', 'Risultati'], en: ['Start', 'Pregnancy', 'Scans', 'Results'] };
 const SHORT = { it: ['Inizio', 'Gravid.', 'Ecogr.', 'Risultati'], en: ['Start', 'Pregn.', 'Scans', 'Results'] };
 
 /** Il percorso: quattro tab, ciascuna raggiungibile dopo la precedente. */
-export function Journey({ onExit, onFinish }: { onExit: () => void; onFinish: () => void }) {
+export function Journey({ onExit, onFinish }: { onExit: () => void; onFinish: (target?: 'home' | 'corredino') => void }) {
   const { state, dispatch, lang } = useNasciTara();
   const it = lang === 'it';
   const current = PAGE_ORDER.indexOf(state.page);
@@ -284,7 +284,7 @@ function ScansTab({ onBack, onNext }: { onBack: () => void; onNext: () => void }
   );
 }
 
-function ResultsTab({ onFinish }: { onFinish: () => void }) {
+function ResultsTab({ onFinish }: { onFinish: (target?: 'home' | 'corredino') => void }) {
   const { analysis, state, lang, dispatch } = useNasciTara();
   const it = lang === 'it';
   const [pdf, setPdf] = useState<'idle' | 'working' | 'error'>('idle');
@@ -298,18 +298,24 @@ function ResultsTab({ onFinish }: { onFinish: () => void }) {
     );
   }
   const now = analysis.now;
-  const sizes = sizesFor(analysis.lengthTerm.cm).join(' · ');
-  const share = async () => {
+  const cor = buildCorredino({
+    birthLengthCm: analysis.lengthTerm.cm, dueDate: estimatedDueDate(state.referenceDate, analysis.ga) ?? new Date(),
+    washes: state.corredino?.washes ?? 3, dryer: state.corredino?.dryer ?? false, bought: state.corredino?.bought ?? {}, lang,
+  });
+  const sizes = cor.sizes.join(' · ');
+  const explore = (
+    <button type="button" className="nt-btn nt-btn--block" onClick={() => onFinish('corredino')}>
+      <HangerIcon />
+      {it ? 'Esplora il suo primo guardaroba' : 'Explore their first wardrobe'}
+    </button>
+  );
+  const download = async () => {
     setPdf('working');
     try {
-      const nowDate = new Date();
-      const file = new File([Uint8Array.from(atob(await resultPdfBase64({ analysis, lang, now: nowDate })), (c) => c.charCodeAt(0))], pdfFilename(nowDate), { type: 'application/pdf' });
-      if (navigator.canShare?.({ files: [file] })) await navigator.share({ files: [file], title: 'NasciTara' });
-      else await exportResultPdf({ analysis, lang, now: nowDate });
+      await exportResultPdf({ analysis, lang, now: new Date() });
       trackUsage('pdf_download');
       setPdf('idle');
-    } catch (e) {
-      if (e instanceof DOMException && e.name === 'AbortError') return setPdf('idle');
+    } catch {
       trackUsage('pdf_error');
       setPdf('error');
     }
@@ -334,29 +340,29 @@ function ResultsTab({ onFinish }: { onFinish: () => void }) {
         </div>
         <div className="nt-card nt-card--pink nt-unlock">
           <span className="nt-bubble nt-desk" style={{ right: -90, top: -90, width: 320, height: 320, opacity: 0.5 }} />
-          <div className="nt-unlock__tag"><span className="nt-tag">{it ? 'Sbloccato' : 'Unlocked'}</span><span className="nt-eyebrow nt-desk">Corredino AI</span></div>
+          <div className="nt-unlock__tag nt-desk"><span className="nt-tag">{it ? 'Sbloccato' : 'Unlocked'}</span><span className="nt-eyebrow">Corredino AI</span></div>
+          <div className="nt-eyebrow nt-mob">{it ? 'Corredino AI · Sbloccato' : 'Corredino AI · Unlocked'}</div>
           <div className="nt-unlock__title">
-            <span className="nt-mob">{it ? `Il Corredino AI in taglia ${sizes}` : `Corredino AI in sizes ${sizes}`}</span>
+            <span className="nt-mob">{it ? `Il suo guardaroba in taglia ${sizes}` : `Their wardrobe in sizes ${sizes}`}</span>
             <span className="nt-desk">{it ? 'Il suo primo guardaroba, già in taglia.' : 'Their first wardrobe, already sized.'}</span>
           </div>
           <p className="nt-body nt-desk">{it ? 'Taglie, quantità e tessuti per i primi 3 mesi, sulla stagione del parto.' : 'Sizes, quantities and fabrics for the first 3 months, based on the birth season.'}</p>
-          <span className="nt-pill nt-pill--sm nt-mob">{it ? 'Nuovo' : 'New'}</span>
           <div className="nt-desk nt-unlock__sizes">
-            {sizesFor(analysis.lengthTerm.cm).map((s, i) => (
-              <div key={s} className="nt-card nt-card--white"><div className="nt-eyebrow">{it ? `${i + 1}° mese` : `Month ${i + 1}`}</div><div className="nt-mid">Tg {s}</div></div>
+            {cor.columns.map((col) => (
+              <div key={col.id} className="nt-card nt-card--white"><div className="nt-eyebrow">{col.infoTop.split(' · ')[0]}</div><div className="nt-mid">{col.tab}</div><div className="nt-row__meta">{col.seasonLabel}</div></div>
             ))}
           </div>
-          <button type="button" className="nt-btn nt-btn--block nt-desk" onClick={onFinish}>{it ? 'Vai alla tua area' : 'Go to your area'}</button>
+          <div className="nt-desk">{explore}</div>
         </div>
       </div>
-      <ScreeningDelivery />
       <ResultsDetails />
       <div className="nt-actions nt-actions--stack nt-mob">
-        <button type="button" className="nt-btn nt-btn--block" onClick={onFinish}>{it ? 'Vai alla tua area' : 'Go to your area'}</button>
-        <button type="button" className="nt-link" onClick={() => void share()} disabled={pdf === 'working'}>{pdf === 'working' ? (it ? 'Preparo il PDF…' : 'Preparing PDF…') : it ? 'Condividi con il ginecologo' : 'Share with your gynaecologist'}</button>
+        {explore}
+        <button type="button" className="nt-link" onClick={() => onFinish('home')}>{it ? 'Vai alla tua area' : 'Go to your area'}</button>
+        <button type="button" className="nt-link" onClick={() => void download()} disabled={pdf === 'working'}>{pdf === 'working' ? (it ? 'Preparo il PDF…' : 'Preparing PDF…') : it ? 'Scarica il risultato in PDF' : 'Download the result as PDF'}</button>
       </div>
       <div className="nt-desk nt-center">
-        <button type="button" className="nt-link" onClick={() => void share()} disabled={pdf === 'working'}>{pdf === 'working' ? (it ? 'Preparo il PDF…' : 'Preparing PDF…') : it ? 'Condividi il PDF con il ginecologo' : 'Share the PDF with your gynaecologist'}</button>
+        <button type="button" className="nt-link" onClick={() => void download()} disabled={pdf === 'working'}>{pdf === 'working' ? (it ? 'Preparo il PDF…' : 'Preparing PDF…') : it ? 'Scarica il risultato in PDF' : 'Download the result as PDF'}</button>
       </div>
       {pdf === 'error' ? <p className="nt-error" role="alert">{it ? 'PDF non generato. Riprova.' : 'PDF not generated. Try again.'}</p> : null}
     </main>

@@ -8,7 +8,7 @@ import { parseISO, toISO, todayUTC } from '../lib/gestationalAge';
 import { AuthScreen } from '../screens/AuthScreen';
 import { Welcome } from '../screens/Welcome';
 import { Journey } from '../screens/Journey';
-import { Area } from '../screens/Area';
+import { Area, type AreaTab } from '../screens/Area';
 import { AccountMenu } from '../screens/AccountMenu';
 import { belongsToEmail } from '../lib/screeningStorage';
 
@@ -27,6 +27,7 @@ export function AppShell({ demo = false }: { demo?: boolean }) {
   const it = lang === 'it';
   const [view, setView] = useState<View>(() => (demo ? 'journey' : state.completed ? 'area' : 'welcome'));
   const [menu, setMenu] = useState(false);
+  const [areaTab, setAreaTab] = useState<AreaTab>('home');
 
   // The account is the source of email, consent and the week declared at sign-up.
   useEffect(() => {
@@ -82,9 +83,9 @@ export function AppShell({ demo = false }: { demo?: boolean }) {
       view === 'welcome' ? (
         <Welcome firstName={first} fullName={full} onAccount={() => setMenu(true)} onStart={() => setView('journey')} />
       ) : view === 'area' ? (
-        <Area firstName={first} fullName={full} onAccount={() => setMenu(true)} />
+        <Area key={areaTab} initialTab={areaTab} firstName={first} fullName={full} onAccount={() => setMenu(true)} />
       ) : (
-        <Journey onExit={exit} onFinish={() => { dispatch({ type: 'complete' }); setView('area'); }} />
+        <Journey onExit={exit} onFinish={(target = 'home') => { dispatch({ type: 'complete' }); setAreaTab(target); setView('area'); }} />
       );
     screen = (
       <>
