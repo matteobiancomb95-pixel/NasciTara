@@ -5,7 +5,15 @@ verify_jwt = false
 
 # Account di produzione (applicato il 2026-09-27). `supabase config push` invia solo le voci dichiarate qui.
 [auth]
+# Il sito principale resta raggiungibile durante la propagazione DNS di nascitara.tech.
 site_url = "https://nascitara.vercel.app"
+additional_redirect_urls = [
+  "https://nascitara.vercel.app/",
+  "https://nascitara.tech/",
+  "https://www.nascitara.tech/",
+  "http://127.0.0.1:5173/",
+  "http://localhost:5173/",
+]
 
 [auth.email.template.confirmation]
 subject = "Conferma il tuo account NasciTara"
