@@ -78,8 +78,12 @@ export type Washes = 2 | 3 | 4;
 
 export interface CorredinoState {
   washes: Washes;
-  /** Capi spuntati, come chiave taglia+categoria. */
-  checked: string[];
+  /** Con asciugatrice il ciclo di lavaggio e' piu' corto di un giorno. */
+  dryer?: boolean;
+  /** Pezzi gia' presi per capo, come chiave gruppo|nome ("56|Tutine", "A|Bavaglini"). */
+  bought?: Record<string, number>;
+  /** 0.6: spunte per capo, sostituite dai contatori. Lette solo per compatibilita'. */
+  checked?: string[];
 }
 
 export interface NasciTaraState {
@@ -121,7 +125,8 @@ export type Action =
   | { type: "saveScan"; scan: ScanState }
   | { type: "complete" }
   | { type: "setWashes"; value: Washes }
-  | { type: "toggleGarment"; key: string }
+  | { type: "setDryer"; value: boolean }
+  | { type: "setBought"; key: string; value: number }
   | { type: "setProfileGa"; weeks: NumField; days: NumField; referenceDate: string }
   | { type: "removeScan"; id: string }
   | { type: "loadDemo" }
@@ -293,13 +298,16 @@ export function reducer(state: NasciTaraState, action: Action): NasciTaraState {
     case "complete":
       return { ...state, completed: true, page: "dashboard", reached: "dashboard" };
     case "setWashes":
-      return { ...state, corredino: { checked: [], ...state.corredino, washes: action.value } };
-    case "toggleGarment": {
-      const current = state.corredino ?? { washes: 3 as Washes, checked: [] };
-      const checked = current.checked.includes(action.key)
-        ? current.checked.filter((k) => k !== action.key)
-        : [...current.checked, action.key];
-      return { ...state, corredino: { ...current, checked } };
+      return { ...state, corredino: { ...(state.corredino ?? {}), washes: action.value } };
+    case "setDryer":
+      return { ...state, corredino: { washes: 3, ...state.corredino, dryer: action.value } };
+    case "setBought": {
+      const current = state.corredino ?? { washes: 3 as Washes };
+      const bought = { ...current.bought };
+      const n = Math.max(0, Math.min(99, Math.round(action.value)));
+      if (n === 0) delete bought[action.key];
+      else bought[action.key] = n;
+      return { ...state, corredino: { ...current, bought } };
     }
     case "setProfileGa":
       return { ...state, gaWeeks: action.weeks, gaDays: action.days, referenceDate: action.referenceDate };

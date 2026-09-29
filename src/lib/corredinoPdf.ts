@@ -15,28 +15,32 @@ export async function exportCorredinoPdf(c: Corredino, lang: Lang, basis: string
   doc.text('NasciTara', 18, y);
   doc.setTextColor(51, 51, 51);
   doc.setFontSize(14);
-  doc.text(it ? `Corredino 0-3 mesi · ${c.total} capi` : `Layette 0-3 months · ${c.total} items`, 18, (y += 10));
+  doc.text(it ? `Corredino 0-3 mesi · ${c.have} di ${c.total} capi pronti` : `Layette 0-3 months · ${c.have} of ${c.total} items ready`, 18, (y += 10));
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   doc.text(clean(`${c.seasonHeadline} · ${basis}`), 18, (y += 7));
   doc.text(doc.splitTextToSize(clean(c.advice), 174), 18, (y += 6));
   y += 6;
-  for (const col of c.columns) {
-    if (y > 250) {
+  for (const group of [...c.columns, c.accessories]) {
+    if (y > 240) {
       doc.addPage();
       y = 20;
     }
     y += 8;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(13);
-    doc.text(clean(`${it ? 'Taglia' : 'Size'} ${col.size} · ${col.monthName} · ${col.seasonLabel} (${col.range})`), 18, y);
+    doc.text(clean(`${group.title} · ${group.infoTop.toLowerCase()} · ${group.have}/${group.total}`), 18, y);
     doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(118, 118, 118);
+    doc.text(clean(group.infoSub), 18, (y += 5));
+    doc.setTextColor(51, 51, 51);
     doc.setFontSize(11);
-    for (const item of col.items) {
+    for (const item of group.items) {
       y += 7;
       doc.rect(18, y - 3.6, 4, 4);
-      if (item.done) doc.text('x', 19, y - 0.2);
-      doc.text(clean(`${item.qty} × ${item.name}`), 26, y);
+      if (item.have >= item.qty) doc.text('x', 19, y - 0.2);
+      doc.text(clean(`${item.have}/${item.qty}  ${item.name}`), 26, y);
       doc.setTextColor(118, 118, 118);
       doc.text(clean(item.material), 110, y);
       doc.setTextColor(51, 51, 51);

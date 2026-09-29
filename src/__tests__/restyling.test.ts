@@ -37,20 +37,25 @@ describe('journey state', () => {
     const s3 = reducer(s2, { type: 'saveScan', scan: { ...s2.scans[0], hcMm: 280 } });
     expect(s3.scans[0].hcMm).toBe(280);
   });
-  it('completes the journey once and keeps the layette ticks', () => {
+  it('completes the journey once and keeps the layette counters', () => {
     let s = reducer(emptyState(), { type: 'complete' });
     expect(s).toMatchObject({ completed: true, page: 'dashboard', reached: 'dashboard' });
-    s = reducer(s, { type: 'toggleGarment', key: '56:Tutine' });
+    s = reducer(s, { type: 'setBought', key: '56|Tutine', value: 3 });
     s = reducer(s, { type: 'setWashes', value: 2 });
-    expect(s.corredino).toEqual({ washes: 2, checked: ['56:Tutine'] });
-    s = reducer(s, { type: 'toggleGarment', key: '56:Tutine' });
-    expect(s.corredino?.checked).toEqual([]);
+    s = reducer(s, { type: 'setDryer', value: true });
+    expect(s.corredino).toEqual({ washes: 2, dryer: true, bought: { '56|Tutine': 3 } });
+    s = reducer(s, { type: 'setBought', key: '56|Tutine', value: 0 });
+    expect(s.corredino?.bought).toEqual({});
     expect(validSavedState(s)).toBe(true);
+    // Screenings saved by 0.6 still load.
+    expect(validSavedState({ ...s, corredino: { washes: 3, checked: ['56:Tutine'] } })).toBe(true);
   });
   it('rejects malformed new fields in saved screenings', () => {
     const s = emptyState();
     expect(validSavedState({ ...s, completed: 'yes' })).toBe(false);
     expect(validSavedState({ ...s, corredino: { washes: 5, checked: [] } })).toBe(false);
+    expect(validSavedState({ ...s, corredino: { washes: 3, bought: { x: -1 } } })).toBe(false);
+    expect(validSavedState({ ...s, corredino: { washes: 3, bought: { x: 2.5 } } })).toBe(false);
     expect(validSavedState({ ...s, scans: [{ ...emptyScan(), source: 'photo' }] })).toBe(false);
     expect(validSavedState({ ...s, scans: [{ ...emptyScan(), reportName: 'x'.repeat(121) }] })).toBe(false);
   });
