@@ -4,13 +4,12 @@ import { analyseUltrasound } from '../lib/analysis';
 import { estimatedDueDate, formatGA, gaAtDate, MAX_GA_WEEKS, MIN_GA_WEEKS, toISO, todayUTC } from '../lib/gestationalAge';
 import { buildCorredino } from '../lib/corredino';
 import { HangerIcon } from '../ui/art';
-import { exportResultPdf, resultPdfBase64, pdfFilename } from '../lib/exportPdf';
+import { exportResultPdf } from '../lib/exportPdf';
 import { trackUsage } from '../lib/usageTracking';
 import { localeOf } from '../i18n';
 import { Logo, NumberInput, DateInput, Segmented, Sheet, grams } from '../ui/kit';
 import { ScanEditor, MEASURES } from './ScanEditor';
 import { ResultsDetails } from './ResultsDetails';
-import { ScreeningDelivery } from '../components/ScreeningDelivery';
 
 const FULL = { it: ['Inizio', 'Gravidanza', 'Ecografie', 'Risultati'], en: ['Start', 'Pregnancy', 'Scans', 'Results'] };
 const SHORT = { it: ['Inizio', 'Gravid.', 'Ecogr.', 'Risultati'], en: ['Start', 'Pregn.', 'Scans', 'Results'] };
@@ -310,17 +309,13 @@ function ResultsTab({ onFinish }: { onFinish: (target?: 'home' | 'corredino') =>
       {it ? 'Esplora il suo primo guardaroba' : 'Explore their first wardrobe'}
     </button>
   );
-  const share = async () => {
+  const download = async () => {
     setPdf('working');
     try {
-      const nowDate = new Date();
-      const file = new File([Uint8Array.from(atob(await resultPdfBase64({ analysis, lang, now: nowDate })), (c) => c.charCodeAt(0))], pdfFilename(nowDate), { type: 'application/pdf' });
-      if (navigator.canShare?.({ files: [file] })) await navigator.share({ files: [file], title: 'NasciTara' });
-      else await exportResultPdf({ analysis, lang, now: nowDate });
+      await exportResultPdf({ analysis, lang, now: new Date() });
       trackUsage('pdf_download');
       setPdf('idle');
-    } catch (e) {
-      if (e instanceof DOMException && e.name === 'AbortError') return setPdf('idle');
+    } catch {
       trackUsage('pdf_error');
       setPdf('error');
     }
@@ -360,15 +355,14 @@ function ResultsTab({ onFinish }: { onFinish: (target?: 'home' | 'corredino') =>
           <div className="nt-desk">{explore}</div>
         </div>
       </div>
-      <ScreeningDelivery />
       <ResultsDetails />
       <div className="nt-actions nt-actions--stack nt-mob">
         {explore}
         <button type="button" className="nt-link" onClick={() => onFinish('home')}>{it ? 'Vai alla tua area' : 'Go to your area'}</button>
-        <button type="button" className="nt-link" onClick={() => void share()} disabled={pdf === 'working'}>{pdf === 'working' ? (it ? 'Preparo il PDF…' : 'Preparing PDF…') : it ? 'Condividi con il ginecologo' : 'Share with your gynaecologist'}</button>
+        <button type="button" className="nt-link" onClick={() => void download()} disabled={pdf === 'working'}>{pdf === 'working' ? (it ? 'Preparo il PDF…' : 'Preparing PDF…') : it ? 'Scarica il risultato in PDF' : 'Download the result as PDF'}</button>
       </div>
       <div className="nt-desk nt-center">
-        <button type="button" className="nt-link" onClick={() => void share()} disabled={pdf === 'working'}>{pdf === 'working' ? (it ? 'Preparo il PDF…' : 'Preparing PDF…') : it ? 'Condividi il PDF con il ginecologo' : 'Share the PDF with your gynaecologist'}</button>
+        <button type="button" className="nt-link" onClick={() => void download()} disabled={pdf === 'working'}>{pdf === 'working' ? (it ? 'Preparo il PDF…' : 'Preparing PDF…') : it ? 'Scarica il risultato in PDF' : 'Download the result as PDF'}</button>
       </div>
       {pdf === 'error' ? <p className="nt-error" role="alert">{it ? 'PDF non generato. Riprova.' : 'PDF not generated. Try again.'}</p> : null}
     </main>

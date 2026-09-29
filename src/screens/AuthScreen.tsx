@@ -128,8 +128,8 @@ export function AuthScreen({ initialMode = 'register' }: { initialMode?: AuthMod
         <summary>{it ? 'Cosa accetto' : 'What I accept'}</summary>
         <p className="nt-note">
           {it
-            ? 'NasciTara conserva nel tuo account email, nome, settimana di gravidanza, dati facoltativi dei genitori e misure delle ecografie, per calcolare le stime e ritrovarle su altri dispositivi. Registriamo anche le fasi completate per contare gli utenti e migliorare il servizio (90 giorni). Al termine puoi richiedere l’invio del PDF alla tua email verificata. Le foto dei referti vengono lette sul dispositivo e non vengono mai salvate. Nessun marketing. Puoi eliminare i dati dall’area riservata.'
-            : 'NasciTara stores your email, name, week of pregnancy, optional parents’ details and scan measurements in your account to compute estimates and sync devices. We also record completed steps to count users and improve the service (90 days). At the end you can request the PDF at your verified email address. Report photos are read on the device and never saved. No marketing. You can delete your data in the private area.'}
+            ? 'NasciTara conserva nel tuo account email, nome, settimana di gravidanza, dati facoltativi dei genitori e misure delle ecografie, per calcolare le stime e ritrovarle su altri dispositivi. Registriamo anche le fasi completate per contare gli utenti e migliorare il servizio (90 giorni). Il risultato si scarica in PDF dall’app. Le foto dei referti vengono lette sul dispositivo e non vengono mai salvate. Nessun marketing. Puoi eliminare i dati dall’area riservata.'
+            : 'NasciTara stores your email, name, week of pregnancy, optional parents’ details and scan measurements in your account to compute estimates and sync devices. We also record completed steps to count users and improve the service (90 days). You can download the result as a PDF in the app. Report photos are read on the device and never saved. No marketing. You can delete your data in the private area.'}
         </p>
       </details>
     </div>
