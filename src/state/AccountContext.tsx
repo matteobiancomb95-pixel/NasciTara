@@ -7,6 +7,8 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
+import { authMessage, callbackError, checkGoogleProvider } from "../lib/authFeedback";
+export { authMessage } from "../lib/authFeedback";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabaseClient";
 import { useNasciTara } from "./NasciTaraStore";
@@ -38,6 +40,8 @@ interface Account {
   profile: Profile | null;
   /** L'utente ha aperto il link di recupero: deve scegliere una nuova password. */
   recovering: boolean;
+  authError: string;
+  resendConfirmation: (email: string) => Promise<AuthResult>;
   signUp: (input: { firstName: string; lastName: string; email: string; password: string; gaWeeks: number; consent: boolean }) => Promise<AuthResult>;
   signIn: (email: string, password: string) => Promise<AuthResult>;
   signInWithGoogle: () => Promise<AuthResult>;
@@ -56,6 +60,11 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   const { state, screeningId } = useNasciTara();
   const preview = !supabase && import.meta.env.DEV;
   const [ready, setReady] = useState(!supabase);
+  const [authError] = useState(() => {
+    const code = callbackError(window.location.href);
+    return code ? authMessage(code, state.lang) : "";
+  });
+  const welcomed = useRef(new Set<string>());
   const [recovering, setRecovering] = useState(false);
   const [user, setUser] = useState<User | null>(() => (preview ? loadPreviewUser() : null)),
     [cloud, setCloud] = useState<SavedScreening[]>([]);
@@ -169,6 +178,12 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       clearTimeout(timer);
     };
   }, [state, screeningId, user, refresh]);
+  // Run outside onAuthStateChange: awaiting Supabase calls inside that callback can deadlock.
+  useEffect(() => {
+    if (!supabase || !user?.email_confirmed_at || user.user_metadata?.welcome_requested !== true || welcomed.current.has(user.id)) return;
+    welcomed.current.add(user.id);
+    void supabase.functions.invoke("send-welcome").catch(() => {});
+  }, [user]);
   const signOut = async () => {
     await queue.current.catch(() => {});
     await supabase?.auth.signOut({ scope: "local" });
@@ -196,7 +211,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   const origin = window.location.origin + "/";
   const fail = (e: { message?: string } | null | undefined): AuthResult => ({ ok: false, error: authMessage(e?.message, state.lang) });
   const signUp: Account["signUp"] = async (input) => {
-    const data = { first_name: input.firstName.trim(), last_name: input.lastName.trim(), ga_weeks: input.gaWeeks, ga_reference: toISO(todayUTC()), consent_version: input.consent ? CONSENT_VERSION : null, consent_at: input.consent ? new Date().toISOString() : null };
+    const data = { welcome_requested: true, lang: state.lang, first_name: input.firstName.trim(), last_name: input.lastName.trim(), ga_weeks: input.gaWeeks, ga_reference: toISO(todayUTC()), consent_version: input.consent ? CONSENT_VERSION : null, consent_at: input.consent ? new Date().toISOString() : null };
     if (!supabase) {
       if (!preview) return fail({ message: "unavailable" });
       setUser(storePreviewUser(input.email.trim(), data));
@@ -218,7 +233,17 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   };
   const signInWithGoogle: Account["signInWithGoogle"] = async () => {
     if (!supabase) return fail({ message: preview ? "preview_google" : "unavailable" });
+    try {
+      await checkGoogleProvider(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY);
+    } catch (e) {
+      return fail(e instanceof Error ? e : { message: "unavailable" });
+    }
     const { error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: origin } });
+    return error ? fail(error) : { ok: true };
+  };
+  const resendConfirmation: Account["resendConfirmation"] = async (email) => {
+    if (!supabase) return fail({ message: "unavailable" });
+    const { error } = await supabase.auth.resend({ type: "signup", email: email.trim(), options: { emailRedirectTo: origin } });
     return error ? fail(error) : { ok: true };
   };
   const resetPassword: Account["resetPassword"] = async (email) => {
@@ -235,6 +260,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   };
   const completeProfile: Account["completeProfile"] = async (input) => {
     const data: Record<string, unknown> = { ga_weeks: input.gaWeeks, ga_reference: toISO(todayUTC()), consent_version: input.consent ? CONSENT_VERSION : null, consent_at: input.consent ? new Date().toISOString() : null };
+    if (!user?.user_metadata?.consent_version) { data.welcome_requested = true; data.lang = state.lang; }
     if (input.firstName !== undefined) data.first_name = input.firstName.trim();
     if (input.lastName !== undefined) data.last_name = input.lastName.trim();
     if (!supabase) {
@@ -250,7 +276,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   const profile = user ? profileOf(user) : null;
   return (
     <Context.Provider
-      value={{ preview, ready, user, profile, recovering, signUp, signIn, signInWithGoogle, resetPassword, updatePassword, completeProfile, cloud, status, refresh, signOut, remove, savedRevision }}
+      value={{ preview, ready, user, profile, recovering, authError, resendConfirmation, signUp, signIn, signInWithGoogle, resetPassword, updatePassword, completeProfile, cloud, status, refresh, signOut, remove, savedRevision }}
     >
       {children}
     </Context.Provider>
@@ -275,21 +301,6 @@ export function profileOf(user: User): Profile {
     gaReference: typeof m.ga_reference === "string" && /^\d{4}-\d{2}-\d{2}$/.test(m.ga_reference) ? m.ga_reference : null,
     consent: typeof m.consent_version === "string" && m.consent_version.length > 0,
   };
-}
-
-/** Messaggi di errore di Supabase Auth tradotti in frasi utili. */
-export function authMessage(message: string | undefined, lang: "it" | "en"): string {
-  const it = lang === "it";
-  const m = (message ?? "").toLowerCase();
-  if (m.includes("invalid login")) return it ? "Email o password non corrette." : "Wrong email or password.";
-  if (m.includes("email not confirmed")) return it ? "Conferma prima l’indirizzo: apri il link che ti abbiamo inviato via email." : "Confirm your address first: open the link we emailed you.";
-  if (m.includes("already registered") || m.includes("already been registered")) return it ? "Esiste già un account con questa email. Accedi o recupera la password." : "An account with this email already exists. Sign in or reset your password.";
-  if (m.includes("password") && (m.includes("least") || m.includes("short") || m.includes("weak"))) return it ? "La password deve avere almeno 8 caratteri, con lettere e numeri." : "Use at least 8 characters with letters and numbers.";
-  if (m.includes("rate limit") || m.includes("too many")) return it ? "Troppi tentativi. Riprova tra qualche minuto." : "Too many attempts. Try again in a few minutes.";
-  if (m.includes("provider is not enabled") || m.includes("unsupported provider")) return it ? "L’accesso con Google non è ancora attivo. Usa email e password." : "Google sign-in is not active yet. Use email and password.";
-  if (m === "preview_google") return it ? "Anteprima locale: l’accesso con Google funziona solo online." : "Local preview: Google sign-in works only online.";
-  if (m === "unavailable") return it ? "Servizio account non disponibile. Riprova più tardi." : "Account service unavailable. Please try again later.";
-  return it ? "Qualcosa non ha funzionato. Riprova." : "Something went wrong. Please try again.";
 }
 
 const PREVIEW_KEY = "nascitara.preview-user";

@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useState, useRef, type FormEvent, type ReactNode } from 'react';
 import markUrl from '../assets/brand/logo-mark-transparent.png';
 import { useAccount } from '../state/AccountContext';
 import { useNasciTara } from '../state/NasciTaraStore';
@@ -30,7 +30,8 @@ export function AuthScreen({ initialMode = 'register' }: { initialMode?: AuthMod
   const [week, setWeek] = useState<number>(Number(state.gaWeeks) || account.profile?.gaWeeks || 28);
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
+  const pending = useRef(false);
+  const [error, setError] = useState(account.authError);
   const [info, setInfo] = useState('');
 
   const go = (m: AuthMode) => {
@@ -41,6 +42,8 @@ export function AuthScreen({ initialMode = 'register' }: { initialMode?: AuthMod
   const due = dueFromWeek(week).toLocaleDateString(localeOf(lang), { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 
   async function run(task: () => Promise<{ ok: boolean; error?: string; needsConfirmation?: boolean } | void>) {
+    if (pending.current) return;
+    pending.current = true;
     setBusy(true);
     setError('');
     try {
@@ -50,6 +53,7 @@ export function AuthScreen({ initialMode = 'register' }: { initialMode?: AuthMod
     } catch {
       setError(it ? 'Connessione non riuscita. Controlla la rete e riprova.' : 'Connection failed. Check your network and try again.');
     } finally {
+      pending.current = false;
       setBusy(false);
     }
   }
@@ -124,8 +128,8 @@ export function AuthScreen({ initialMode = 'register' }: { initialMode?: AuthMod
         <summary>{it ? 'Cosa accetto' : 'What I accept'}</summary>
         <p className="nt-note">
           {it
-            ? 'NasciTara conserva nel tuo account email, nome, settimana di gravidanza, dati facoltativi dei genitori e misure delle ecografie, per calcolare le stime e ritrovarle su altri dispositivi. Registriamo anche le fasi completate per contare gli utenti e migliorare il servizio (90 giorni). Al termine ricevi il PDF via email. Le foto dei referti vengono lette sul dispositivo e non vengono mai salvate. Nessun marketing. Puoi eliminare i dati dall’area riservata.'
-            : 'NasciTara stores your email, name, week of pregnancy, optional parents’ details and scan measurements in your account to compute estimates and sync devices. We also record completed steps to count users and improve the service (90 days). You receive the PDF by email. Report photos are read on the device and never saved. No marketing. You can delete your data in the private area.'}
+            ? 'NasciTara conserva nel tuo account email, nome, settimana di gravidanza, dati facoltativi dei genitori e misure delle ecografie, per calcolare le stime e ritrovarle su altri dispositivi. Registriamo anche le fasi completate per contare gli utenti e migliorare il servizio (90 giorni). Al termine puoi richiedere l’invio del PDF alla tua email verificata. Le foto dei referti vengono lette sul dispositivo e non vengono mai salvate. Nessun marketing. Puoi eliminare i dati dall’area riservata.'
+            : 'NasciTara stores your email, name, week of pregnancy, optional parents’ details and scan measurements in your account to compute estimates and sync devices. We also record completed steps to count users and improve the service (90 days). At the end you can request the PDF at your verified email address. Report photos are read on the device and never saved. No marketing. You can delete your data in the private area.'}
         </p>
       </details>
     </div>
@@ -196,6 +200,13 @@ export function AuthScreen({ initialMode = 'register' }: { initialMode?: AuthMod
           <p className="nt-sub">{it ? `Abbiamo inviato un link a ${email.trim()}. Aprilo per attivare l’account: tornerai qui già dentro.` : `We sent a link to ${email.trim()}. Open it to activate your account and come back signed in.`}</p>
         </div>
         <p className="nt-note">{it ? 'Non lo trovi? Guarda nello spam, oppure accedi se lo hai già confermato.' : 'Can’t find it? Check spam, or sign in if you already confirmed.'}</p>
+        {error ? <p className="nt-error" role="alert">{error}</p> : null}
+        {info ? <p className="nt-ok" role="status">{info}</p> : null}
+        <button type="button" className="nt-btn nt-btn--block" disabled={busy} onClick={() => void run(async () => {
+          const r = await account.resendConfirmation(email);
+          if (r.ok) setInfo(it ? 'Richiesta ricevuta. Controlla la posta e lo spam; attendi un minuto prima di riprovare.' : 'Request received. Check your inbox and spam; wait a minute before trying again.');
+          return r;
+        })}>{it ? 'Invia di nuovo la conferma' : 'Resend confirmation'}</button>
         <button type="button" className="nt-btn nt-btn--block" onClick={() => go('login')}>{it ? 'Vai ad Accedi' : 'Go to sign in'}</button>
       </div>
     );

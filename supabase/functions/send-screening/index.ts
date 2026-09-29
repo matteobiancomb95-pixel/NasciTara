@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
+import { mailOutcome } from "../_shared/mail.ts";
 const allowedOrigins = new Set([
   "https://nascitara.tech",
   "https://www.nascitara.tech",
@@ -111,6 +112,7 @@ Deno.serve(async (req: Request) => {
         body: JSON.stringify({
           sender: { name: "NasciTara", email: sender },
           to: [{ email: user.email }],
+          replyTo: { email: Deno.env.get("BREVO_REPLY_TO_EMAIL") || sender, name: "NasciTara" },
           subject: it ? "Il tuo risultato NasciTara" : "Your NasciTara result",
           textContent: it
             ? "In allegato trovi il risultato che hai richiesto su NasciTara. Puoi riprendere lo screening da I miei screening. Le stime non sostituiscono la valutazione del ginecologo."
@@ -131,11 +133,7 @@ Deno.serve(async (req: Request) => {
     } catch {
       /* Unknown acceptance must not cause another send. */
     }
-    const status = result.ok
-      ? "accepted"
-      : result.status >= 500
-        ? "unknown"
-        : "failed";
+    const status = mailOutcome(result.status, providerId);
     const { error: updateError } = await admin
       .from("screening_deliveries")
       .update({

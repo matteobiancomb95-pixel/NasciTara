@@ -30,3 +30,7 @@ content_path = "./supabase/templates/email_change.html"
 [auth.email.template.magic_link]
 subject = "Il tuo link di accesso a NasciTara"
 content_path = "./supabase/templates/magic_link.html"
+
+[functions.send-welcome]
+# Verified inside the function with auth.getUser, then a service-only delivery reservation.
+verify_jwt = false
