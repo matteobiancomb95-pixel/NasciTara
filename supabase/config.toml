@@ -34,3 +34,16 @@ content_path = "./supabase/templates/magic_link.html"
 [functions.send-welcome]
 # Verified inside the function with auth.getUser, then a service-only delivery reservation.
 verify_jwt = false
+
+# 0.7: tutte verificano il token dentro la funzione (auth.getUser) o, per il job, il segreto x-cron-secret.
+[functions.ai]
+verify_jwt = false
+
+[functions.submit-feedback]
+verify_jwt = false
+
+[functions.delete-account]
+verify_jwt = false
+
+[functions.send-reminders]
+verify_jwt = false

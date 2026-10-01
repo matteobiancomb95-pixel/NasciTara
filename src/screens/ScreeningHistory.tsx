@@ -3,11 +3,11 @@ import { useAccount } from '../state/AccountContext';
 import type { SavedScreening } from '../lib/screeningStorage';
 import { belongsToEmail } from '../lib/screeningStorage';
 import { localeOf } from '../i18n';
-import { Segmented, Sheet } from '../ui/kit';
+import { Sheet } from '../ui/kit';
 
-/** Menu dell'avatar: profilo, lingua, storico degli screening, uscita. */
-export function AccountMenu({ open, onClose, onJourney, name }: { open: boolean; onClose: () => void; onJourney: () => void; name: string }) {
-  const { state, dispatch, screenings, screeningId, openScreening, newScreening, deleteScreening, forgetDevice, storageError, lang } = useNasciTara();
+/** Storico degli screening (Area riservata): aprire, eliminare, ricominciare il percorso. */
+export function ScreeningHistory({ open, onClose, onJourney }: { open: boolean; onClose: () => void; onJourney: () => void }) {
+  const { screenings, screeningId, openScreening, newScreening, deleteScreening, storageError, lang } = useNasciTara();
   const account = useAccount();
   const it = lang === 'it';
   const records = new Map<string, SavedScreening>();
@@ -24,15 +24,7 @@ export function AccountMenu({ open, onClose, onJourney, name }: { open: boolean;
   };
   const date = (iso: string) => new Date(iso).toLocaleDateString(localeOf(lang), { day: 'numeric', month: 'short', year: 'numeric' });
   return (
-    <Sheet open={open} onClose={onClose} title={name || (it ? 'Il tuo account' : 'Your account')} subtitle={account.user?.email} labelClose={it ? 'Chiudi' : 'Close'}>
-      <div className="nt-field">
-        <span className="nt-field__label">{it ? 'Lingua' : 'Language'}</span>
-        <Segmented label={it ? 'Lingua' : 'Language'} value={state.lang} options={[['it', 'Italiano'], ['en', 'English']]} onChange={(v) => dispatch({ type: 'setLang', value: v })} />
-      </div>
-      <div className="nt-spread">
-        <h3 className="nt-h3">{it ? 'I miei screening' : 'My screenings'}</h3>
-        <span className="nt-note">{list.length}</span>
-      </div>
+    <Sheet open={open} onClose={onClose} title={it ? 'I miei screening' : 'My screenings'} subtitle={`${list.length}`} labelClose={it ? 'Chiudi' : 'Close'}>
       {account.status ? <p className="nt-note" role="status">{account.status}</p> : null}
       {storageError ? <p className="nt-error" role="alert">{it ? 'Salvataggio sul dispositivo non riuscito.' : 'Unable to save on this device.'}</p> : null}
       <div className="nt-rows">
@@ -60,9 +52,6 @@ export function AccountMenu({ open, onClose, onJourney, name }: { open: boolean;
         <button type="button" className="nt-btn nt-btn--soft" onClick={() => { onJourney(); onClose(); }}>{it ? 'Rivedi il percorso' : 'Review the journey'}</button>
         <button type="button" className="nt-btn nt-btn--soft" onClick={() => { newScreening(); onClose(); }}>{it ? '+ Nuovo screening' : '+ New screening'}</button>
       </div>
-      <button type="button" className="nt-btn nt-btn--block" onClick={() => void account.signOut().then(onClose)}>{it ? 'Esci' : 'Sign out'}</button>
-      <p className="nt-note">{it ? 'Dispositivo condiviso? Esci e rimuovi le copie locali. Lo storico online resta nel tuo account.' : 'Shared device? Sign out and remove local copies. Online history stays in your account.'}</p>
-      <button type="button" className="nt-link" onClick={() => void account.signOut().then(() => { forgetDevice(); onClose(); })}>{it ? 'Esci e dimentica questo dispositivo' : 'Sign out and forget this device'}</button>
     </Sheet>
   );
 }

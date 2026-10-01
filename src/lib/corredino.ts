@@ -4,7 +4,7 @@ import type { Lang } from '../i18n';
  * Corredino dei primi tre mesi (Claude Design "NasciTara App", Specifiche, 29/09/2026).
  *
  * Capi = cambi al giorno × giorni tra un lavaggio e l'altro (7 ÷ lavatrici a settimana,
- * +1 giorno senza asciugatrice) + 1 di scorta. Le taglie seguono la crescita attesa
+ * +1 giorno senza asciugatrice) + 1 di scorta solo sui capi base (≥ 1 cambio al giorno). Le taglie seguono la crescita attesa
  * (~0,95 cm a settimana dalla lunghezza alla nascita); una taglia usata meno di 3 settimane
  * nei primi 3 mesi riceve metà scorta. La stagione e' calcolata per ogni taglia, a meta'
  * del suo periodo d'uso; gli accessori sono in taglia unica. I pezzi gia' comprati si
@@ -104,9 +104,10 @@ export function cycleDays(washes: Washes, dryer: boolean): number {
   return 7 / washes + (dryer ? 0 : 1);
 }
 
-/** Pezzi per un capo: cambi al giorno × giorni di ciclo + 1 di scorta, mai sotto il minimo. */
+/** Pezzi per un capo: cambi al giorno × giorni di ciclo, + 1 di scorta solo sui capi base (≥ 1 cambio al giorno), mai sotto il minimo. */
 export function garmentQty(perDay: number, min: number, days: number, factor = 1): number {
-  let qty = Math.max(min, perDay > 0 ? Math.ceil(perDay * days + 1) : 0);
+  const spare = perDay >= 1 ? 1 : 0;
+  let qty = Math.max(min, perDay > 0 ? Math.ceil(perDay * days + spare) : 0);
   if (factor < 1) qty = Math.max(1, Math.ceil(qty * factor));
   return qty;
 }

@@ -28,6 +28,8 @@ export interface Profile {
   gaWeeks: number | null;
   gaReference: string | null;
   consent: boolean;
+  /** Consenso esplicito alle funzioni AI (Claude, Anthropic): data o null. */
+  aiConsentAt: string | null;
 }
 
 export type AuthResult = { ok: true; needsConfirmation?: boolean } | { ok: false; error: string };
@@ -48,6 +50,9 @@ interface Account {
   resetPassword: (email: string) => Promise<AuthResult>;
   updatePassword: (password: string) => Promise<AuthResult>;
   completeProfile: (input: { firstName?: string; lastName?: string; gaWeeks: number; consent: boolean }) => Promise<AuthResult>;
+  /** Area riservata: nome, email (con conferma), settimana e consenso AI. */
+  updateProfile: (data: Record<string, unknown>) => Promise<AuthResult>;
+  updateEmail: (email: string) => Promise<AuthResult>;
   cloud: SavedScreening[];
   status: string;
   refresh: () => Promise<void>;
@@ -273,10 +278,26 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     setUser(result.user);
     return { ok: true };
   };
+  const updateProfile: Account["updateProfile"] = async (data) => {
+    if (!supabase) {
+      if (!preview || !user) return fail({ message: "unavailable" });
+      setUser(storePreviewUser(user.email ?? "", { ...user.user_metadata, ...data }));
+      return { ok: true };
+    }
+    const { data: result, error } = await supabase.auth.updateUser({ data });
+    if (error) return fail(error);
+    setUser(result.user);
+    return { ok: true };
+  };
+  const updateEmail: Account["updateEmail"] = async (email) => {
+    if (!supabase) return fail({ message: "unavailable" });
+    const { error } = await supabase.auth.updateUser({ email: email.trim() }, { emailRedirectTo: origin });
+    return error ? fail(error) : { ok: true, needsConfirmation: true };
+  };
   const profile = user ? profileOf(user) : null;
   return (
     <Context.Provider
-      value={{ preview, ready, user, profile, recovering, authError, resendConfirmation, signUp, signIn, signInWithGoogle, resetPassword, updatePassword, completeProfile, cloud, status, refresh, signOut, remove, savedRevision }}
+      value={{ preview, ready, user, profile, recovering, authError, resendConfirmation, signUp, signIn, signInWithGoogle, resetPassword, updatePassword, completeProfile, updateProfile, updateEmail, cloud, status, refresh, signOut, remove, savedRevision }}
     >
       {children}
     </Context.Provider>
@@ -300,6 +321,7 @@ export function profileOf(user: User): Profile {
     gaWeeks: weeks,
     gaReference: typeof m.ga_reference === "string" && /^\d{4}-\d{2}-\d{2}$/.test(m.ga_reference) ? m.ga_reference : null,
     consent: typeof m.consent_version === "string" && m.consent_version.length > 0,
+    aiConsentAt: typeof m.ai_consent_at === "string" ? m.ai_consent_at : null,
   };
 }
 
