@@ -12,10 +12,10 @@ const user = (m: Record<string, unknown>) => ({ id: 'u', email: 'a@b.it', user_m
 describe('account profile', () => {
   it('reads name, week and consent saved at sign-up', () => {
     expect(profileOf(user({ first_name: 'Giulia', last_name: 'Rossi', ga_weeks: 28, ga_reference: '2026-09-26', consent_version: '0.6' })))
-      .toEqual({ firstName: 'Giulia', lastName: 'Rossi', gaWeeks: 28, gaReference: '2026-09-26', consent: true });
+      .toEqual({ firstName: 'Giulia', lastName: 'Rossi', gaWeeks: 28, gaReference: '2026-09-26', consent: true, aiConsentAt: null });
   });
   it('falls back to the Google name and asks week and consent later', () => {
-    expect(profileOf(user({ full_name: 'Giulia Maria Rossi' }))).toEqual({ firstName: 'Giulia', lastName: 'Maria Rossi', gaWeeks: null, gaReference: null, consent: false });
+    expect(profileOf(user({ full_name: 'Giulia Maria Rossi' }))).toEqual({ firstName: 'Giulia', lastName: 'Maria Rossi', gaWeeks: null, gaReference: null, consent: false, aiConsentAt: null });
     expect(profileOf(user({ given_name: 'Anna', family_name: 'Bianchi', ga_reference: 'ieri' })).gaReference).toBeNull();
   });
   it('turns Supabase errors into useful sentences', () => {

@@ -10,11 +10,14 @@ describe('corredino', () => {
     expect(cycleDays(3, true)).toBeCloseTo(2.33, 2);
     expect(cycleDays(4, true)).toBe(1.75);
   });
-  it('counts changes per day × cycle days + 1 spare, never below the minimum, half for short sizes', () => {
+  it('counts changes per day × cycle days, + 1 spare on base garments only, never below the minimum, half for short sizes', () => {
     expect(garmentQty(2, 0, 7 / 3 + 1)).toBe(8);
     expect(garmentQty(0, 2, 3.33)).toBe(2);
     expect(garmentQty(2, 0, 7 / 3 + 1, 0.5)).toBe(4);
     expect(garmentQty(0, 1, 3.33, 0.5)).toBe(1);
+    // No spare below one change a day: 0.6 × 3.33 = 2 pieces, not 3.
+    expect(garmentQty(0.6, 2, 7 / 3 + 1)).toBe(2);
+    expect(garmentQty(0.8, 0, 7 / 3 + 1)).toBe(3);
   });
   it('starts from the first size above birth length + 1 cm', () => {
     expect(sizesFor(49)).toEqual([50, 56, 62]);

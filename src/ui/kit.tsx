@@ -174,3 +174,26 @@ export function Avatar({ name, onClick, label, withName }: { name: string; onCli
 export function grams(value: number, lang: 'it' | 'en'): string {
   return String(Math.round(value)).replace(/\B(?=(\d{3})+(?!\d))/g, lang === 'it' ? '.' : ',');
 }
+
+/** Interruttore on/off del mockup (promemoria, ricontatto). */
+export function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
+  return (
+    <button type="button" role="switch" aria-checked={checked} aria-label={label} className="nt-toggle" onClick={() => onChange(!checked)}>
+      <span />
+    </button>
+  );
+}
+
+/** Riquadro rosa "PROMEMORIA VIA EMAIL" con interruttore. */
+export function ReminderBox({ title, when, to, checked, onChange, label }: { title: string; when: string; to: string; checked: boolean; onChange: (v: boolean) => void; label: string }) {
+  return (
+    <div className="nt-remind">
+      <div className="nt-grow">
+        <div className="nt-eyebrow">{title}</div>
+        <div className="nt-remind__when">{checked ? when : '—'}</div>
+        {to ? <div className="nt-small">{to}</div> : null}
+      </div>
+      <Toggle checked={checked} onChange={onChange} label={label} />
+    </div>
+  );
+}

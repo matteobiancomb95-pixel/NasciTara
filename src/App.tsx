@@ -1,4 +1,5 @@
 import { AccountProvider } from './state/AccountContext';
+import { MammaProvider } from './state/MammaStore';
 import { AppShell } from './components/AppShell';
 import { NasciTaraProvider, demoState } from './state/NasciTaraStore';
 
@@ -10,7 +11,7 @@ const startWithDemo = /^#?(demo|esempio|example)$/i.test(window.location.hash);
 export default function App() {
   return (
     <NasciTaraProvider initial={startWithDemo ? demoState() : undefined}>
-      <AccountProvider><AppShell demo={startWithDemo} /></AccountProvider>
+      <AccountProvider><MammaProvider><AppShell demo={startWithDemo} /></MammaProvider></AccountProvider>
     </NasciTaraProvider>
   );
 }
