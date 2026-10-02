@@ -5,6 +5,12 @@ import { Segmented, Toggle } from '../ui/kit';
 import { APP_VERSION } from '../version';
 
 /** La tua voce (M18 / D10): recensione o idea, scritta nel Google Sheet del team tramite il server. */
+/** Codici tecnici dell'errore (nessun segreto), utili per capire cosa sistemare. */
+const detail = (r: Record<string, unknown>) => {
+  const parts = ['mail', 'sheet', 'stage'].map((k) => (typeof r[k] === 'string' && r[k] !== 'ok' ? `${k}: ${r[k]}` : '')).filter(Boolean);
+  return parts.length ? ` (${parts.join(' · ')})` : '';
+};
+
 export function VoiceTab({ firstName }: { firstName: string }) {
   const { lang } = useNasciTara();
   const it = lang === 'it';
@@ -31,7 +37,7 @@ export function VoiceTab({ firstName }: { firstName: string }) {
     }
     setError(r.status === 'limited' ? (it ? 'Hai già scritto da poco: riprova tra un minuto.' : 'You just wrote to us: try again in a minute.')
       : r.status === 'offline' ? (it ? 'Per scriverci serve il tuo account.' : 'You need your account to write to us.')
-      : it ? 'Invio non riuscito. Riprova tra poco.' : 'Could not send. Try again shortly.');
+      : (it ? 'Invio non riuscito. Riprova tra poco.' : 'Could not send. Try again shortly.') + detail(r));
   };
   return (
     <main className="nt-wrap nt-main nt-voice">

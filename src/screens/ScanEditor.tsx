@@ -5,7 +5,7 @@ import { readReportImage } from '../lib/readReportImage';
 import { parseReport, validReportDate, type ParsedReport, type ReportField } from '../lib/reportParser';
 import { analyseUltrasound } from '../lib/analysis';
 import { expectedMm, isMeasurePlausible, type MeasureKey } from '../lib/biometry';
-import { formatGA, gaAtDate } from '../lib/gestationalAge';
+import { formatGA, gaAtDate, toISO, todayUTC } from '../lib/gestationalAge';
 import { trackUsage } from '../lib/usageTracking';
 import { Check, DateInput, NumberInput, grams } from '../ui/kit';
 
@@ -32,6 +32,7 @@ export function ScanEditor({ initial, number, onSave, onDelete, compact }: {
   initial?: ScanState; number: number; onSave: (scan: ScanState) => void; onDelete?: () => void; compact?: boolean;
 }) {
   const { state, ga, gaValid, lang } = useNasciTara();
+  const today = toISO(todayUTC());
   const it = lang === 'it';
   const [draft, setDraft] = useState<ScanState>(() => initial ?? emptyScan());
   const [parsed, setParsed] = useState<ParsedReport | null>(null);
@@ -88,7 +89,7 @@ export function ScanEditor({ initial, number, onSave, onDelete, compact }: {
       setDraft((d) => {
         const next: ScanState = { ...d, source: 'report', reportName: file.name.slice(0, 120) };
         for (const m of MEASURES) if (result.draft[m.field] !== '') next[m.field] = result.draft[m.field];
-        if (result.draft.date && result.draft.date <= state.referenceDate) next.date = result.draft.date;
+        if (result.draft.date && result.draft.date <= today) next.date = result.draft.date;
         return next;
       });
     } catch (cause) {
@@ -107,7 +108,7 @@ export function ScanEditor({ initial, number, onSave, onDelete, compact }: {
   const hasGa = Number.isFinite(scanGa);
   const measured = MEASURES.filter((m) => draft[m.field] !== '').length;
   const fromReport = parsed !== null;
-  const dateOk = validReportDate(draft.date) && draft.date <= state.referenceDate;
+  const dateOk = validReportDate(draft.date) && draft.date <= today;
   const canSave = dateOk && measured > 0 && !busy && (!fromReport || confirmed);
   const toInput = (s: ScanState) => ({
     id: s.id, date: s.date,
@@ -182,7 +183,7 @@ export function ScanEditor({ initial, number, onSave, onDelete, compact }: {
       <section className="nt-editor__form">
         <div className="nt-divider">{fromReport ? (it ? 'controlla i valori' : 'check the values') : it ? 'oppure inserisci a mano' : 'or enter by hand'}</div>
         <div className="nt-grid2">
-          <DateInput label={it ? 'Data' : 'Date'} value={draft.date} max={state.referenceDate} onChange={(v) => set('date', v)} />
+          <DateInput label={it ? 'Data' : 'Date'} value={draft.date} max={today} onChange={(v) => set('date', v)} />
           <div className="nt-field">
             <span className="nt-field__label">{it ? 'Settimana' : 'Week'}</span>
             <span className="nt-input"><output className="nt-input__out">{hasGa ? `${formatGA(scanGa)} ${it ? 'sett.' : 'wk'}` : '—'}</output></span>

@@ -7,7 +7,7 @@ import {
 } from "../_shared/prompts.ts";
 
 /**
- * AI di NasciTara (Claude API). Tre usi, tutti dietro consenso esplicito e con un tetto giornaliero:
+ * AI di NasciTara (Claude API). Tre usi, ognuno con un tetto giornaliero per persona:
  * - supplement: posologia dal testo OCR del foglio illustrativo;
  * - insight: un suggerimento non diagnostico dalle note del Notebook;
  * - assistant: risposte con fonti ufficiali (gravidanza o "come ti senti").
@@ -27,7 +27,6 @@ Deno.serve(async (req: Request) => {
     const auth = await authUser(req);
     if (!auth) return json({ status: "unauthorized" }, 401);
     const { user, admin } = auth;
-    if (!user.user_metadata?.ai_consent_at) return json({ status: "consent_required" }, 403);
     if (!Deno.env.get("ANTHROPIC_API_KEY")) return json({ status: "not_configured" }, 503);
     const body = await readJson(req);
     const mode = body?.mode as Mode;

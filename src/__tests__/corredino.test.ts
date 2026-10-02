@@ -35,8 +35,8 @@ describe('corredino', () => {
     expect(c.columns.map((g) => g.infoSub)).toEqual(['51–56 cm · ~7 sett. d’uso', '57–62 cm · ~6 sett. d’uso', '63–68 cm · scorta ridotta']);
     expect(c.columns[0].infoTop).toBe('SETT. 0–7 · INVERNO');
     expect(c.columns[2].infoTop).toBe('DALLA 14ª SETT. · PRIMAVERA');
-    expect(c.columns[0].items[0]).toMatchObject({ name: 'Body manica lunga', qty: 8 });
-    expect(c.columns[2].items[0].qty).toBe(4);
+    expect(c.columns[0].items[0]).toMatchObject({ name: 'Body manica lunga', qty: 5 });
+    expect(c.columns[2].items[0].qty).toBe(3);
     expect(c.seasonHeadline).toBe('Inverno → Primavera');
   });
   it('needs fewer pieces with more washes or a dryer', () => {
@@ -45,11 +45,17 @@ describe('corredino', () => {
     expect(t(3, false)).toBeGreaterThan(t(3, true));
     expect(t(4, true)).toBeLessThan(t(3, true));
   });
+  it('stays light: about 60 pieces for 3 washes a week without dryer, never above 75', () => {
+    const totals = (['2026-01-15', '2026-04-15', '2026-07-15', '2026-10-15'] as const).map((d) => buildCorredino({ ...base, dueDate: due(d) }).total);
+    for (const t of totals) expect(t).toBeLessThanOrEqual(75);
+    expect(Math.max(...totals)).toBeGreaterThanOrEqual(40);
+    expect(buildCorredino({ ...base, washes: 2 }).total).toBeLessThanOrEqual(90);
+  });
   it('adds one-size accessories for the birth season', () => {
     const winter = buildCorredino(base).accessories;
     const summer = buildCorredino({ ...base, dueDate: due('2026-07-01') }).accessories;
     expect(winter.items.map((i) => i.name)).toContain('Cuffiette');
-    expect(winter.items.find((i) => i.name === 'Cuffiette')?.qty).toBe(3);
+    expect(winter.items.find((i) => i.name === 'Cuffiette')?.qty).toBe(2);
     expect(summer.items.map((i) => i.name)).toContain('Cappellini');
   });
   it('tracks pieces already bought with language-independent keys, capped at the quantity', () => {
@@ -60,6 +66,6 @@ describe('corredino', () => {
     expect(it.columns[0].items[1].have).toBe(it.columns[0].items[1].qty);
     expect(en.columns[0].items[0]).toMatchObject({ name: 'Long-sleeve bodysuits', have: 5 });
     expect(it.have).toBe(5 + it.columns[0].items[1].qty + 2);
-    expect(corredinoText(en, 'en')).toContain('5/8 Long-sleeve bodysuits');
+    expect(corredinoText(en, 'en')).toContain('5/5 Long-sleeve bodysuits');
   });
 });

@@ -26,16 +26,18 @@ const MONTHS: Record<Lang, string[]> = {
   en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
 };
 
+// 0.8: quantita' alleggerite. ~1,2 cambi al giorno per body e tutine (con la scorta fanno ~5 per taglia),
+// un pezzo solo per i capi che si usano ogni tanto.
 const mid = (tutina: Text, jacket: Text): Row[] => [
-  [['Body manica lunga', 'Long-sleeve bodysuits'], ['Cotone interlock', 'Interlock cotton'], 2, 0, 'bodyLs'],
-  [['Body manica corta', 'Short-sleeve bodysuits'], ['Cotone, da sottostrato', 'Cotton, as a base layer'], 0.5, 2, 'bodySs'],
-  [['Tutine', 'Sleepsuits'], tutina, 1.5, 0, 'tutina'],
-  [['Ghettine', 'Leggings'], ['Cotone', 'Cotton'], 0.6, 2, 'ghettine'],
-  [['Completi 2 pezzi', 'Two-piece sets'], ['Felpa leggera', 'Light sweatshirt fabric'], 0.3, 2, 'completo'],
-  [['Cardigan', 'Cardigans'], ['Maglia di cotone', 'Cotton knit'], 0.25, 2, 'cardigan'],
-  [['Calzine', 'Socks'], ['Cotone', 'Cotton'], 0.8, 0, 'calzine'],
+  [['Body manica lunga', 'Long-sleeve bodysuits'], ['Cotone interlock', 'Interlock cotton'], 1.2, 0, 'bodyLs'],
+  [['Body manica corta', 'Short-sleeve bodysuits'], ['Cotone, da sottostrato', 'Cotton, as a base layer'], 0.3, 1, 'bodySs'],
+  [['Tutine', 'Sleepsuits'], tutina, 1.2, 0, 'tutina'],
+  [['Ghettine', 'Leggings'], ['Cotone', 'Cotton'], 0.3, 1, 'ghettine'],
+  [['Completi 2 pezzi', 'Two-piece sets'], ['Felpa leggera', 'Light sweatshirt fabric'], 0, 1, 'completo'],
+  [['Cardigan', 'Cardigans'], ['Maglia di cotone', 'Cotton knit'], 0, 1, 'cardigan'],
+  [['Calzine', 'Socks'], ['Cotone', 'Cotton'], 0.5, 0, 'calzine'],
   [['Giacchina esterna', 'Outer jacket'], jacket, 0, 1, 'esterna'],
-  [['Sacco nanna', 'Sleeping bag'], ['1 TOG', '1 TOG'], 0, 2, 'sacco'],
+  [['Sacco nanna', 'Sleeping bag'], ['1 TOG', '1 TOG'], 0, 1, 'sacco'],
 ];
 
 const SEASONS: Record<Season, { label: Text; materials: Text[]; advice: Text; items: Row[] }> = {
@@ -44,15 +46,15 @@ const SEASONS: Record<Season, { label: Text; materials: Text[]; advice: Text; it
     materials: [['Ciniglia', 'Chenille'], ['Lana-seta', 'Wool-silk'], ['Cotone felpato', 'Brushed cotton'], ['Lana merino', 'Merino wool']],
     advice: ['Ciniglia e lana-seta scaldano senza irritare. Sacco nanna al posto delle coperte.', 'Chenille and wool-silk keep warm without irritating. A sleeping bag instead of blankets.'],
     items: [
-      [['Body manica lunga', 'Long-sleeve bodysuits'], ['Lana-seta o interlock', 'Wool-silk or interlock'], 2, 0, 'bodyLs'],
-      [['Tutine', 'Sleepsuits'], ['Ciniglia', 'Chenille'], 1.5, 0, 'tutina'],
-      [['Ghettine', 'Leggings'], ['Cotone felpato', 'Brushed cotton'], 0.5, 2, 'ghettine'],
-      [['Completi 2 pezzi', 'Two-piece sets'], ['Ciniglia', 'Chenille'], 0.3, 2, 'completo'],
-      [['Cardigan', 'Cardigans'], ['Lana merino', 'Merino wool'], 0.25, 2, 'cardigan'],
-      [['Calzine', 'Socks'], ['Lana-cotone', 'Wool-cotton'], 0.8, 0, 'calzine'],
-      [['Babbucce', 'Booties'], ['Lana merino', 'Merino wool'], 0, 2, 'babbucce'],
+      [['Body manica lunga', 'Long-sleeve bodysuits'], ['Lana-seta o interlock', 'Wool-silk or interlock'], 1.2, 0, 'bodyLs'],
+      [['Tutine', 'Sleepsuits'], ['Ciniglia', 'Chenille'], 1.2, 0, 'tutina'],
+      [['Ghettine', 'Leggings'], ['Cotone felpato', 'Brushed cotton'], 0.3, 1, 'ghettine'],
+      [['Completi 2 pezzi', 'Two-piece sets'], ['Ciniglia', 'Chenille'], 0, 1, 'completo'],
+      [['Cardigan', 'Cardigans'], ['Lana merino', 'Merino wool'], 0, 1, 'cardigan'],
+      [['Calzine', 'Socks'], ['Lana-cotone', 'Wool-cotton'], 0.5, 0, 'calzine'],
+      [['Babbucce', 'Booties'], ['Lana merino', 'Merino wool'], 0, 1, 'babbucce'],
       [['Tutina esterna', 'Snowsuit'], ['Imbottita, con cappuccio', 'Padded, with hood'], 0, 1, 'esterna'],
-      [['Sacco nanna', 'Sleeping bag'], ['2,5 TOG', '2.5 TOG'], 0, 2, 'sacco'],
+      [['Sacco nanna', 'Sleeping bag'], ['2,5 TOG', '2.5 TOG'], 0, 1, 'sacco'],
     ],
   },
   autumn: {
@@ -72,13 +74,13 @@ const SEASONS: Record<Season, { label: Text; materials: Text[]; advice: Text; it
     materials: [['Cotone leggero', 'Light cotton'], ['Mussola', 'Muslin'], ['Lino-cotone', 'Linen-cotton'], ['Jersey', 'Jersey']],
     advice: ['Pagliaccetti in cotone e mussola. Una tutina leggera per le sere fresche.', 'Cotton and muslin rompers. A light sleepsuit for cool evenings.'],
     items: [
-      [['Body manica corta', 'Short-sleeve bodysuits'], ['Cotone leggero', 'Light cotton'], 2, 0, 'bodySs'],
-      [['Pagliaccetti', 'Rompers'], ['Cotone o mussola', 'Cotton or muslin'], 1.5, 0, 'pagliaccetto'],
-      [['Tutine leggere', 'Light sleepsuits'], ['Jersey, per la sera', 'Jersey, for the evening'], 0.4, 2, 'tutina'],
-      [['Completi 2 pezzi', 'Two-piece sets'], ['Lino-cotone', 'Linen-cotton'], 0.3, 1, 'completo'],
+      [['Body manica corta', 'Short-sleeve bodysuits'], ['Cotone leggero', 'Light cotton'], 1.2, 0, 'bodySs'],
+      [['Pagliaccetti', 'Rompers'], ['Cotone o mussola', 'Cotton or muslin'], 1.2, 0, 'pagliaccetto'],
+      [['Tutine leggere', 'Light sleepsuits'], ['Jersey, per la sera', 'Jersey, for the evening'], 0.3, 1, 'tutina'],
+      [['Completi 2 pezzi', 'Two-piece sets'], ['Lino-cotone', 'Linen-cotton'], 0, 1, 'completo'],
       [['Cardigan leggero', 'Light cardigan'], ['Filo di cotone', 'Cotton yarn'], 0, 1, 'cardigan'],
-      [['Calzine leggere', 'Light socks'], ['Cotone', 'Cotton'], 0.3, 2, 'calzine'],
-      [['Sacco nanna', 'Sleeping bag'], ['0,5 TOG', '0.5 TOG'], 0, 2, 'sacco'],
+      [['Calzine leggere', 'Light socks'], ['Cotone', 'Cotton'], 0.3, 1, 'calzine'],
+      [['Sacco nanna', 'Sleeping bag'], ['0,5 TOG', '0.5 TOG'], 0, 1, 'sacco'],
     ],
   },
 };
@@ -188,14 +190,14 @@ export function buildCorredino(input: { birthLengthCm: number; dueDate: Date; wa
   });
   const birthSeason = seasonOf(input.dueDate.getUTCMonth());
   const accRows: Row[] = [
-    [['Bavaglini', 'Bibs'], ['Spugna di cotone', 'Cotton terry'], 2, 0, 'bavaglino'],
-    [['Mussole', 'Muslins'], ['Mussola di cotone', 'Cotton muslin'], 2, 0, 'mussola'],
-    [['Guantini antigraffio', 'Scratch mittens'], ['Cotone leggero', 'Light cotton'], 0, 3, 'guantini'],
+    [['Bavaglini', 'Bibs'], ['Spugna di cotone', 'Cotton terry'], 1, 0, 'bavaglino'],
+    [['Mussole', 'Muslins'], ['Mussola di cotone', 'Cotton muslin'], 1, 0, 'mussola'],
+    [['Guantini antigraffio', 'Scratch mittens'], ['Cotone leggero', 'Light cotton'], 0, 2, 'guantini'],
     birthSeason === 'summer'
       ? [['Cappellini', 'Sun hats'], ['Cotone, per il sole', 'Cotton, for the sun'], 0, 2, 'sole']
-      : [['Cuffiette', 'Hats'], birthSeason === 'winter' ? ['Lana-cotone', 'Wool-cotton'] : ['Cotone doppio', 'Double cotton'], 0, birthSeason === 'winter' ? 3 : 2, 'cuffia'],
-    [['Copertine', 'Blankets'], birthSeason === 'winter' ? ['Ciniglia', 'Chenille'] : birthSeason === 'summer' ? ['Mussola', 'Muslin'] : ['Cotone', 'Cotton'], 0, 2, 'copertina'],
-    [['Accappatoi con cappuccio', 'Hooded towels'], ['Spugna', 'Terry'], 0, 2, 'asciugamano'],
+      : [['Cuffiette', 'Hats'], birthSeason === 'winter' ? ['Lana-cotone', 'Wool-cotton'] : ['Cotone doppio', 'Double cotton'], 0, 2, 'cuffia'],
+    [['Copertine', 'Blankets'], birthSeason === 'winter' ? ['Ciniglia', 'Chenille'] : birthSeason === 'summer' ? ['Mussola', 'Muslin'] : ['Cotone', 'Cotton'], 0, 1, 'copertina'],
+    [['Accappatoi con cappuccio', 'Hooded towels'], ['Spugna', 'Terry'], 0, 1, 'asciugamano'],
   ];
   const accItems = accRows.map((r) => item('A', r, 1));
   const accessories: Group = {

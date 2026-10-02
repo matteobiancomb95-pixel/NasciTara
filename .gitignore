@@ -20,3 +20,6 @@ supabase/.temp/
 .env*
 
 public/ocr/
+
+# Impostazioni personali di Claude Code
+.claude/settings.local.json

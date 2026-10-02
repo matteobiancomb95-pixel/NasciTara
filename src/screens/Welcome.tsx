@@ -37,7 +37,7 @@ export function Welcome({ firstName, fullName, onStart, onAccount }: { firstName
               <span className="nt-desk">{fmt({ day: 'numeric', month: 'long', year: 'numeric' })}</span>
             </span>
           ) : null}
-          <h1 className="nt-display">{it ? `Ciao${firstName ? ' ' + firstName : ''}, conosciamo il tuo bebè.` : `Hi${firstName ? ' ' + firstName : ''}, let’s meet your baby.`}</h1>
+          <h1 className="nt-display">{it ? `Ciao${firstName ? ' ' + firstName : ''}, conosciamo il tuo bebe.` : `Hi${firstName ? ' ' + firstName : ''}, let’s meet your baby.`}</h1>
           <p className="nt-lead">{it ? 'Con le misure delle tue ecografie stimiamo peso e lunghezza, oggi e alla nascita.' : 'From your scan measurements we estimate weight and length, today and at birth.'}</p>
           <div className="nt-desk nt-welcome__cta">
             <button type="button" className="nt-btn nt-btn--xl" onClick={onStart}>{it ? 'Inizia' : 'Start'}</button>

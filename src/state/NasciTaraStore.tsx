@@ -240,7 +240,26 @@ function furthest(a: Page, b: Page): Page {
   return PAGE_ORDER.indexOf(a) >= PAGE_ORDER.indexOf(b) ? a : b;
 }
 
+/**
+ * Porta la data di riferimento a oggi facendo avanzare l'epoca con il calendario.
+ * Senza, una settimana dichiarata giorni fa rifiuta le ecografie di oggi e "oggi" non e' oggi.
+ */
+export function rollToToday(state: NasciTaraState, today = toISO(todayUTC())): NasciTaraState {
+  if (state.referenceDate >= today || state.gaWeeks === "" || state.gaDays === "") return state;
+  const from = new Date(state.referenceDate + "T00:00:00Z").getTime();
+  const elapsed = Math.round((new Date(today + "T00:00:00Z").getTime() - from) / 864e5);
+  if (!Number.isFinite(elapsed) || elapsed <= 0) return state;
+  const total = Math.min(42 * 7 + 6, Number(state.gaWeeks) * 7 + Number(state.gaDays) + elapsed);
+  return { ...state, gaWeeks: Math.floor(total / 7), gaDays: total % 7, referenceDate: today };
+}
+
 export function reducer(state: NasciTaraState, action: Action): NasciTaraState {
+  const next = reduce(state, action);
+  // Il percorso puo' fissare apposta una data passata ("alla data del"): si allinea solo su questi eventi.
+  return ["restore", "saveScan", "importScan", "complete"].includes(action.type) ? rollToToday(next) : next;
+}
+
+function reduce(state: NasciTaraState, action: Action): NasciTaraState {
   switch (action.type) {
     case "restore":
       return action.state;
@@ -377,6 +396,7 @@ export function NasciTaraProvider({
   const [state, dispatch] = useReducer(
     reducer,
     initial ?? resumed?.state ?? emptyState(),
+    rollToToday,
   );
   const recordsRef = useRef(screenings);
   const persist = useCallback(
