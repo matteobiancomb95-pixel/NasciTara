@@ -20,7 +20,7 @@ export function Privacy({ onBack }: { onBack: () => void }) {
       'Stime, insight e risposte dell’AI sono informazioni, non diagnosi. Per ogni decisione vale il tuo medico.',
     ]],
     ['ai', 'Intelligenza artificiale', [
-      'Le funzioni AI (lettura del foglio illustrativo degli integratori, insight del notebook, assistente di Supporto) usano Claude di Anthropic, con sede negli Stati Uniti. Si attivano solo dopo un tuo consenso specifico, che puoi ritirare in ogni momento da Area riservata.',
+      'Le funzioni AI (lettura del foglio illustrativo degli integratori, insight del notebook, assistente di Supporto) usano Claude di Anthropic, con sede negli Stati Uniti, e si attivano solo quando le usi.',
       'All’AI inviamo solo il testo necessario (il testo del foglio illustrativo, le tue note, le tue domande e la settimana di gravidanza), mai nome o email. Anthropic non usa questi dati per addestrare i propri modelli. Il trasferimento fuori dall’Unione europea avviene con le garanzie previste dal GDPR (clausole contrattuali standard).',
       'L’assistente cerca le informazioni sui siti di enti sanitari ufficiali e ne cita le fonti. Non è un medico, un’ostetrica o una psicologa.',
     ]],
@@ -40,7 +40,7 @@ export function Privacy({ onBack }: { onBack: () => void }) {
     ['diritti', 'I tuoi diritti e quanto teniamo i dati', [
       'Puoi vedere, correggere, scaricare o cancellare i tuoi dati e ritirare i consensi. Le azioni principali sono in Area riservata (Scarica i tuoi dati, Elimina account); per il resto scrivi a ciao@nascitara.tech e rispondiamo entro 30 giorni. Puoi anche rivolgerti al Garante per la protezione dei dati personali.',
       'Teniamo i dati finché hai l’account. Quando lo elimini cancelliamo subito account, screening, visite, integratori, note e promemoria; le copie di sicurezza del fornitore si sovrascrivono entro 30 giorni.',
-      'Fornitori: Supabase (database e accesso, Europa), Vercel (pubblicazione del sito), Brevo (email, Europa), Anthropic (AI, Stati Uniti, solo con consenso), Google (accesso con Google, foglio di La tua voce). NasciTara è per persone maggiorenni.',
+      'Fornitori: Supabase (database e accesso, Europa), Vercel (pubblicazione del sito), Brevo (email, Europa), Anthropic (AI, Stati Uniti), Google (accesso con Google, foglio di La tua voce). NasciTara è per persone maggiorenni.',
     ]],
   ] : [
     ['who', 'Who we are and what we collect', [
@@ -52,7 +52,7 @@ export function Privacy({ onBack }: { onBack: () => void }) {
       'Pregnancy week, scan measurements, visits, supplements and notes are health data. We process them only with your explicit consent, for estimates, layette and reminders. They are stored by our provider (Supabase) in Europe, each account seeing only its own data. Estimates and AI answers are information, not a diagnosis.',
     ]],
     ['ai', 'Artificial intelligence', [
-      'AI features use Claude by Anthropic (United States), only after your specific consent, which you can withdraw from the private area. We send only the text needed, never your name or email; Anthropic does not use it to train its models. Transfers outside the EU rely on GDPR safeguards (standard contractual clauses).',
+      'AI features use Claude by Anthropic (United States), only when you use them. We send only the text needed, never your name or email; Anthropic does not use it to train its models. Transfers outside the EU rely on GDPR safeguards (standard contractual clauses).',
     ]],
     ['photos', 'Photos', ['Photos never leave your device: text is read locally and the photo is neither stored nor uploaded.']],
     ['email', 'Email', ['We email you about your account and the reminders you set, through Brevo in Europe. Subjects never contain health data.']],
@@ -72,7 +72,7 @@ export function Privacy({ onBack }: { onBack: () => void }) {
         <p className="nt-note">{it ? 'Aggiornata il 1 ottobre 2026 · versione 0.7' : 'Updated 1 October 2026 · version 0.7'}</p>
         <div className="nt-card nt-card--pink nt-stack6">
           <div className="nt-eyebrow">{it ? 'In breve' : 'In short'}</div>
-          <p className="nt-body">{it ? 'Usiamo i tuoi dati solo per far funzionare NasciTara. Non li vendiamo. I dati sulla gravidanza restano in Europa; l’AI si usa solo se dici sì. Puoi scaricarli o cancellarli quando vuoi da Area riservata.' : 'We use your data only to run NasciTara. We never sell it. Pregnancy data stays in Europe; AI is used only if you say yes. Download or delete it any time from the private area.'}</p>
+          <p className="nt-body">{it ? 'Usiamo i tuoi dati solo per far funzionare NasciTara. Non li vendiamo. I dati sulla gravidanza restano in Europa; l’AI legge solo ciò che le chiedi. Puoi scaricarli o cancellarli quando vuoi da Area riservata.' : 'We use your data only to run NasciTara. We never sell it. Pregnancy data stays in Europe; AI reads only what you ask it to. Download or delete it any time from the private area.'}</p>
         </div>
         {sections.map(([id, title, paras]) => (
           <section key={id} className="nt-stack6 nt-policy">

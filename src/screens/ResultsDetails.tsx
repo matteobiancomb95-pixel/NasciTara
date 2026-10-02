@@ -69,7 +69,7 @@ export function ResultsDetails() {
           <p>{t('dash.weightsFoot', { key: sens[0].key })}</p>
           <h3>{t('dash.method')}</h3>
           <p>{it
-            ? 'Ogni ecografia viene pesata con Hadlock a 4 parametri (1985) e confrontata con la curva di riferimento Hadlock 1991. Sugli scarti si adatta una retta: l’intercetta dice su quale percentile viaggia il bebè, la pendenza se lo sta cambiando, contratta perché poche ecografie rumorose non producano una falsa accelerazione.'
+            ? 'Ogni ecografia viene pesata con Hadlock a 4 parametri (1985) e confrontata con la curva di riferimento Hadlock 1991. Sugli scarti si adatta una retta: l’intercetta dice su quale percentile viaggia il bebe, la pendenza se lo sta cambiando, contratta perché poche ecografie rumorose non producano una falsa accelerazione.'
             : 'Each scan is weighed with 4-parameter Hadlock (1985) and compared with the Hadlock 1991 reference. A line is fitted to the deviations: the intercept gives the percentile, the slope whether it is changing, shrunk so a few noisy scans do not fake an acceleration.'}</p>
           <p>{it
             ? 'L’intervallo somma l’incertezza della traiettoria e l’errore della formula (circa 5,5 %). La lunghezza è la stima meno solida: l’ecografia non la misura, la deduce dal femore.'

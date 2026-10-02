@@ -36,9 +36,9 @@ export const it = {
     'NasciTara è uno strumento di calcolo, non un dispositivo medico. Il valore che conta resta quello del referto del ginecologo.',
 
   // ---- atterraggio ----
-  'landing.title': 'Stima il peso e la lunghezza del tuo bebè fino a 45 settimane.',
+  'landing.title': 'Stima il peso e la lunghezza del tuo bebe fino a 45 settimane.',
   'landing.lead':
-    'NasciTara riunisce le tue ecografie per stimare quanto pesa oggi il tuo bebè, la sua lunghezza e la proiezione alla nascita. Puoi esplorare anche oltre, fino a 45 settimane: dopo la 42ª è solo un prolungamento matematico, non una stima della crescita dopo la nascita.',
+    'NasciTara riunisce le tue ecografie per stimare quanto pesa oggi il tuo bebe, la sua lunghezza e la proiezione alla nascita. Puoi esplorare anche oltre, fino a 45 settimane: dopo la 42ª è solo un prolungamento matematico, non una stima della crescita dopo la nascita.',
   'landing.how1.title': 'Racconti la gravidanza',
   'landing.how1.body': 'A che settimana sei, e qualche dato su mamma e papà.',
   'landing.how2.title': 'Inserisci le ecografie',
@@ -106,7 +106,7 @@ export const it = {
   'meas.efw': 'Peso stimato da questa ecografia',
   'meas.incomplete': 'Compila data e quattro misure',
   'meas.add': 'Aggiungi misurazione ecografia ostetrica',
-  'meas.cta': 'Scopri peso e lunghezza del bebè',
+  'meas.cta': 'Scopri peso e lunghezza del bebe',
   'meas.needOne': 'Serve almeno un’ecografia completa',
   'meas.ignored': '{done} di {total} complete — le altre verranno ignorate',
 

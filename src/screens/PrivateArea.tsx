@@ -10,7 +10,7 @@ import { ScreeningHistory } from './ScreeningHistory';
 
 type Edit = 'name' | 'email' | 'password' | 'body' | 'sex' | 'week' | 'due' | 'delete' | 'history' | null;
 
-/** Area riservata (M19 / D11): i tuoi dati, i dati del bebè, privacy e uscita. */
+/** Area riservata (M19 / D11): i tuoi dati, i dati del bebe, privacy e uscita. */
 export function PrivateArea({ onBack, onPrivacy, onScans, onJourney }: { onBack: () => void; onPrivacy: () => void; onScans: () => void; onJourney: () => void }) {
   const { state, dispatch, ga, gaValid, lang, screenings, forgetDevice } = useNasciTara();
   const account = useAccount();
@@ -39,7 +39,7 @@ export function PrivateArea({ onBack, onPrivacy, onScans, onJourney }: { onBack:
     const data = {
       exported_at: new Date().toISOString(),
       app: 'NasciTara',
-      account: { email: user?.email, first_name: profile?.firstName, last_name: profile?.lastName, ga_weeks: profile?.gaWeeks, consent: profile?.consent, ai_consent_at: profile?.aiConsentAt, created_at: user?.created_at },
+      account: { email: user?.email, first_name: profile?.firstName, last_name: profile?.lastName, ga_weeks: profile?.gaWeeks, consent: profile?.consent, created_at: user?.created_at },
       current_screening: state,
       screenings: [...account.cloud, ...mine.filter((r) => !account.cloud.some((c) => c.id === r.id))],
       visits: mamma.visits,
@@ -52,10 +52,6 @@ export function PrivateArea({ onBack, onPrivacy, onScans, onJourney }: { onBack:
     a.download = `NasciTara-dati-${toISO(todayUTC())}.json`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-  };
-  const toggleAi = async () => {
-    if (profile?.aiConsentAt && !window.confirm(it ? 'Ritirare il consenso all’AI? Integratori con AI, insight e assistente si spengono.' : 'Withdraw AI consent? AI features turn off.')) return;
-    await account.updateProfile({ ai_consent_at: profile?.aiConsentAt ? null : new Date().toISOString() });
   };
 
   const row = (label: string, value: ReactNode, action: string, onClick: () => void) => (
@@ -96,7 +92,7 @@ export function PrivateArea({ onBack, onPrivacy, onScans, onJourney }: { onBack:
             </div>
           </section>
           <section className="nt-stack6">
-            <h2 className="nt-eyebrow">{it ? 'I dati del tuo bebè' : 'Your baby'}</h2>
+            <h2 className="nt-eyebrow">{it ? 'I dati del tuo bebe' : 'Your baby'}</h2>
             <div className="nt-card nt-plist">
               {row(it ? 'Sesso' : 'Sex', sex, mod, () => setEdit('sex'))}
               {row(it ? 'Settimana di gravidanza' : 'Week of pregnancy', week !== null ? (it ? `${week}ª settimana` : `Week ${week}`) : '—', mod, () => setEdit('week'))}
@@ -112,9 +108,6 @@ export function PrivateArea({ onBack, onPrivacy, onScans, onJourney }: { onBack:
                 <div className="nt-grow"><div className="nt-prow__label">{it ? 'Lingua' : 'Language'}</div></div>
                 <Segmented label={it ? 'Lingua' : 'Language'} size="sm" value={state.lang} options={[['it', 'Italiano'], ['en', 'English']]} onChange={(v) => dispatch({ type: 'setLang', value: v })} />
               </div>
-              {row(it ? 'Funzioni AI (Claude, Anthropic)' : 'AI features (Claude, Anthropic)',
-                profile?.aiConsentAt ? (it ? `Attive dal ${new Date(profile.aiConsentAt).toLocaleDateString(loc)}` : `On since ${new Date(profile.aiConsentAt).toLocaleDateString(loc)}`) : it ? 'Non attive' : 'Off',
-                profile?.aiConsentAt ? (it ? 'Ritira' : 'Withdraw') : it ? 'Attiva' : 'Turn on', () => void toggleAi())}
             </div>
           </section>
           <section className="nt-stack6">
@@ -203,7 +196,7 @@ function EditSheets({ edit, close, done, setGa, onJourney }: { edit: Edit; close
         {save(S, false, () => { dispatch({ type: 'setParent', field: 'motherHeightCm', value: h }); dispatch({ type: 'setParent', field: 'motherWeightKg', value: w }); done(it ? 'Dati aggiornati.' : 'Details updated.'); })}
       </>);
     case 'sex':
-      return sheet(it ? 'Sesso del bebè' : 'Baby’s sex', <>
+      return sheet(it ? 'Sesso del bebe' : 'Baby’s sex', <>
         <Segmented label={it ? 'Sesso' : 'Sex'} value={state.babySex || 'unknown'} options={[['female', it ? 'Femmina' : 'Girl'], ['male', it ? 'Maschio' : 'Boy'], ['unknown', it ? 'Non so' : 'Not known']]}
           onChange={(v) => { dispatch({ type: 'setBabySex', value: v === 'unknown' ? '' : v }); done(it ? 'Aggiornato.' : 'Updated.'); }} />
       </>);

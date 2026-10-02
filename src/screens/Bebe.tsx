@@ -1,43 +1,72 @@
 import { useMemo, useState } from 'react';
 import { useNasciTara, type ScanState, type Washes } from '../state/NasciTaraStore';
-import { buildCorredino, corredinoText, type Corredino, type Group } from '../lib/corredino';
+import { useMamma } from '../state/MammaStore';
+import { buildCorredino, corredinoText, type Corredino, type Group, type Season } from '../lib/corredino';
 import { exportCorredinoPdf } from '../lib/corredinoPdf';
-import { estimatedDueDate, formatGA, toISO, todayUTC } from '../lib/gestationalAge';
+import { estimatedDueDate, formatGA, todayUTC } from '../lib/gestationalAge';
+import { romeToday, shortDate, upcoming } from '../lib/mamma';
 import { localeOf } from '../i18n';
 import { Segmented, Sheet, grams } from '../ui/kit';
-import { DresserIcon, Fetus, GarmentGlyph, ShareIcon } from '../ui/art';
+import { Fetus, GarmentGlyph, ShareIcon } from '../ui/art';
+import { Icon, IconBubble, type IconName } from '../ui/icons';
 import { ScanEditor, MEASURES } from './ScanEditor';
 import { useScanRows } from './Journey';
 
-const BAR = ['#ffa0ae', '#ff395c', '#c81e45', '#333333'];
+type Go = (tab: 'baby' | 'corredino' | 'calendario') => void;
 
-/** Home (M08 / D05): a che punto e', il bebè oggi e alla nascita, il corredino. */
-export function HomeTab({ firstName, onCorredino }: { firstName: string; onCorredino: () => void }) {
+/** "Peso più o meno quanto…": confronto giocoso dal peso stimato, non un dato clinico. */
+const COMPARE: Array<[number, string, string]> = [
+  [120, 'un limone', 'a lemon'], [250, 'un’arancia', 'an orange'], [450, 'un pompelmo', 'a grapefruit'],
+  [700, 'un cavolfiore', 'a cauliflower'], [1000, 'un ananas piccolo', 'a small pineapple'], [1500, 'un cavolo cappuccio', 'a cabbage'],
+  [2200, 'una zucca', 'a pumpkin'], [2900, 'un melone', 'a melon'], [Infinity, 'un’anguria piccola', 'a small watermelon'],
+];
+const compareOf = (g: number, it: boolean) => {
+  const row = COMPARE.find(([max]) => g <= max)!;
+  return it ? row[1] : row[2];
+};
+
+/* ============================ riepilogo ============================ */
+
+/** Riepilogo (M08 / D05): il bebe da toccare, il percorso, scorciatoie con icone. */
+export function HomeTab({ firstName, onGo }: { firstName: string; onGo: Go }) {
   const { analysis, state, dispatch, ga, gaValid, lang } = useNasciTara();
+  const { visits } = useMamma();
   const it = lang === 'it';
   const rows = useScanRows();
   const { c } = useCorredino();
   const [adding, setAdding] = useState(false);
+  const [talk, setTalk] = useState(0);
   const loc = localeOf(lang);
   const g = (v: number) => grams(v, lang);
   const due = gaValid ? estimatedDueDate(state.referenceDate, ga) : null;
   const week = gaValid ? Math.floor(ga) : null;
   const daysLeft = due ? Math.max(0, Math.round((due.getTime() - todayUTC().getTime()) / 864e5)) : null;
-  const trimester = week === null ? '' : week < 14 ? '1°' : week < 28 ? '2°' : '3°';
   const dueShort = due?.toLocaleDateString(loc, { day: 'numeric', month: 'short', timeZone: 'UTC' }) ?? '—';
+  const dueMonth = due?.toLocaleDateString(loc, { month: 'long', timeZone: 'UTC' }) ?? '';
   const boy = state.babySex === 'male';
   const sexLabel = state.babySex === 'female' ? (it ? 'È una femmina' : 'It’s a girl') : boy ? (it ? 'È un maschio' : 'It’s a boy') : it ? 'Maschio o femmina?' : 'Boy or girl?';
   const nextSex = state.babySex === 'female' ? 'male' : 'female';
   const dated = rows.filter((r) => r.scan.date);
   const last = dated[dated.length - 1];
-  const lastShort = last ? new Date(last.scan.date + 'T12:00:00Z').toLocaleDateString(loc, { day: 'numeric', month: 'short', timeZone: 'UTC' }) : '';
-  const term = analysis ? g(Math.round(analysis.term.efw / 10) * 10) : '—';
+  const next = upcoming(visits, romeToday(), 1)[0];
+  const pct = week === null ? 0 : Math.min(100, Math.max(2, ((ga - 4) / 36) * 100));
+  const lines = analysis
+    ? [
+        it ? `Ciao mamma! Oggi peso più o meno quanto ${compareOf(analysis.now.efw, it)}.` : `Hi mum! Today I weigh about as much as ${compareOf(analysis.now.efw, it)}.`,
+        daysLeft !== null ? (it ? `Ancora ${daysLeft} giorni e ci vediamo, a ${dueMonth}!` : `${daysLeft} more days and we meet, in ${dueMonth}!`) : '',
+        it ? `Mi hai già guardato in ${rows.length} ${rows.length === 1 ? 'ecografia' : 'ecografie'}. Sorridevo!` : `You’ve seen me in ${rows.length} scans. I was smiling!`,
+      ].filter(Boolean)
+    : [it ? 'Ciao mamma! Aggiungi un’ecografia e ti racconto come cresco.' : 'Hi mum! Add a scan and I’ll tell you how I’m growing.'];
   const save = (scan: ScanState) => {
     dispatch({ type: 'saveScan', scan });
     setAdding(false);
   };
-  const tile = (label: string, value: string, extra?: string) => (
-    <div className="nt-home__tile"><div className="nt-eyebrow">{label}</div><div className="nt-home__value">{value}{extra ? <small> {extra}</small> : null}</div></div>
+  const tile = (icon: IconName, label: string, value: string, onClick: () => void) => (
+    <button type="button" className="nt-qtile nt-pop" onClick={onClick}>
+      <IconBubble name={icon} size={40} />
+      <span className="nt-qtile__label">{label}</span>
+      <span className="nt-qtile__value">{value}</span>
+    </button>
   );
   return (
     <main className="nt-wrap nt-main nt-home">
@@ -46,62 +75,66 @@ export function HomeTab({ firstName, onCorredino }: { firstName: string; onCorre
           <div className="nt-spread nt-start">
             <div>
               <h1 className="nt-home__hello">{it ? `Ciao${firstName ? ' ' + firstName : ''}` : `Hi${firstName ? ' ' + firstName : ''}`}</h1>
-              {week !== null ? (
-                <p className="nt-sub">
-                  {it ? `${week}ª settimana · mancano ${daysLeft} giorni` : `Week ${week} · ${daysLeft} days to go`}
-                  <span className="nt-desk-inline">{it ? ' al parto' : ''}</span>
-                </p>
-              ) : null}
+              {week !== null ? <p className="nt-sub">{it ? `${week}ª settimana · mancano ${daysLeft} giorni` : `Week ${week} · ${daysLeft} days to go`}</p> : null}
             </div>
-            <button type="button" className="nt-sex" onClick={() => dispatch({ type: 'setBabySex', value: nextSex })} title={it ? 'Cambia' : 'Change'}>{sexLabel}</button>
+            <button type="button" className="nt-sex nt-pop" onClick={() => dispatch({ type: 'setBabySex', value: nextSex })} title={it ? 'Cambia' : 'Change'}>{sexLabel}</button>
           </div>
-          <div className="nt-home__stage">
-            <Fetus size={420} boy={boy} label={it ? 'Il tuo bebè nel pancione' : 'Your baby in the womb'} />
+          <button type="button" className="nt-home__stage" onClick={() => setTalk((t) => t + 1)} aria-label={it ? 'Tocca il bebe' : 'Tap the baby'}>
+            <span className="nt-say" key={talk} role="status">{lines[talk % lines.length]}</span>
+            <Fetus size={420} boy={boy} label={it ? 'Il tuo bebe nel pancione' : 'Your baby in the womb'} />
             {analysis ? (
               <>
-                <div className="nt-home__badge nt-home__badge--tl nt-mob"><div className="nt-eyebrow">{it ? 'Oggi' : 'Today'}</div><b>{g(analysis.now.efw)} g</b></div>
-                <div className="nt-home__badge nt-home__badge--br nt-mob"><div className="nt-eyebrow">{it ? 'Lunghezza' : 'Length'}</div><b>~{Math.round(analysis.lengthNow.cm)} cm</b></div>
+                <span className="nt-home__badge nt-home__badge--tl"><Icon name="scale" size={18} /><span><small>{it ? 'Oggi' : 'Today'}</small><b>{g(analysis.now.efw)} g</b></span></span>
+                <span className="nt-home__badge nt-home__badge--br"><Icon name="ruler" size={18} /><span><small>{it ? 'Lungo' : 'Length'}</small><b>~{Math.round(analysis.lengthNow.cm)} cm</b></span></span>
               </>
             ) : null}
-          </div>
-          {analysis ? (
-            <div className="nt-home__today nt-desk">
-              <div className="nt-home__tile nt-home__tile--white"><div className="nt-eyebrow">{it ? 'Peso oggi' : 'Weight today'}</div><div className="nt-home__value nt-brandtext">{g(analysis.now.efw)} g</div></div>
-              <div className="nt-home__tile nt-home__tile--white"><div className="nt-eyebrow">{it ? 'Lunghezza oggi' : 'Length today'}</div><div className="nt-home__value">~{Math.round(analysis.lengthNow.cm)} cm</div></div>
-              <div className="nt-home__tile nt-home__tile--white"><div className="nt-eyebrow">Percentile</div><div className="nt-home__value">{Math.round(analysis.now.pct)}°</div></div>
-            </div>
-          ) : null}
+            <span className="nt-home__tap">{it ? 'Toccami' : 'Tap me'}</span>
+          </button>
         </section>
         <section className="nt-stack">
           {week !== null ? (
-            <div className="nt-card nt-trimester">
-              <div className="nt-spread"><span className="nt-eyebrow">{it ? `${trimester} trimestre` : `${trimester} trimester`}</span><span className="nt-trimester__count"><b>{week}</b>/40 {it ? 'sett.' : 'wk'}</span></div>
-              <div className="nt-meter nt-meter--lg"><i style={{ width: `${Math.min(100, Math.round((week / 40) * 100))}%` }} /></div>
-              <div className="nt-trimester__legend"><span>{it ? '1° trim.' : '1st tri.'}</span><span>{it ? '2° trim.' : '2nd tri.'}</span><span>{it ? '3° trim.' : '3rd tri.'}</span><span>{it ? 'Parto' : 'Due'} {dueShort}</span></div>
+            <div className="nt-card nt-journey">
+              <div className="nt-spread">
+                <span className="nt-journey__title"><IconBubble name="heart" size={36} />{it ? 'Il tuo percorso' : 'Your journey'}</span>
+                <span className="nt-chip nt-chip--soft"><Icon name="calendar" size={14} /> {it ? 'Parto' : 'Due'} {dueShort}</span>
+              </div>
+              <div className="nt-journey__track" aria-label={it ? `Settimana ${week} di 40` : `Week ${week} of 40`}>
+                <i style={{ width: `${pct}%` }} />
+                <span className="nt-journey__dot" style={{ left: `${pct}%` }}><Icon name="baby" size={16} /></span>
+                <em style={{ left: '25%' }} /><em style={{ left: '62.5%' }} />
+              </div>
+              <div className="nt-journey__legend"><span>{it ? '1° trim.' : '1st tri.'}</span><span>{it ? '2° trim.' : '2nd tri.'}</span><span>{it ? '3° trim.' : '3rd tri.'}</span></div>
             </div>
           ) : null}
-          <div className="nt-home__tiles">
-            {tile(it ? 'Alla nascita' : 'At birth', `~${term} g`)}
-            {tile(it ? 'Lunghezza' : 'Length', analysis ? `~${Math.round(analysis.lengthTerm.cm)} cm` : '—')}
-            <span className="nt-mob-contents">{tile('Percentile', analysis ? `${Math.round(analysis.now.pct)}°` : '—')}</span>
-            <span className="nt-desk-contents">{tile(it ? 'Parto previsto' : 'Due date', dueShort)}</span>
-            {tile(it ? 'Ecografie' : 'Scans', String(rows.length), lastShort ? (it ? `· ultima ${lastShort}` : `· last ${lastShort}`) : undefined)}
+          <div className="nt-qtiles">
+            {tile('gift', it ? 'Alla nascita' : 'At birth', analysis ? `~${g(Math.round(analysis.term.efw / 10) * 10)} g` : '—', () => onGo('baby'))}
+            {tile('ruler', it ? 'Lungo alla nascita' : 'Length at birth', analysis ? `~${Math.round(analysis.lengthTerm.cm)} cm` : '—', () => onGo('baby'))}
+            {tile('scan', it ? 'Ecografie' : 'Scans', last ? `${rows.length} · ${shortDate(last.scan.date, lang)}` : String(rows.length), () => onGo('baby'))}
+            {tile('chart', it ? 'Crescita' : 'Growth', analysis ? `${Math.round(analysis.now.pct)}° pc` : '—', () => onGo('baby'))}
           </div>
+          <button type="button" className="nt-row nt-linkcard nt-pop" onClick={() => onGo('calendario')}>
+            <IconBubble name="stethoscope" />
+            <span className="nt-row__body">
+              <span className="nt-eyebrow">{it ? 'Prossimo appuntamento' : 'Next appointment'}</span>
+              <span className="nt-row__title">{next ? `${next.kind} · ${shortDate(next.visit_date, lang, { weekday: 'short', day: 'numeric', month: 'short' })}, ${next.visit_time}` : it ? 'Aggiungi la prossima visita' : 'Add your next visit'}</span>
+            </span>
+            <Icon name="chevron" className="nt-chev" />
+          </button>
           {c ? (
-            <button type="button" className="nt-home__cor" onClick={onCorredino}>
-              <span className="nt-home__dresser"><DresserIcon size={46} /></span>
+            <button type="button" className="nt-home__cor nt-pop" onClick={() => onGo('corredino')}>
+              <Ring value={c.have} total={c.total} />
               <span className="nt-row__body">
                 <span className="nt-eyebrow">Corredino AI</span>
-                <span className="nt-home__cortitle">{it ? `${c.have}/${c.total} capi pronti` : `${c.have}/${c.total} items ready`}</span>
-                <span className="nt-meter nt-meter--white"><i style={{ width: `${Math.round((c.have / Math.max(c.total, 1)) * 100)}%` }} /></span>
-                <span className="nt-row__meta nt-desk">{it ? 'Taglie' : 'Sizes'} {c.sizes.join(' · ')} · {c.seasonHeadline}</span>
+                <span className="nt-home__cortitle">{it ? `${c.have} di ${c.total} capi pronti` : `${c.have} of ${c.total} items ready`}</span>
+                <span className="nt-row__meta">{it ? 'Taglie' : 'Sizes'} {c.sizes.join(' · ')} · {c.seasonHeadline}</span>
               </span>
-              <span className="nt-home__go" aria-hidden="true"><span className="nt-mob">→</span><span className="nt-desk nt-btn nt-btn--sm">{it ? 'Continua' : 'Continue'}</span></span>
+              <Icon name="chevron" className="nt-chev" />
             </button>
           ) : null}
-          <button type="button" className="nt-row nt-home__new" onClick={() => setAdding(true)}>
-            <span className="nt-badge nt-badge--lg">+</span>
-            <span className="nt-row__body"><span className="nt-row__title">{it ? 'Nuova ecografia?' : 'New scan?'}</span><span className="nt-row__meta">{it ? 'Aggiungila per aggiornare stima e corredino' : 'Add it to update the estimate and layette'}</span></span>
+          <button type="button" className="nt-row nt-linkcard nt-linkcard--dashed nt-pop" onClick={() => setAdding(true)}>
+            <IconBubble name="camera" tone="brand" />
+            <span className="nt-row__body"><span className="nt-row__title">{it ? 'Nuova ecografia?' : 'New scan?'}</span><span className="nt-row__meta">{it ? 'Fotografa il referto: aggiorniamo stima e corredino' : 'Snap the report: we update estimate and layette'}</span></span>
+            <Icon name="plus" className="nt-chev" />
           </button>
         </section>
       </div>
@@ -112,51 +145,62 @@ export function HomeTab({ firstName, onCorredino }: { firstName: string; onCorre
   );
 }
 
+/** Anello di avanzamento (capi pronti). */
+function Ring({ value, total, size = 64 }: { value: number; total: number; size?: number }) {
+  const r = 26, len = 2 * Math.PI * r, p = total ? Math.min(1, value / total) : 0;
+  return (
+    <span className="nt-ring" style={{ width: size, height: size }}>
+      <svg viewBox="0 0 64 64" width={size} height={size} aria-hidden="true">
+        <circle cx="32" cy="32" r={r} fill="none" stroke="#fff" strokeWidth="8" />
+        {p > 0 ? <circle cx="32" cy="32" r={r} fill="none" stroke="#ff395c" strokeWidth="8" strokeLinecap="round" strokeDasharray={`${len * p} ${len}`} transform="rotate(-90 32 32)" /> : null}
+      </svg>
+      <b>{Math.round(p * 100)}%</b>
+    </span>
+  );
+}
+
+/* ============================ crescita ============================ */
+
+/** Crescita (M09 / D06): stima di oggi, barre da toccare, ecografie chiuse che si aprono al tocco. */
 export function BabyTab() {
   const { analysis, state, dispatch, ga, gaValid, lang } = useNasciTara();
   const it = lang === 'it';
   const rows = useScanRows();
   const [edit, setEdit] = useState<string | null>(null);
-  const loc = localeOf(lang);
+  const [open, setOpen] = useState<string | null>(null);
+  const complete = rows.filter((r) => r.result);
+  const [picked, setPicked] = useState<number | null>(null);
   const g = (v: number) => grams(v, lang);
   const editing = rows.find((r) => r.scan.id === edit);
   const due = gaValid ? estimatedDueDate(state.referenceDate, ga) : null;
-  // The estimate is computed at the reference date: it says "today" only when it really is today.
-  const ref = new Date(state.referenceDate + 'T12:00:00Z');
-  const isToday = state.referenceDate === toISO(todayUTC());
-  const today = ref.toLocaleDateString(loc, { day: 'numeric', month: 'short', timeZone: 'UTC' });
-  const todayLong = ref.toLocaleDateString(loc, { day: 'numeric', month: 'long', timeZone: 'UTC' });
-  const complete = rows.filter((r) => r.result);
   const term = analysis?.term.efw ?? 0;
   const bars = analysis
-    ? [...complete.map((r) => ({ w: g(r.result!.efw), l: `${Math.floor(r.ga)} ${it ? 'sett.' : 'wk'}`, h: r.result!.efw / term, ghost: false })), { w: `~${g(Math.round(term / 10) * 10)}`, l: it ? 'nascita' : 'birth', h: 1, ghost: true }]
+    ? [...complete.map((r) => ({ w: r.result!.efw, wk: Math.floor(r.ga), when: r.label, ghost: false })), { w: Math.round(term / 10) * 10, wk: 40, when: it ? 'Stima alla nascita' : 'Birth estimate', ghost: true }]
     : [];
+  const sel = picked ?? Math.max(0, bars.length - 2);
   const save = (scan: ScanState) => {
     dispatch({ type: 'saveScan', scan });
     setEdit(null);
   };
   const scanNumber = editing ? rows.indexOf(editing) + 1 : rows.length + 1;
+  const fromReport = rows.filter((r) => r.scan.source === 'report').length;
+  const first = rows.find((r) => Number.isFinite(r.ga));
+  const lastRow = rows[rows.length - 1];
   return (
     <main className="nt-wrap nt-main nt-baby">
       <div className="nt-baby__grid">
         <div className="nt-stack">
           {analysis ? (
-            <div className="nt-card nt-card--pink nt-latest">
+            <div className="nt-card nt-card--pink nt-today">
               <span className="nt-bubble" style={{ right: -40, top: -40, width: 150, height: 150 }} />
-              <div className="nt-latest__main">
-                <div className="nt-eyebrow">{isToday ? (it ? 'Stima di oggi · ' : 'Today’s estimate · ') : it ? 'Stima al ' : 'Estimate on '}<span className="nt-mob">{today}</span><span className="nt-desk">{todayLong}</span></div>
-                <div className="nt-latest__num">{g(analysis.now.efw)}<small> g</small><span className="nt-mob nt-latest__pc">{Math.round(analysis.now.pct)}° pc</span></div>
-                <div className="nt-desk nt-latest__line"><b>{Math.round(analysis.now.pct)}°</b> percentile · {formatGA(analysis.ga)} {it ? 'settimane' : 'weeks'}</div>
-                <div className="nt-mob nt-chips">
-                  <span className="nt-pill nt-pill--sm">{formatGA(analysis.ga)} {it ? 'sett.' : 'wk'}</span>
-                  <span className="nt-pill nt-pill--sm">{it ? 'Nascita' : 'Birth'} ~{g(Math.round(term / 10) * 10)} g · {Math.round(analysis.lengthTerm.cm)} cm</span>
-                </div>
+              <div className="nt-eyebrow">{it ? 'Oggi pesa circa' : 'Today about'}</div>
+              <div className="nt-today__num">{g(analysis.now.efw)}<small> g</small></div>
+              <div className="nt-chips">
+                <span className="nt-chip nt-chip--white"><Icon name="ruler" size={15} /> ~{Math.round(analysis.lengthNow.cm)} cm</span>
+                <span className="nt-chip nt-chip--white"><Icon name="calendar" size={15} /> {formatGA(analysis.ga)} {it ? 'sett.' : 'wk'}</span>
+                <span className="nt-chip nt-chip--white"><Icon name="gift" size={15} /> {it ? 'nascita' : 'birth'} ~{g(Math.round(term / 10) * 10)} g</span>
               </div>
-              <div className="nt-desk nt-latest__boxes">
-                <div><b className="nt-eyebrow">{it ? 'Nascita' : 'Birth'}</b><span>~{g(Math.round(term / 10) * 10)} g</span></div>
-                <div><b className="nt-eyebrow">{it ? 'Lunghezza' : 'Length'}</b><span>~{Math.round(analysis.lengthTerm.cm)} cm</span></div>
-                <div><b className="nt-eyebrow">{it ? 'Parto' : 'Due'}</b><span>{due?.toLocaleDateString(loc, { day: 'numeric', month: 'short', timeZone: 'UTC' })}</span></div>
-              </div>
+              {due ? <p className="nt-note nt-today__due">{it ? 'Lunghezza stimata dal femore. Parto previsto il ' : 'Length estimated from the femur. Due on '}{due.toLocaleDateString(localeOf(lang), { day: 'numeric', month: 'long', timeZone: 'UTC' })}.</p> : null}
             </div>
           ) : (
             <div className="nt-card nt-card--pink">
@@ -166,51 +210,68 @@ export function BabyTab() {
           )}
           {analysis ? (
             <div className="nt-card nt-growthbars">
-              <div className="nt-spread"><div className="nt-eyebrow">{it ? 'Crescita stimata' : 'Estimated growth'}</div><span className="nt-note nt-desk">{it ? 'peso in grammi' : 'weight in grams'}</span></div>
-              <div className="nt-bars">
+              <div className="nt-spread">
+                <span className="nt-journey__title"><IconBubble name="chart" size={36} />{it ? 'Come sta crescendo' : 'How it’s growing'}</span>
+                <span className="nt-note nt-desk">{it ? 'Tocca una barra' : 'Tap a bar'}</span>
+              </div>
+              <div className="nt-bars nt-bars--live">
                 {bars.map((b, i) => (
-                  <div key={i}>
-                    <b>{b.w}</b>
-                    <i className={b.ghost ? 'is-ghost' : undefined} style={{ height: `${Math.max(6, b.h * 100)}%` }} />
-                    <span>{b.l}</span>
-                  </div>
+                  <button key={i} type="button" className={`${i === sel ? 'is-on' : ''}${b.ghost ? ' is-ghost' : ''}`} aria-pressed={i === sel} onClick={() => setPicked(i)}>
+                    <i style={{ height: `${Math.max(8, (b.w / term) * 100)}%`, animationDelay: `${i * 80}ms` }} />
+                    <span>{b.ghost ? (it ? 'nascita' : 'birth') : `${b.wk}ª`}</span>
+                  </button>
                 ))}
               </div>
+              {bars[sel] ? (
+                <div className="nt-barpick">
+                  <Icon name={bars[sel].ghost ? 'gift' : 'scan'} size={18} />
+                  <span>{bars[sel].when}</span>
+                  <b>{bars[sel].ghost ? '~' : ''}{g(bars[sel].w)} g</b>
+                </div>
+              ) : null}
             </div>
           ) : null}
         </div>
         <section className="nt-stack">
-          <div className="nt-spread">
-            <h2 className="nt-h3">{it ? 'Misurazioni' : 'Measurements'}</h2>
-            <button type="button" className="nt-link nt-mob" onClick={() => setEdit('new')}>{it ? '+ Aggiungi' : '+ Add'}</button>
-            <span className="nt-note nt-desk">{rows.length} {it ? (rows.length === 1 ? 'ecografia' : 'ecografie') : rows.length === 1 ? 'scan' : 'scans'}</span>
+          <div className="nt-card nt-recap">
+            <IconBubble name="scan" tone="brand" />
+            <div className="nt-grow">
+              <div className="nt-row__title">{rows.length} {it ? (rows.length === 1 ? 'ecografia' : 'ecografie') : rows.length === 1 ? 'scan' : 'scans'}</div>
+              <div className="nt-row__meta">
+                {first && lastRow && rows.length > 1 ? (it ? `dalla ${Math.floor(first.ga)}ª alla ${Math.floor(lastRow.ga)}ª settimana` : `from week ${Math.floor(first.ga)} to ${Math.floor(lastRow.ga)}`) : ''}
+                {fromReport ? ` · ${fromReport} ${it ? 'dal referto' : 'from report'}` : ''}
+              </div>
+            </div>
+            <button type="button" className="nt-btn nt-btn--sm" onClick={() => setEdit('new')}><Icon name="plus" size={18} />{it ? 'Aggiungi' : 'Add'}</button>
           </div>
           <div className="nt-rows">
-            {rows.map((r, i) => (
-              <div key={r.scan.id} className="nt-mcard">
-                <div className="nt-mcard__head">
-                  <span className="nt-badge">{i + 1}</span>
-                  <div className="nt-row__body">
-                    <div className="nt-row__title">{r.label}</div>
-                    <div className="nt-row__meta">
-                      <span className="nt-mob">{r.result ? `${g(r.result.efw)} g · ` : ''}</span>
-                      {r.src}
+            {[...rows].reverse().map((r) => {
+              const i = rows.indexOf(r);
+              const isOpen = open === r.scan.id;
+              return (
+                <div key={r.scan.id} className={`nt-acc${isOpen ? ' is-open' : ''}`}>
+                  <button type="button" className="nt-acc__head" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : r.scan.id)}>
+                    <span className="nt-badge">{i + 1}</span>
+                    <span className="nt-row__body"><span className="nt-row__title">{it ? 'Ecografia' : 'Scan'} {i + 1}</span><span className="nt-row__meta">{r.label}</span></span>
+                    {r.result ? <span className="nt-acc__w">{g(r.result.efw)} g</span> : null}
+                    <Icon name="chevron" className="nt-acc__chev" />
+                  </button>
+                  {isOpen ? (
+                    <div className="nt-acc__body">
+                      <div className="nt-measures nt-measures--4">
+                        {MEASURES.map((m) => <div key={m.key} className="nt-measure"><b>{m.key}</b><span>{r.scan[m.field] === '' ? '—' : r.scan[m.field]}</span><small>{it ? m.it : m.en}</small></div>)}
+                      </div>
+                      <div className="nt-spread">
+                        <span className="nt-note"><Icon name={r.scan.source === 'report' ? 'camera' : 'note'} size={14} /> {r.src}</span>
+                        <button type="button" className="nt-btn nt-btn--soft nt-btn--sm" onClick={() => setEdit(r.scan.id)}>{it ? 'Modifica' : 'Edit'}</button>
+                      </div>
                     </div>
-                  </div>
-                  {r.result ? <span className="nt-mcard__w nt-desk">{g(r.result.efw)} g</span> : null}
-                  <button type="button" className="nt-link nt-mob" onClick={() => setEdit(r.scan.id)}>{it ? 'Modifica' : 'Edit'}</button>
+                  ) : null}
                 </div>
-                <div className="nt-measures nt-measures--4 nt-desk">
-                  {MEASURES.map((m) => <div key={m.key} className="nt-measure"><b>{m.key}</b><span>{r.scan[m.field] === '' ? '—' : r.scan[m.field]}</span></div>)}
-                </div>
-                <div className="nt-mcard__actions nt-desk">
-                  <button type="button" className="nt-link" onClick={() => setEdit(r.scan.id)}>{it ? 'Modifica' : 'Edit'}</button>
-                  {r.scan.source !== 'report' ? <button type="button" className="nt-link" onClick={() => setEdit(r.scan.id)}>{it ? '+ Aggiungi referto' : '+ Add report'}</button> : null}
-                </div>
-              </div>
-            ))}
+              );
+            })}
+            {!rows.length ? <p className="nt-note">{it ? 'Nessuna ecografia ancora.' : 'No scans yet.'}</p> : null}
           </div>
-          <button type="button" className="nt-btn nt-btn--block nt-desk" onClick={() => setEdit('new')}>{it ? '+ Aggiungi ecografia' : '+ Add scan'}</button>
         </section>
       </div>
       <Sheet open={edit !== null} onClose={() => setEdit(null)} labelClose={it ? 'Chiudi' : 'Close'}
@@ -222,6 +283,8 @@ export function BabyTab() {
     </main>
   );
 }
+
+/* ============================ corredino ============================ */
 
 export function useCorredino(): { c: Corredino | null; basis: string; dueShort: string } {
   const { analysis, state, ga, gaValid, lang } = useNasciTara();
@@ -240,6 +303,8 @@ export function useCorredino(): { c: Corredino | null; basis: string; dueShort: 
     };
   }, [analysis, state.referenceDate, state.corredino, ga, gaValid, lang]);
 }
+
+const SEASON_ICON: Record<Season, IconName> = { winter: 'snow', spring: 'flower', summer: 'sun', autumn: 'leaf' };
 
 /** Corredino AI (M11 / M12 / D07): quanti capi, perche', e quanti ne hai gia'. */
 export function CorredinoTab() {
@@ -275,32 +340,37 @@ export function CorredinoTab() {
   };
   const summary = (
     <div className="nt-card nt-cor-sum">
-      <div className="nt-spread"><span className="nt-eyebrow">{it ? 'Capi · 0–3 mesi' : 'Items · 0–3 months'}</span><span className="nt-note nt-mob">{basis}</span></div>
-      <div className="nt-cor-total"><span>{c.total}</span> <em className="nt-mob-inline">{it ? 'capi' : 'items'}</em><small>{c.have} {it ? 'già presi' : 'already got'}</small></div>
-      <div className="nt-bar3" aria-hidden="true">{groups.map((g, i) => <i key={g.id} style={{ flex: g.total, background: BAR[i] }} />)}</div>
+      <div className="nt-cor-head">
+        <Ring value={c.have} total={c.total} size={84} />
+        <div className="nt-grow">
+          <div className="nt-eyebrow">{it ? 'Primi 3 mesi' : 'First 3 months'}</div>
+          <div className="nt-cor-head__title">{it ? `${c.have} di ${c.total} capi pronti` : `${c.have} of ${c.total} items ready`}</div>
+          <div className="nt-row__meta">{basis}</div>
+        </div>
+      </div>
       <div className="nt-cor-wash">
-        <span>{it ? 'Lavatrici a settimana' : 'Washes per week'}</span>
+        <span><Icon name="washer" size={18} />{it ? 'Lavatrici a settimana' : 'Washes per week'}</span>
         <Segmented label={it ? 'Lavatrici a settimana' : 'Washes per week'} size="sm" value={String(washes) as '2' | '3' | '4'} options={[['2', '2'], ['3', '3'], ['4', '4+']]} onChange={(v) => dispatch({ type: 'setWashes', value: Number(v) as Washes })} />
       </div>
       <div className="nt-cor-wash">
-        <span>{it ? 'Asciugatrice' : 'Dryer'}</span>
+        <span><Icon name="dryer" size={18} />{it ? 'Asciugatrice' : 'Dryer'}</span>
         <Segmented label={it ? 'Asciugatrice' : 'Dryer'} size="sm" value={dryer ? 'yes' : 'no'} options={[['yes', it ? 'Sì' : 'Yes'], ['no', 'No']]} onChange={(v) => dispatch({ type: 'setDryer', value: v === 'yes' })} />
       </div>
+      <details className="nt-how">
+        <summary><Icon name="info" size={16} />{it ? 'Come calcoliamo' : 'How we count'}</summary>
+        <p className="nt-body">{it ? `Cambi al giorno × ${days} giorni tra un lavaggio e l’altro, + 1 di scorta sui capi base. Taglie sulla crescita attesa: ~1 cm a settimana. Una taglia usata meno di 3 settimane riceve metà scorta.` : `Changes per day × ${days} days between washes, + 1 spare on everyday basics. Sizes follow expected growth (~1 cm a week); a size worn under 3 weeks gets half the stock.`}</p>
+      </details>
     </div>
   );
-  const how = (
-    <div className="nt-card nt-card--tint nt-stack4">
-      <div className="nt-eyebrow">{it ? 'Come calcoliamo' : 'How we count'}</div>
-      <p className="nt-body">{it ? <>Cambi al giorno × <b>{days} giorni</b> tra un lavaggio e l’altro, + 1 di scorta sui capi base.</> : <>Changes per day × <b>{days} days</b> between washes, + 1 spare on everyday basics.</>}</p>
-      <p className="nt-note">{it ? `Taglie sulla crescita attesa: ~1 cm a settimana da ${Math.round(analysis.lengthTerm.cm)} cm. Una taglia usata meno di 3 settimane riceve metà scorta.` : `Sizes follow expected growth: ~1 cm a week from ${Math.round(analysis.lengthTerm.cm)} cm. A size worn under 3 weeks gets half the stock.`}</p>
-    </div>
-  );
-  const season = (
-    <div className="nt-card nt-card--pink nt-stack6">
-      <div className="nt-spread"><span className="nt-eyebrow">{it ? 'Stagione' : 'Season'}</span><span className="nt-small">{it ? 'Parto' : 'Due'} ~{dueShort}</span></div>
-      <div className="nt-h3">{c.seasonHeadline}</div>
-      <p className="nt-body">{c.advice}</p>
-      <div className="nt-chips">{c.materials.map((m) => <span key={m} className="nt-chip">{m}</span>)}</div>
+  const seasonCard = (
+    <div className="nt-card nt-card--pink nt-season">
+      <IconBubble name={SEASON_ICON[c.columns[0]?.season ?? 'autumn']} tone="white" />
+      <div className="nt-grow nt-stack6">
+        <div className="nt-spread"><span className="nt-eyebrow">{it ? 'Stagione' : 'Season'}</span><span className="nt-small">{it ? 'Parto' : 'Due'} ~{dueShort}</span></div>
+        <div className="nt-h3">{c.seasonHeadline}</div>
+        <p className="nt-body">{c.advice}</p>
+        <div className="nt-chips">{c.materials.map((m) => <span key={m} className="nt-chip">{m}</span>)}</div>
+      </div>
     </div>
   );
   const counter = (item: Group['items'][number]) => (
@@ -314,12 +384,23 @@ export function CorredinoTab() {
     <div className="nt-rows">
       {g.items.map((item) => (
         <div key={item.key} className={`nt-garment${item.have >= item.qty ? ' is-done' : ''}`}>
-          <span className="nt-garment__icon"><GarmentGlyph icon={item.icon} /></span>
+          <span className="nt-garment__icon">{item.have >= item.qty ? <span className="nt-garment__ok"><Icon name="check" size={14} /></span> : null}<GarmentGlyph icon={item.icon} /></span>
           <span className="nt-row__body"><span className="nt-row__title">{item.name}</span><span className="nt-row__meta">{item.material}</span></span>
           {counter(item)}
         </div>
       ))}
     </div>
+  );
+  const groupCard = (g: Group) => (
+    <button key={g.id} type="button" className="nt-gcard nt-pop" onClick={() => setOpen(g.id)}>
+      <span className="nt-gcard__size">{g.tile}</span>
+      <span className="nt-row__body">
+        <span className="nt-row__title">{g.rowTitle}</span>
+        <span className="nt-gcard__icons">{g.items.slice(0, 4).map((i) => <span key={i.key}><GarmentGlyph icon={i.icon} /></span>)}</span>
+        <span className="nt-meter nt-meter--pink"><i style={{ width: pct(g.have, g.total) }} /></span>
+      </span>
+      {g.have >= g.total ? <IconBubble name="check" tone="brand" size={32} /> : <Icon name="chevron" className="nt-chev" />}
+    </button>
   );
   const active = groups.find((g) => g.id === open);
   return (
@@ -333,28 +414,19 @@ export function CorredinoTab() {
               <button type="button" className="nt-round" aria-label={it ? 'Condividi la lista' : 'Share the list'} onClick={() => void share()}><ShareIcon /></button>
             </div>
             <Segmented label={it ? 'Gruppo' : 'Group'} variant="brand" size="sm" value={active.id} options={groups.map((g) => [g.id, g.tab] as [string, string])} onChange={setOpen} />
-            <div className="nt-spread nt-end">
-              <div className="nt-grow"><div className="nt-eyebrow">{active.infoTop}</div><div className="nt-row__meta nt-bigger">{active.infoSub}</div></div>
-              <div className="nt-count"><b>{active.have}</b>/{active.total}</div>
+            <div className="nt-card nt-recap">
+              <IconBubble name={active.season ? SEASON_ICON[active.season] : 'hanger'} />
+              <div className="nt-grow"><div className="nt-eyebrow">{active.infoTop}</div><div className="nt-row__meta">{active.infoSub}</div></div>
+              <Ring value={active.have} total={active.total} size={52} />
             </div>
-            <div className="nt-meter"><i style={{ width: pct(active.have, active.total) }} /></div>
             <p className="nt-note">{it ? 'Usa + e − per segnare quanti pezzi hai già.' : 'Use + and − to track how many you already have.'}</p>
             {items(active)}
           </>
         ) : (
           <>
             {summary}
-            {how}
-            {season}
-            <div className="nt-rows">
-              {groups.map((g) => (
-                <button key={g.id} type="button" className="nt-row" onClick={() => setOpen(g.id)}>
-                  <span className="nt-badge nt-badge--lg">{g.tile}</span>
-                  <span className="nt-row__body"><span className="nt-row__title">{g.rowTitle}</span><span className="nt-row__meta">{g.rowSub}</span></span>
-                  <span className="nt-row__title nt-nowrap"><span className="nt-brandtext">{g.have}</span>/{g.total} →</span>
-                </button>
-              ))}
-            </div>
+            {seasonCard}
+            <div className="nt-rows">{groups.map(groupCard)}</div>
             <button type="button" className="nt-btn nt-btn--soft nt-btn--block" onClick={() => void exportCorredinoPdf(c, lang, basis)}>{it ? 'Scarica lista PDF' : 'Download PDF list'}</button>
           </>
         )}
@@ -363,8 +435,7 @@ export function CorredinoTab() {
       <div className="nt-desk nt-cor__grid">
         <aside className="nt-stack">
           {summary}
-          {how}
-          {season}
+          {seasonCard}
           <div className="nt-cor__actions">
             <button type="button" className="nt-btn nt-btn--block" onClick={() => void exportCorredinoPdf(c, lang, basis)}>{it ? 'Scarica lista PDF' : 'Download PDF list'}</button>
             <button type="button" className="nt-round" aria-label={it ? 'Condividi la lista' : 'Share the list'} onClick={() => void share()}><ShareIcon /></button>
@@ -376,10 +447,9 @@ export function CorredinoTab() {
             {c.columns.map((col) => (
               <section key={col.id} className="nt-cor__col">
                 <div className="nt-spread nt-start">
-                  <div className="nt-grow"><div className="nt-eyebrow">{col.infoTop}</div><div className="nt-cor__size">{col.title}</div><div className="nt-row__meta">{col.infoSub}</div></div>
-                  <div className="nt-count"><b>{col.have}</b>/{col.total}</div>
+                  <div className="nt-grow"><div className="nt-eyebrow"><Icon name={col.season ? SEASON_ICON[col.season] : 'hanger'} size={14} /> {col.infoTop}</div><div className="nt-cor__size">{col.title}</div><div className="nt-row__meta">{col.infoSub}</div></div>
+                  <Ring value={col.have} total={col.total} size={52} />
                 </div>
-                <div className="nt-meter nt-meter--pink"><i style={{ width: pct(col.have, col.total) }} /></div>
                 {items(col)}
               </section>
             ))}
@@ -387,9 +457,8 @@ export function CorredinoTab() {
           <section className="nt-cor__col nt-cor__acc">
             <div className="nt-spread nt-end">
               <div><div className="nt-eyebrow">{c.accessories.infoTop}</div><div className="nt-cor__size">{c.accessories.title}</div></div>
-              <div className="nt-count"><b>{c.accessories.have}</b>/{c.accessories.total}</div>
+              <Ring value={c.accessories.have} total={c.accessories.total} size={52} />
             </div>
-            <div className="nt-meter nt-meter--pink"><i style={{ width: pct(c.accessories.have, c.accessories.total) }} /></div>
             {items(c.accessories)}
           </section>
         </div>

@@ -12,7 +12,7 @@ const SUBTABS: Record<Section, AreaTab[]> = { bebe: ['home', 'baby', 'corredino'
 const sectionOf = (t: AreaTab): Section => (SUBTABS.mamma.includes(t) ? 'mamma' : t === 'voce' ? 'voce' : 'bebe');
 
 /**
- * Area riservata 0.7: tre sezioni (Il tuo bebè, La mamma, La tua voce).
+ * Area riservata 0.7: tre sezioni (Il tuo bebe, La mamma, La tua voce).
  * Telefono: sottosezioni in alto e barra in basso. Desktop: sezioni nell'header.
  */
 export function Area({ firstName, fullName, onAccount, tab, onTab }: { firstName: string; fullName: string; onAccount: () => void; tab: AreaTab; onTab: (t: AreaTab) => void }) {
@@ -30,9 +30,9 @@ export function Area({ firstName, fullName, onAccount, tab, onTab }: { firstName
 
   const tabName: Record<AreaTab, string> = {
     home: it ? 'Riepilogo' : 'Overview', baby: it ? 'Crescita' : 'Growth', corredino: 'Corredino AI',
-    calendario: it ? 'Calendario' : 'Calendar', notebook: 'Notebook', supporto: it ? 'Supporto' : 'Support', voce: it ? 'La tua voce' : 'Your voice',
+    calendario: it ? 'I tuoi appuntamenti' : 'Appointments', notebook: 'Notebook', supporto: it ? 'Supporto' : 'Support', voce: it ? 'La tua voce' : 'Your voice',
   };
-  const sectionName: Record<Section, string> = { bebe: it ? 'Il tuo bebè' : 'Your baby', mamma: it ? 'La mamma' : 'Mum', voce: it ? 'La tua voce' : 'Your voice' };
+  const sectionName: Record<Section, string> = { bebe: it ? 'Il tuo bebe' : 'Your baby', mamma: it ? 'La mamma' : 'Mum', voce: it ? 'La tua voce' : 'Your voice' };
   const sections = (cls: string) => (
     <nav className={cls} aria-label={it ? 'Sezioni' : 'Sections'}>
       {(Object.keys(SUBTABS) as Section[]).map((s) => (
@@ -63,7 +63,7 @@ export function Area({ firstName, fullName, onAccount, tab, onTab }: { firstName
           </nav>
         </div>
       ) : null}
-      {tab === 'home' ? <HomeTab firstName={firstName} onCorredino={() => go('corredino')} />
+      {tab === 'home' ? <HomeTab firstName={firstName} onGo={go} />
         : tab === 'baby' ? <BabyTab />
         : tab === 'corredino' ? <CorredinoTab />
         : tab === 'calendario' ? <CalendarTab />

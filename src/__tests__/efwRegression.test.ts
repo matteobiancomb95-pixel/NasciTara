@@ -55,9 +55,11 @@ describe('caso di riferimento — parita con il prototipo', () => {
     expect(Math.round(r!.now.pct)).toBe(47);
   });
 
-  it('lunghezza 41,5 cm', () => {
-    expect(r!.lengthNow.cm).toBeCloseTo(41.49, 1);
-    expect(r!.lengthNow.cm.toFixed(1)).toBe('41.5');
+  // 0.8: lunghezza solo dal femore (62 mm a 32+3 -> 40,3 cm, proiettata a 33+2). Prima era 41,5 con la media 60/40.
+  it('lunghezza 41,3 cm, dal femore', () => {
+    expect(r!.lengthNow.cm).toBeCloseTo(41.32, 1);
+    expect(r!.lengthNow.cm.toFixed(1)).toBe('41.3');
+    expect(r!.lengthTerm.cm).toBeCloseTo(49.42, 1);
   });
 
   it('proiezione a termine 3,70 kg', () => {

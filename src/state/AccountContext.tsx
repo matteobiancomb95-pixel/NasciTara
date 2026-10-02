@@ -28,8 +28,6 @@ export interface Profile {
   gaWeeks: number | null;
   gaReference: string | null;
   consent: boolean;
-  /** Consenso esplicito alle funzioni AI (Claude, Anthropic): data o null. */
-  aiConsentAt: string | null;
 }
 
 export type AuthResult = { ok: true; needsConfirmation?: boolean } | { ok: false; error: string };
@@ -321,7 +319,6 @@ export function profileOf(user: User): Profile {
     gaWeeks: weeks,
     gaReference: typeof m.ga_reference === "string" && /^\d{4}-\d{2}-\d{2}$/.test(m.ga_reference) ? m.ga_reference : null,
     consent: typeof m.consent_version === "string" && m.consent_version.length > 0,
-    aiConsentAt: typeof m.ai_consent_at === "string" ? m.ai_consent_at : null,
   };
 }
 

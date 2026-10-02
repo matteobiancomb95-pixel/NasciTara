@@ -2,7 +2,7 @@ import type { CSSProperties } from 'react';
 import type { GarmentIcon } from '../lib/corredino';
 
 /**
- * Illustrazioni del progetto Claude Design (29/09/2026): il bebè nel pancione, animato,
+ * Illustrazioni del progetto Claude Design (29/09/2026): il bebe nel pancione, animato,
  * e le icone dei capi del corredino. Le animazioni sono in app.css (nt-sway, nt-kick, ...)
  * e si fermano con prefers-reduced-motion.
  */

@@ -278,7 +278,7 @@ export function GrowthChart({ analysis, metric, selectedWeek }: Props) {
         </span>
         <span>
           <i className="chart__swatch" style={{ background: 'var(--ink)' }} />
-          {lang === 'it' ? (state.babySex === 'female' ? 'La curva della tua bambina' : state.babySex === 'male' ? 'La curva del tuo bambino' : 'La curva del tuo bebè') : t('dash.legendCurve')}
+          {lang === 'it' ? (state.babySex === 'female' ? 'La curva della tua bambina' : state.babySex === 'male' ? 'La curva del tuo bambino' : 'La curva del tuo bebe') : t('dash.legendCurve')}
         </span>
         <span>
           <i

@@ -18,7 +18,7 @@ const INSTAGRAM_URL = 'https://www.instagram.com/nascitara?stkn=MWo4ZDJzcW45enYz
 type View = 'welcome' | 'journey' | 'area' | 'account';
 
 /**
- * Flusso NasciTara 0.7: account -> benvenuto -> percorso in quattro tab -> area (bebè, mamma, voce).
+ * Flusso NasciTara 0.7: account -> benvenuto -> percorso in quattro tab -> area (bebe, mamma, voce).
  * L'avatar apre l'Area riservata a tutto schermo; `#privacy` apre la privacy policy anche senza account.
  * Il percorso si completa una volta; dopo si atterra nell'area riservata.
  * `#demo` apre un esempio senza account, mai salvato.

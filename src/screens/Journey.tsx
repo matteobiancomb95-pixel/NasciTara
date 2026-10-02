@@ -109,8 +109,8 @@ function PregnancyTab({ onBack, onNext }: { onBack: () => void; onNext: () => vo
         <button type="button" className="nt-link" onClick={() => setEditing(true)}>{it ? 'Modifica' : 'Edit'}</button>
       </div>
       <div className="nt-field">
-        <span className="nt-field__label">{it ? 'Sesso del bebè' : 'Baby’s sex'}</span>
-        <Segmented label={it ? 'Sesso del bebè' : 'Baby’s sex'} value={state.babySex || 'unknown'}
+        <span className="nt-field__label">{it ? 'Sesso del bebe' : 'Baby’s sex'}</span>
+        <Segmented label={it ? 'Sesso del bebe' : 'Baby’s sex'} value={state.babySex || 'unknown'}
           options={[['female', it ? 'Femmina' : 'Girl'], ['male', it ? 'Maschio' : 'Boy'], ['unknown', it ? 'Non so' : 'Not sure']]}
           onChange={(v) => dispatch({ type: 'setBabySex', value: v === 'unknown' ? '' : v })} />
       </div>
@@ -320,7 +320,7 @@ function ResultsTab({ onFinish }: { onFinish: (target?: 'home' | 'corredino') =>
       setPdf('error');
     }
   };
-  const babyTitle = it ? (state.babySex === 'female' ? 'Ecco la tua bambina' : state.babySex === 'male' ? 'Ecco il tuo bambino' : 'Ecco il tuo bebè') : 'Meet your baby';
+  const babyTitle = it ? (state.babySex === 'female' ? 'Ecco la tua bambina' : state.babySex === 'male' ? 'Ecco il tuo bambino' : 'Ecco il tuo bebe') : 'Meet your baby';
   const pct = Math.max(1, Math.min(99, now.pct));
   return (
     <main className="nt-wrap nt-main nt-results">

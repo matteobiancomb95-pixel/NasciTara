@@ -36,8 +36,8 @@ export interface LengthInput {
   lastGa: number;
   /** Epoca a cui si vuole la stima. */
   targetGa: number;
-  /** Scarto standardizzato del peso all'epoca richiesta. */
-  z: number;
+  /** Scarto standardizzato del peso: non entra piu' nella lunghezza (0.8), resta per compatibilita'. */
+  z?: number;
 }
 
 export interface LengthEstimate {
@@ -50,15 +50,13 @@ export interface LengthEstimate {
 }
 
 /**
- * Media pesata 60/40 fra il ramo femorale (misura scheletrica diretta) e il
- * riferimento per epoca corretto dallo scarto di peso.
+ * Lunghezza dal femore (0.8): il femore misurato da' la lunghezza all'epoca dell'ecografia
+ * (femore / rapporto per epoca), poi si proietta in proporzione alla crescita attesa.
+ * Un bebe' con femore corto resta proporzionalmente corto anche alla nascita.
+ * `fromReferenceCm` resta solo come confronto con la lunghezza tipica per l'epoca.
  */
 export function estimateLength(input: LengthInput): LengthEstimate {
-  const fromFemurCm = input.lastFlMm / 10 / flRatio(input.lastGa) + 1.22 * (input.targetGa - input.lastGa);
-  const fromReferenceCm = refLength(input.targetGa) * (1 + 0.7 * input.z * 0.04);
-  return {
-    cm: 0.6 * fromFemurCm + 0.4 * fromReferenceCm,
-    fromFemurCm,
-    fromReferenceCm,
-  };
+  const atScan = input.lastFlMm / 10 / flRatio(input.lastGa);
+  const fromFemurCm = atScan * (refLength(input.targetGa) / refLength(input.lastGa));
+  return { cm: fromFemurCm, fromFemurCm, fromReferenceCm: refLength(input.targetGa) };
 }
