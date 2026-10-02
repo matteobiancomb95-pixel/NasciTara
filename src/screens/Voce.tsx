@@ -1,16 +1,10 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNasciTara } from '../state/NasciTaraStore';
 import { useMamma } from '../state/MammaStore';
 import { Segmented, Toggle } from '../ui/kit';
 import { APP_VERSION } from '../version';
 
 /** La tua voce (M18 / D10): recensione o idea, scritta nel Google Sheet del team tramite il server. */
-/** Codici tecnici dell'errore (nessun segreto), utili per capire cosa sistemare. */
-const detail = (r: Record<string, unknown>) => {
-  const parts = ['mail', 'sheet', 'stage'].map((k) => (typeof r[k] === 'string' && r[k] !== 'ok' ? `${k}: ${r[k]}` : '')).filter(Boolean);
-  return parts.length ? ` (${parts.join(' · ')})` : '';
-};
-
 export function VoiceTab({ firstName }: { firstName: string }) {
   const { lang } = useNasciTara();
   const it = lang === 'it';
@@ -20,24 +14,33 @@ export function VoiceTab({ firstName }: { firstName: string }) {
   const [text, setText] = useState('');
   const [contact, setContact] = useState(false);
   const [busy, setBusy] = useState(false);
+  const sending = useRef(false);
   const [sent, setSent] = useState<'review' | 'idea' | null>(null);
   const [error, setError] = useState('');
   const valid = text.trim().length >= 3 && (kind === 'idea' || stars > 0);
   const send = async () => {
+    if (!valid || !online || sending.current) return;
+    sending.current = true;
     setBusy(true);
     setError('');
-    const r = await call('submit-feedback', { kind, stars: kind === 'review' ? stars : null, text: text.trim(), contact, version: APP_VERSION, platform: window.matchMedia('(min-width: 1024px)').matches ? 'desktop' : 'mobile' });
-    setBusy(false);
-    if (r.status === 'ok') {
-      setSent(kind);
-      setText('');
-      setStars(0);
-      setContact(false);
-      return;
+    try {
+      const r = await call('submit-feedback', { kind, stars: kind === 'review' ? stars : null, text: text.trim(), contact, version: APP_VERSION, platform: window.matchMedia('(min-width: 1024px)').matches ? 'desktop' : 'mobile' });
+      if (r.status === 'ok') {
+        setSent(kind);
+        setText(''); setStars(0); setContact(false);
+        return;
+      }
+      const seconds = typeof r.retry_after === 'number' && Number.isFinite(r.retry_after) ? Math.max(1, Math.ceil(r.retry_after)) : 60;
+      const wait = seconds <= 60 ? (it ? 'tra un minuto' : 'in a minute') : (it ? `tra ${Math.ceil(seconds / 60)} minuti` : `in ${Math.ceil(seconds / 60)} minutes`);
+      setError(r.status === 'limited' ? (it ? `Hai raggiunto il limite di invio: riprova ${wait}. Il testo resta qui.` : `You have reached the sending limit: try again ${wait}. Your text is still here.`)
+        : r.status === 'offline' || r.status === 'unauthorized' ? (it ? 'Accedi di nuovo per inviare il messaggio. Il testo resta qui.' : 'Sign in again to send your message. Your text is still here.')
+        : (it ? 'Non siamo riusciti a confermare l’invio. Il testo resta qui: riprova tra poco.' : 'We could not confirm delivery. Your text is still here: try again shortly.'));
+    } catch {
+      setError(it ? 'Connessione interrotta. Il testo resta qui: riprova tra poco.' : 'Connection interrupted. Your text is still here: try again shortly.');
+    } finally {
+      sending.current = false;
+      setBusy(false);
     }
-    setError(r.status === 'limited' ? (it ? 'Hai già scritto da poco: riprova tra un minuto.' : 'You just wrote to us: try again in a minute.')
-      : r.status === 'offline' ? (it ? 'Per scriverci serve il tuo account.' : 'You need your account to write to us.')
-      : (it ? 'Invio non riuscito. Riprova tra poco.' : 'Could not send. Try again shortly.') + detail(r));
   };
   return (
     <main className="nt-wrap nt-main nt-voice">
@@ -55,7 +58,7 @@ export function VoiceTab({ firstName }: { firstName: string }) {
             <button type="button" className="nt-btn nt-btn--soft" onClick={() => setSent(null)}>{it ? 'Scrivine un’altra' : 'Write another'}</button>
           </div>
         ) : (
-          <div className="nt-stack">
+          <fieldset className="nt-stack" disabled={busy} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
             <div className="nt-field">
               <span className="nt-field__label">{it ? 'Di cosa vuoi parlarci?' : 'What is it about?'}</span>
               <Segmented label={it ? 'Tipo' : 'Type'} variant="brand" value={kind} options={[['review', it ? 'Recensione' : 'Review'], ['idea', it ? 'Nuova funzionalità' : 'New feature']]} onChange={setKind} />
@@ -83,7 +86,7 @@ export function VoiceTab({ firstName }: { firstName: string }) {
             {error ? <p className="nt-error" role="alert">{error}</p> : null}
             <button type="button" className="nt-btn nt-btn--block" disabled={!valid || busy || !online} onClick={() => void send()}>{busy ? (it ? 'Invio…' : 'Sending…') : it ? 'Invia' : 'Send'}</button>
             <p className="nt-note nt-center">{online ? (it ? 'Leggiamo ogni messaggio. Le idee più richieste entrano nei prossimi rilasci.' : 'We read every message. The most requested ideas make it into future releases.') : it ? 'Per scriverci serve il tuo account.' : 'You need your account to write to us.'}</p>
-          </div>
+          </fieldset>
         )}
       </div>
     </main>
