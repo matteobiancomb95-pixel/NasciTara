@@ -1,3 +1,5 @@
+import { GrowthChart } from '../components/GrowthChart';
+import { PercentileSummary } from '../components/PercentileSummary';
 import { useMemo, useState } from 'react';
 import { useNasciTara, type ScanState, type Washes } from '../state/NasciTaraStore';
 import { useMamma } from '../state/MammaStore';
@@ -110,8 +112,9 @@ export function HomeTab({ firstName, onGo }: { firstName: string; onGo: Go }) {
             {tile('gift', it ? 'Alla nascita' : 'At birth', analysis ? `~${g(Math.round(analysis.term.efw / 10) * 10)} g` : '—', () => onGo('baby'))}
             {tile('ruler', it ? 'Lungo alla nascita' : 'Length at birth', analysis ? `~${Math.round(analysis.lengthTerm.cm)} cm` : '—', () => onGo('baby'))}
             {tile('scan', it ? 'Ecografie' : 'Scans', last ? `${rows.length} · ${shortDate(last.scan.date, lang)}` : String(rows.length), () => onGo('baby'))}
-            {tile('chart', it ? 'Crescita' : 'Growth', analysis ? `${Math.round(analysis.now.pct)}° pc` : '—', () => onGo('baby'))}
+            {tile('chart', it ? 'Percentile del peso' : 'Weight percentile', analysis ? `${Math.round(analysis.now.pct)}° pc` : '—', () => onGo('baby'))}
           </div>
+          {analysis && <PercentileSummary analysis={analysis} lang={lang} />}
           <button type="button" className="nt-row nt-linkcard nt-pop" onClick={() => onGo('calendario')}>
             <IconBubble name="stethoscope" />
             <span className="nt-row__body">
@@ -168,16 +171,12 @@ export function BabyTab() {
   const rows = useScanRows();
   const [edit, setEdit] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
-  const complete = rows.filter((r) => r.result);
-  const [picked, setPicked] = useState<number | null>(null);
+  const [metric, setMetric] = useState<'weight' | 'length'>('weight');
+  const [selectedWeek, setSelectedWeek] = useState<number | null>(null);
   const g = (v: number) => grams(v, lang);
   const editing = rows.find((r) => r.scan.id === edit);
   const due = gaValid ? estimatedDueDate(state.referenceDate, ga) : null;
   const term = analysis?.term.efw ?? 0;
-  const bars = analysis
-    ? [...complete.map((r) => ({ w: r.result!.efw, wk: Math.floor(r.ga), when: r.label, ghost: false })), { w: Math.round(term / 10) * 10, wk: 40, when: it ? 'Stima alla nascita' : 'Birth estimate', ghost: true }]
-    : [];
-  const sel = picked ?? Math.max(0, bars.length - 2);
   const save = (scan: ScanState) => {
     dispatch({ type: 'saveScan', scan });
     setEdit(null);
@@ -209,27 +208,15 @@ export function BabyTab() {
             </div>
           )}
           {analysis ? (
-            <div className="nt-card nt-growthbars">
-              <div className="nt-spread">
-                <span className="nt-journey__title"><IconBubble name="chart" size={36} />{it ? 'Come sta crescendo' : 'How it’s growing'}</span>
-                <span className="nt-note nt-desk">{it ? 'Tocca una barra' : 'Tap a bar'}</span>
-              </div>
-              <div className="nt-bars nt-bars--live">
-                {bars.map((b, i) => (
-                  <button key={i} type="button" className={`${i === sel ? 'is-on' : ''}${b.ghost ? ' is-ghost' : ''}`} aria-pressed={i === sel} onClick={() => setPicked(i)}>
-                    <i style={{ height: `${Math.max(8, (b.w / term) * 100)}%`, animationDelay: `${i * 80}ms` }} />
-                    <span>{b.ghost ? (it ? 'nascita' : 'birth') : `${b.wk}ª`}</span>
-                  </button>
-                ))}
-              </div>
-              {bars[sel] ? (
-                <div className="nt-barpick">
-                  <Icon name={bars[sel].ghost ? 'gift' : 'scan'} size={18} />
-                  <span>{bars[sel].when}</span>
-                  <b>{bars[sel].ghost ? '~' : ''}{g(bars[sel].w)} g</b>
-                </div>
-              ) : null}
-            </div>
+            <section className="nt-card nt-growth-card">
+              <h2 className="nt-h3">{it ? 'La crescita, fino a 45 settimane' : 'Growth through week 45'}</h2>
+              <Segmented label={it ? 'Misura del grafico' : 'Chart measurement'} value={metric} options={[["weight", it ? 'Peso' : 'Weight'], ["length", it ? 'Lunghezza stimata' : 'Estimated length']]} onChange={setMetric} />
+              <GrowthChart analysis={analysis} metric={metric} selectedWeek={selectedWeek ?? analysis.ga} />
+              <label className="nt-week-selector">{it ? 'Esplora la settimana' : 'Explore week'} · {formatGA(selectedWeek ?? analysis.ga)}
+                <input type="range" min={Math.max(12, Math.floor(analysis.points[0].ga))} max="45" step="0.142857142857" value={selectedWeek ?? analysis.ga} onChange={e => setSelectedWeek(Number(e.target.value))} />
+              </label>
+              <p className="nt-note">{it ? 'Punti: le tue ecografie. Linea tratteggiata: proiezione. Oltre 42 settimane è un’estrapolazione matematica, non una previsione clinica né una curva di crescita dopo la nascita.' : 'Dots: your scans. Dashed line: projection. Beyond 42 weeks this is a mathematical extrapolation, not a clinical forecast or a postnatal growth chart.'}</p>
+            </section>
           ) : null}
         </div>
         <section className="nt-stack">

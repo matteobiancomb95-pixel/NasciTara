@@ -1,3 +1,4 @@
+import { grams } from '../ui/kit';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { AnalysisResult } from '../lib/analysis';
@@ -13,7 +14,7 @@ import {
 } from '../lib/projection';
 import { estimateLength } from '../lib/fetalLength';
 import { formatGA } from '../lib/gestationalAge';
-import { formatDecimal, localeOf, type Lang } from '../i18n';
+import { formatDecimal, type Lang } from '../i18n';
 import { useNasciTara } from '../state/NasciTaraStore';
 
 const C = { w: 860, h: 420, l: 62, r: 58, t: 22, b: 46 };
@@ -296,7 +297,7 @@ export function GrowthChart({ analysis, metric, selectedWeek }: Props) {
 
 export function formatMetric(value: number, metric: Metric, lang: Lang): string {
   if (metric === 'weight') {
-    return `${Math.round(value).toLocaleString(localeOf(lang))} g`;
+    return `${grams(value, lang)} g`;
   }
   return `${formatDecimal(value, 1, lang)} cm`;
 }

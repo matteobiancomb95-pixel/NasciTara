@@ -83,12 +83,28 @@ export function eventsOn(date: string, visits: Visit[], supplements: Supplement[
   return out.sort((a, b) => a.time.localeCompare(b.time));
 }
 
-/** Orario dell'email per una visita: 6 ore prima, anche se cade il giorno precedente. */
+/** Resolve a Rome wall-clock time independently of the device timezone.
+ * On autumn overlap choose standard time, consistent with PostgreSQL AT TIME ZONE.
+ * Nonexistent spring times and invalid calendar dates are rejected.
+ */
+export function romeInstant(date: string, time: string): Date | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}(:00)?$/.test(time)) return null;
+  const base = Date.parse(`${date}T${time.slice(0, 5)}:00Z`);
+  if (!Number.isFinite(base)) return null;
+  const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+  for (const offset of [1, 2]) {
+    const candidate = new Date(base - offset * 3600000);
+    const p = Object.fromEntries(formatter.formatToParts(candidate).map(x => [x.type, x.value]));
+    if (`${p.year}-${p.month}-${p.day}` === date && `${p.hour}:${p.minute}` === time.slice(0, 5)) return candidate;
+  }
+  return null;
+}
+/** Six elapsed hours, including across daylight-saving transitions. */
 export function visitReminder(v: Pick<Visit, 'visit_date' | 'visit_time'>): { date: string; time: string } {
-  const [y, m, d] = v.visit_date.split('-').map(Number);
-  const [hh, mm] = v.visit_time.split(':').map(Number);
-  const t = new Date(Date.UTC(y, m - 1, d, hh - 6, mm));
-  return { date: isoDate(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate()), time: `${pad(t.getUTCHours())}:${pad(t.getUTCMinutes())}` };
+  const instant = romeInstant(v.visit_date, v.visit_time);
+  if (!instant) return { date: '', time: '' };
+  const t = new Date(instant.getTime() - 6 * 3600000);
+  return { date: romeToday(t), time: new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Rome', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(t) };
 }
 
 /** Le prossime visite da oggi (compreso), le piu' vicine prima. */
@@ -100,5 +116,6 @@ export function upcoming(visits: Visit[], today: string, limit = 3): Visit[] {
 }
 
 export function shortDate(iso: string, lang: 'it' | 'en', opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' }): string {
+  if (!iso) return '—';
   return new Date(iso.slice(0, 10) + 'T12:00:00Z').toLocaleDateString(lang === 'it' ? 'it-IT' : 'en-GB', { ...opts, timeZone: 'UTC' });
 }

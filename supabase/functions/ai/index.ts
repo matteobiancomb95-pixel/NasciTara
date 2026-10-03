@@ -126,7 +126,7 @@ async function assistant(body: Json, lang: "it" | "en"): Promise<Json> {
     fallbacks: "default" as const,
     system: [{ type: "text" as const, text: assistantSystem(lang, topic), cache_control: { type: "ephemeral" as const } }],
     output_config: { effort: "medium" as const },
-    tools: [{ type: "web_search_20260209" as const, name: "web_search" as const, max_uses: 3, allowed_domains: SOURCES }],
+    tools: [{ type: "web_search_20260209" as const, name: "web_search" as const, max_uses: 3, allowed_domains: lang === "it" ? SOURCES.filter(domain => domain !== "nhs.uk" && domain !== "who.int") : SOURCES }],
   };
   let response = await anthropic().beta.messages.create({ ...request, messages });
   // La ricerca web puo' mettere in pausa il turno: si riprende passando la risposta cosi' com'e'.

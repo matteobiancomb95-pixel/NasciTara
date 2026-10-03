@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { eventsOn, monthGrid, romeToday, upcoming, visitReminder, type Supplement, type Visit } from '../lib/mamma';
+import { eventsOn, romeInstant, monthGrid, romeToday, upcoming, visitReminder, type Supplement, type Visit } from '../lib/mamma';
 import { dailyFor, searchSupport, SUPPORT } from '../lib/support';
 import { urgencyOf } from '../../supabase/functions/_shared/urgent';
 
@@ -53,4 +53,18 @@ describe('urgenze', () => {
     expect(urgencyOf('A volte penso di farla finita')).toBe('crisis');
     expect(urgencyOf('Posso bere il caffè?')).toBe('none');
   });
+});
+
+describe('reminder timezone regressions', () => {
+ it('reproduces the reported 4 October 03:59 appointment', () => { expect(visitReminder({visit_date:'2026-10-04',visit_time:'03:59'})).toEqual({date:'2026-10-03',time:'21:59'}); });
+ it('subtracts six real hours across spring and autumn DST', () => {
+  expect(visitReminder({visit_date:'2026-03-29',visit_time:'05:00'})).toEqual({date:'2026-03-28',time:'22:00'});
+  expect(visitReminder({visit_date:'2026-10-25',visit_time:'05:00'})).toEqual({date:'2026-10-25',time:'00:00'});
+ });
+ it('rejects nonexistent dates and spring-clock times', () => {
+  expect(romeInstant('2026-02-30','10:00')).toBeNull();expect(romeInstant('2026-03-29','02:30')).toBeNull();expect(romeInstant('2026-10-04','25:00')).toBeNull();
+  expect(visitReminder({visit_date:'',visit_time:''})).toEqual({date:'',time:''});
+ });
+ it('chooses the same standard-time occurrence as PostgreSQL for autumn overlap', () => {expect(romeInstant('2026-10-25','02:30')?.toISOString()).toBe('2026-10-25T01:30:00.000Z');});
+ it('has only Italian curated source pages', () => {for(const item of SUPPORT){expect(item.english).not.toBe(true);expect(item.url).not.toMatch(/nhs\.uk|who\.int|\/en\//);}});
 });

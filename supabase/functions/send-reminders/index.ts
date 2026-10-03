@@ -1,8 +1,8 @@
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
-import { mailOutcome, reminderMessage } from "../_shared/mail.ts";
+import { deliverReminder, type DueReminder } from "../_shared/reminderDelivery.ts";
 
 /**
- * Chiamata da pg_cron ogni 5 minuti con l'header x-cron-secret (segreto REMINDERS_CRON_SECRET).
+ * Chiamata da pg_cron ogni minuto con l'header x-cron-secret (segreto REMINDERS_CRON_SECRET).
  * claim_due_reminders riserva ogni invio una sola volta: un secondo giro non duplica le email.
  */
 Deno.serve(async (req: Request) => {
@@ -17,28 +17,18 @@ Deno.serve(async (req: Request) => {
     console.error("claim", error.message);
     return new Response("unavailable", { status: 503 });
   }
-  const due = (data ?? []) as Array<{ kind: string; ref_id: string; slot: string; email: string; lang: string; title: string; detail: string; at_local: string }>;
-  let sent = 0;
-  for (const r of due) {
-    let status: "accepted" | "failed" | "unknown" = "unknown";
-    let providerId: string | null = null;
-    try {
-      const res = await fetch("https://api.brevo.com/v3/smtp/email", {
-        method: "POST",
-        headers: { "api-key": key, "Content-Type": "application/json" },
-        signal: AbortSignal.timeout(15_000),
-        body: JSON.stringify({ sender: { name: "NasciTara", email: sender }, to: [{ email: r.email }], ...reminderMessage(r) }),
-      });
-      const body = await res.json().catch(() => ({}));
-      providerId = typeof body.messageId === "string" ? body.messageId.slice(0, 250) : null;
-      status = mailOutcome(res.status, providerId);
-    } catch {
-      /* Esito sconosciuto: non si ritenta, per non mandare doppioni. */
-    }
-    if (status === "accepted") sent++;
-    await admin.from("reminder_log").update({ status, provider_id: providerId }).match({ kind: r.kind, ref_id: r.ref_id, slot: r.slot });
-  }
-  return new Response(JSON.stringify({ due: due.length, sent }), { headers: { "Content-Type": "application/json" } });
+  const due = (data ?? []) as DueReminder[];
+  // The database caps each batch at 5. Parallel 15-second sends stay under the cron request timeout.
+  const outcomes = await Promise.all(due.map(async r => {
+    const result = await deliverReminder(r, key, sender);
+    const { error: saveError } = await admin.from("reminder_log").update({
+      ...result,
+      next_attempt_at: result.retryable ? new Date(Date.now() + 5 * 60000).toISOString() : null,
+    }).match({ kind: r.kind, ref_id: r.ref_id, slot: r.slot, status: "processing" });
+    if (saveError) console.error("reminder_result_not_saved", saveError.code);
+    return { accepted: result.status === "accepted", saved: !saveError };
+  }));
+  return new Response(JSON.stringify({ due: due.length, sent: outcomes.filter(r => r.accepted).length, recorded: outcomes.filter(r => r.saved).length }), { headers: { "Content-Type": "application/json" } });
 });
 
 /** Confronto a tempo costante del segreto. */

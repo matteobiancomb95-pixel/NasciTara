@@ -1,0 +1,11 @@
+import { describe, it, expect, vi } from 'vitest';
+import { deliverReminder, reminderRetryable, type DueReminder } from '../../supabase/functions/_shared/reminderDelivery';
+import { reminderMessage } from '../../supabase/functions/_shared/mail';
+const r: DueReminder={kind:'visit',ref_id:'qa',slot:'2026-10-03T19:59:00Z',email:'qa@example.invalid',lang:'it',title:'Ecografia',detail:'Portare i referti',at_local:'04/10/2026 03:59'};
+describe('reminder delivery',()=>{
+ it.each([401,403,408,429])('allows a later retry after explicit %i rejection',async status=>{const result=await deliverReminder(r,'test','sender@example.invalid',vi.fn(async()=>new Response('{}',{status})) as typeof fetch);expect(result.status).toBe('failed');expect(result.retryable).toBe(true);});
+ it.each([400,404,422,500,502])('does not retry %i automatically',status=>{expect(reminderRetryable(status)).toBe(false);});
+ it('requires a message ID to mark provider acceptance',async()=>{let result=await deliverReminder(r,'test','sender@example.invalid',vi.fn(async()=>Response.json({messageId:'abc'},{status:201})) as typeof fetch);expect(result.status).toBe('accepted');expect(result.provider_id).toBe('abc');result=await deliverReminder(r,'test','sender@example.invalid',vi.fn(async()=>Response.json({},{status:201})) as typeof fetch);expect(result.status).toBe('unknown');expect(result.retryable).toBe(false);});
+ it('does not retry ambiguous network failures or 5xx',async()=>{for(const request of [vi.fn(async()=>{throw Error('timeout')}),vi.fn(async()=>Response.json({},{status:503}))]){const result=await deliverReminder(r,'test','sender@example.invalid',request as typeof fetch);expect(result.status).toBe('unknown');expect(result.retryable).toBe(false);}});
+ it('sends the right recipient and keeps health information out of the subject',async()=>{const request=vi.fn(async()=>Response.json({messageId:'abc'},{status:201}));await deliverReminder(r,'test','sender@example.invalid',request as typeof fetch);const body=JSON.parse((request.mock.calls as unknown as [string,RequestInit][])[0][1].body as string);expect(body.to).toEqual([{email:r.email}]);expect(body.subject).not.toContain('Ecografia');expect(body.textContent).toContain('04/10/2026 03:59');expect(reminderMessage(r).textContent).not.toContain('Tra 6 ore');});
+});

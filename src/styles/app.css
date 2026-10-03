@@ -980,3 +980,25 @@ button.nt-row:hover { box-shadow: 0 8px 22px rgba(255, 57, 92, 0.14); }
 .nt-growthbars .nt-bars--live { height: 150px; } .nt-journey__title { white-space: nowrap; }
 @media (max-width: 1023.98px) { .nt-steps--area button { font-size: 13.5px; padding: 0 8px; } }
 .nt-insight { position: relative; overflow: hidden; } .nt-insight > * { position: relative; } .nt-insight > .nt-bubble { position: absolute; } .nt-notecard { flex-direction: row; align-items: flex-start; }
+
+/* Follow-up: longitudinal context, usable chart and personal contacts. */
+.nt-percentiles h2 { display:flex; align-items:center; gap:10px; margin-bottom:20px; }
+.nt-percentiles__value { display:block; font-size:32px; color:#a92542; margin:6px 0; }
+.nt-percentiles details, .nt-history { margin-top:16px; }
+.nt-percentiles summary, .nt-history summary { cursor:pointer; font-weight:800; padding:10px 0; }
+.nt-femur-list { list-style:none; padding:0; margin:16px 0; }
+.nt-femur-list li { display:flex; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px solid #ffd0d7; }
+.nt-growth-card { min-width:0; overflow:hidden; }
+.nt-growth-card .chart { margin:16px -8px; }
+.nt-week-selector { display:flex; flex-direction:column; gap:10px; font-weight:700; margin:12px 0; }
+.nt-week-selector input { width:100%; accent-color:#ff395c; min-height:44px; }
+.nt-source-logo { background:white!important; box-shadow:0 3px 14px #ff395c12; border:1px solid #f4dce2; }
+.nt-source-logo img { object-fit:contain; border-radius:4px; }
+.nt-read { box-shadow:0 8px 28px -16px #ff395c55; border:1px solid #f7e2e8; }
+.nt-read__foot { gap:12px; }
+.nt-doctor { display:flex; flex-direction:column; gap:12px; min-width:0; }
+.nt-contact-email, .nt-ev__rem { overflow-wrap:anywhere; word-break:break-word; }
+.nt-ev__rem { align-items:flex-start; }
+.nt-visit-kinds { max-height:160px; overflow-y:auto; padding:6px 4px; border:1px solid #ffd0d7; border-radius:16px; }
+.nt-history .nt-row { margin-top:10px; }
+@media (max-width:600px) { .nt-percentiles .nt-grid2 { grid-template-columns:1fr; } .nt-contact-email { max-width:100%; white-space:normal; } }

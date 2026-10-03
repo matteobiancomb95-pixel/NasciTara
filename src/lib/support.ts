@@ -1,6 +1,6 @@
 /**
  * Supporto mamma: una selezione di pagine di fonti ufficiali, scelta per settimana di gravidanza.
- * Link verificati il 1 ottobre 2026. Le pagine NHS sono in inglese e lo diciamo.
+ * Selezione in italiano aggiornata il 3 ottobre 2026.
  */
 export type SupportKind = 'formazione' | 'fisica' | 'ludica' | 'benessere';
 export type SupportWho = 'mamma' | 'papa' | 'insieme';
@@ -31,12 +31,12 @@ export const SUPPORT: SupportItem[] = [
   { id: 'influenza', kind: 'formazione', who: 'mamma', title: 'Vaccino antinfluenzale: perché farlo', titleEn: 'Flu vaccine: why it matters', minutes: 5, from: 12, to: 42, source: 'ISSalute · ISS', url: `${ISS}/v/vaccino-antinfluenzale` },
   { id: 'pertosse', kind: 'formazione', who: 'insieme', title: 'Pertosse: proteggere il bebe fin dai primi giorni', titleEn: 'Whooping cough: protecting your newborn', minutes: 6, from: 20, to: 36, source: 'ISSalute · ISS', url: `${ISS}/p/pertosse` },
   { id: 'gbs', kind: 'formazione', who: 'mamma', title: 'Streptococco B: il tampone di fine gravidanza', titleEn: 'Group B strep: the late-pregnancy swab', minutes: 5, from: 30, to: 40, source: 'ISSalute · ISS', url: `${ISS}/s/streptococco-di-gruppo-b-in-gravidanza` },
-  { id: 'movimenti', kind: 'formazione', who: 'insieme', title: 'I movimenti del bebe: cosa osservare', titleEn: 'Your baby’s movements: what to notice', minutes: 4, from: 24, to: 42, source: 'NHS', url: 'https://www.nhs.uk/pregnancy/keeping-well/your-babys-movements/', english: true },
-  { id: 'travaglio', kind: 'formazione', who: 'insieme', title: 'I segnali che il travaglio è iniziato', titleEn: 'Signs that labour has begun', minutes: 6, from: 34, to: 42, source: 'NHS', url: 'https://www.nhs.uk/pregnancy/labour-and-birth/signs-of-labour/', english: true },
-  { id: 'bagnetto', kind: 'formazione', who: 'papa', title: 'Il primo bagnetto, passo passo', titleEn: 'Baby’s first bath, step by step', minutes: 6, from: 30, to: 42, source: 'NHS', url: 'https://www.nhs.uk/baby/caring-for-a-newborn/washing-and-bathing-your-baby/', english: true },
-  { id: 'esercizio', kind: 'fisica', who: 'mamma', title: 'Muoversi in gravidanza: cosa è sicuro', titleEn: 'Exercise in pregnancy: what is safe', minutes: 7, from: 12, to: 40, source: 'NHS', url: 'https://www.nhs.uk/pregnancy/keeping-well/exercise/', english: true },
-  { id: 'oms-attivita', kind: 'fisica', who: 'mamma', title: 'Attività fisica: quanta ne serve, anche in gravidanza', titleEn: 'Physical activity: how much, pregnancy included', minutes: 5, from: 4, to: 42, source: 'OMS', url: 'https://www.who.int/news-room/fact-sheets/detail/physical-activity', english: true },
-  { id: 'umore', kind: 'benessere', who: 'mamma', title: 'Come stai? La salute mentale in gravidanza', titleEn: 'How are you? Mental health in pregnancy', minutes: 6, from: 4, to: 42, source: 'NHS', url: 'https://www.nhs.uk/pregnancy/keeping-well/mental-health/', english: true },
+  { id: 'movimenti', kind: 'formazione', who: 'insieme', title: 'I movimenti nel pancione', titleEn: 'Movements in the womb', minutes: 4, from: 24, to: 42, source: 'Ospedale Niguarda', url: 'https://www.ospedaleniguarda.it/news/primo-piano/leggi/movimenti-nel-pancione-orecchio-sempre-teso' },
+  { id: 'travaglio', kind: 'formazione', who: 'insieme', title: 'Travaglio, parto e nascita', titleEn: 'Labour and birth', minutes: 6, from: 34, to: 42, source: 'Ministero della Salute', url: 'https://www.salute.gov.it/new/it/tema/salute-del-bambino-e-delladolescente/travaglio-parto-nascita/' },
+  { id: 'bagnetto', kind: 'formazione', who: 'papa', title: 'Il bagnetto: una guida pratica', titleEn: 'Bathing: a practical guide', minutes: 6, from: 30, to: 42, source: 'Ospedale Bambino Gesù', url: 'https://www.ospedalebambinogesu.it/bagnetto-una-guida-pratica-90414/' },
+  { id: 'esercizio', kind: 'fisica', who: 'mamma', title: 'Attività fisica in gravidanza: dubbi e benefici', titleEn: 'Exercise in pregnancy: questions and benefits', minutes: 7, from: 12, to: 40, source: 'ISSalute · ISS', url: 'https://www.issalute.it/index.php/falsi-miti-e-bufale/attivita-fisica/e-pericoloso-fare-attivita-fisica-in-gravidanza' },
+  { id: 'oms-attivita', kind: 'fisica', who: 'mamma', title: 'Donna e attività fisica, anche in gravidanza', titleEn: 'Women and physical activity, including pregnancy', minutes: 5, from: 4, to: 42, source: 'Ministero della Salute', url: 'https://www.salute.gov.it/new/it/tema/salute-della-donna/donna-e-attivita-fisica/' },
+  { id: 'umore', kind: 'benessere', who: 'mamma', title: 'La salute mentale durante e dopo la gravidanza', titleEn: 'Mental health during and after pregnancy', minutes: 6, from: 4, to: 42, source: 'Istituto Superiore di Sanità', url: 'https://www.iss.it/salute-mentale-perinatale/-/categories/10602491' },
   { id: 'postpartum', kind: 'benessere', who: 'insieme', title: 'Depressione post-partum: riconoscerla e chiedere aiuto', titleEn: 'Postnatal depression: spotting it and asking for help', minutes: 7, from: 28, to: 42, source: 'ISSalute · ISS', url: `${ISS}/d/depressione-post-partum` },
   { id: 'leggere', kind: 'ludica', who: 'insieme', title: 'Leggetegli una storia: sente le vostre voci', titleEn: 'Read to your baby: they hear your voices', minutes: 10, from: 20, to: 42, source: 'Nati per Leggere', url: 'https://www.natiperleggere.it/' },
   { id: 'musica', kind: 'ludica', who: 'insieme', title: 'Musica in famiglia, già dalla pancia', titleEn: 'Music at home, from the bump onwards', minutes: 10, from: 16, to: 42, source: 'Nati per la Musica', url: 'https://www.natiperlamusica.org/' },
@@ -59,3 +59,8 @@ export function searchSupport(query: string): SupportItem[] {
   if (q.length < 2) return [];
   return SUPPORT.filter((s) => `${s.title} ${s.titleEn} ${s.source}`.toLowerCase().includes(q));
 }
+
+
+/** Official favicons cached locally; no browsing data sent to external icon services. */
+const SOURCE_LOGOS: Record<string, string> = {"iss.it":"/source-logos/iss.ico","issalute.it": "/source-logos/issalute.ico", "efsa.europa.eu": "/source-logos/efsa.ico", "ospedaleniguarda.it": "/source-logos/niguarda.ico", "ospedalebambinogesu.it": "/source-logos/bambinogesu.ico", "natiperleggere.it": "/source-logos/leggere.png", "natiperlamusica.org": "/source-logos/musica.png", "genitoripiu.it": "/source-logos/genitoripiu.ico"};
+export function sourceLogo(url: string): string { return SOURCE_LOGOS[new URL(url).hostname.replace(/^www\./, "")] ?? "/favicon.svg"; }
