@@ -3,6 +3,17 @@ import type { NasciTaraState } from "../state/NasciTaraStore";
 export function belongsToEmail(state: Pick<NasciTaraState, 'email'>, email: string | undefined): boolean {
   return !!email && !!state.email.trim() && state.email.trim().toLowerCase() === email.trim().toLowerCase();
 }
+/** Uno screening "vero": percorso completato o almeno un'ecografia con data e una misura. */
+export function hasProgress(state: Pick<NasciTaraState, 'completed' | 'scans'>): boolean {
+  return state.completed === true || state.scans.some((s) => s.date !== '' && [s.hcMm, s.acMm, s.flMm, s.bpdMm].some((v) => v !== ''));
+}
+
+/** Lo screening da riaprire su un nuovo dispositivo: il piu' recente completato, altrimenti il piu' recente con dati. */
+export function pickResume(records: SavedScreening[], email: string | undefined): SavedScreening | null {
+  const mine = records.filter((r) => belongsToEmail(r.state, email) && hasProgress(r.state)).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  return mine.find((r) => r.state.completed) ?? mine[0] ?? null;
+}
+
 export interface SavedScreening {
   id: string;
   createdAt: string;

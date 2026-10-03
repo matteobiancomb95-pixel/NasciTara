@@ -16,6 +16,7 @@ import { toISO, todayUTC } from "../lib/gestationalAge";
 import {
   validSavedState,
   screeningRevision,
+  hasProgress,
   type SavedScreening,
 } from "../lib/screeningStorage";
 /** Versione del consenso mostrato in registrazione (privacy e dati sanitari). */
@@ -52,6 +53,8 @@ interface Account {
   updateProfile: (data: Record<string, unknown>) => Promise<AuthResult>;
   updateEmail: (email: string) => Promise<AuthResult>;
   cloud: SavedScreening[];
+  /** Lo storico online di questo utente e' stato letto (anche se vuoto o non disponibile). */
+  cloudReady: boolean;
   status: string;
   refresh: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -71,6 +74,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   const [recovering, setRecovering] = useState(false);
   const [user, setUser] = useState<User | null>(() => (preview ? loadPreviewUser() : null)),
     [cloud, setCloud] = useState<SavedScreening[]>([]);
+  const [cloudFor, setCloudFor] = useState<string | null>(null);
   const [status, setStatus] = useState(""),
     [savedRevision, setSavedRevision] = useState("");
   const queue = useRef<Promise<unknown>>(Promise.resolve());
@@ -112,6 +116,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       .order("updated_at", { ascending: false })
       .limit(50);
     if (userId.current !== user.id) return;
+    setCloudFor(user.id);
     if (error) {
       setStatus(
         "Storico online non disponibile. I dati su questo dispositivo restano accessibili.",
@@ -138,6 +143,8 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       !supabase ||
       !user?.email_confirmed_at ||
       !state.emailConsent ||
+      // Uno screening vuoto (dispositivo nuovo, percorso appena aperto) non va nello storico online.
+      !hasProgress(state) ||
       user.email?.toLowerCase() !== state.email.trim().toLowerCase()
     )
       return;
@@ -295,7 +302,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   const profile = user ? profileOf(user) : null;
   return (
     <Context.Provider
-      value={{ preview, ready, user, profile, recovering, authError, resendConfirmation, signUp, signIn, signInWithGoogle, resetPassword, updatePassword, completeProfile, updateProfile, updateEmail, cloud, status, refresh, signOut, remove, savedRevision }}
+      value={{ preview, ready, user, profile, recovering, authError, resendConfirmation, signUp, signIn, signInWithGoogle, resetPassword, updatePassword, completeProfile, updateProfile, updateEmail, cloud, cloudReady: !!user && cloudFor === user.id, status, refresh, signOut, remove, savedRevision }}
     >
       {children}
     </Context.Provider>
