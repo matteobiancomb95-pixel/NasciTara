@@ -4,11 +4,13 @@ import type { SavedScreening } from '../lib/screeningStorage';
 import { belongsToEmail } from '../lib/screeningStorage';
 import { localeOf } from '../i18n';
 import { Sheet } from '../ui/kit';
+import { useFeedback } from '../ui/feedback';
 
 /** Storico degli screening (Area riservata): aprire, eliminare, ricominciare il percorso. */
 export function ScreeningHistory({ open, onClose, onJourney }: { open: boolean; onClose: () => void; onJourney: () => void }) {
   const { screenings, screeningId, openScreening, newScreening, deleteScreening, storageError, lang } = useNasciTara();
   const account = useAccount();
+  const { confirm } = useFeedback();
   const it = lang === 'it';
   const records = new Map<string, SavedScreening>();
   for (const r of [...account.cloud, ...screenings]) {
@@ -18,7 +20,7 @@ export function ScreeningHistory({ open, onClose, onJourney }: { open: boolean; 
   }
   const list = [...records.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   const remove = async (record: SavedScreening) => {
-    if (!window.confirm(it ? 'Eliminare questo screening dallo storico?' : 'Delete this screening?')) return;
+    if (!(await confirm({ title: it ? 'Eliminare questo screening dallo storico?' : 'Delete this screening?', confirm: it ? 'Elimina' : 'Delete', cancel: it ? 'Annulla' : 'Cancel', danger: true }))) return;
     if (account.cloud.some((r) => r.id === record.id) && !(await account.remove(record.id))) return;
     deleteScreening(record.id);
   };

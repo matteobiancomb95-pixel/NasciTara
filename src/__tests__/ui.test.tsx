@@ -13,6 +13,7 @@ import { BabyTab, CorredinoTab, HomeTab } from '../screens/Bebe';
 import { CalendarTab, NotebookTab } from '../screens/Mamma';
 import { Area } from '../screens/Area';
 import { addDays, toISO, todayUTC } from '../lib/gestationalAge';
+import { FeedbackProvider } from '../ui/feedback';
 
 const today = toISO(todayUTC());
 const daysAgo = (n: number) => toISO(addDays(todayUTC(), -n));
@@ -20,11 +21,13 @@ const daysAgo = (n: number) => toISO(addDays(todayUTC(), -n));
 const it_ = (s: NasciTaraState): NasciTaraState => ({ ...s, lang: 'it' });
 function wrap(ui: ReactNode, state: NasciTaraState = demoState()) {
   return render(
-    <NasciTaraProvider initial={it_(state)}>
-      <AccountProvider>
-        <MammaProvider>{ui}</MammaProvider>
-      </AccountProvider>
-    </NasciTaraProvider>,
+    <FeedbackProvider>
+      <NasciTaraProvider initial={it_(state)}>
+        <AccountProvider>
+          <MammaProvider>{ui}</MammaProvider>
+        </AccountProvider>
+      </NasciTaraProvider>
+    </FeedbackProvider>,
   );
 }
 const type = (el: HTMLElement, value: string) => fireEvent.change(el, { target: { value } });
@@ -125,5 +128,33 @@ describe('Navigazione', () => {
       </MammaProvider></AccountProvider></NasciTaraProvider>,
     );
     expect(screen.getByRole('button', { name: 'I tuoi appuntamenti' })).toHaveAttribute('aria-current', 'page');
+  });
+});
+
+describe('Riscontri (0.9.1)', () => {
+  it('salvare una nota mostra una notifica, eliminarla chiede conferma in stile app', async () => {
+    const native = vi.spyOn(window, 'confirm');
+    wrap(<NotebookTab onCalendar={() => {}} />);
+    type(screen.getByLabelText('Nuova nota'), 'Bruciore di stomaco');
+    fireEvent.click(screen.getByRole('button', { name: 'Salva nota' }));
+    expect(await screen.findByText('Nota salvata.')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Elimina nota' }));
+    const ask = await screen.findByRole('dialog', { name: 'Eliminare questa nota?' });
+    fireEvent.click(within(ask).getByRole('button', { name: 'Annulla' }));
+    expect(screen.getByText('Bruciore di stomaco')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Elimina nota' }));
+    fireEvent.click(within(await screen.findByRole('dialog', { name: 'Eliminare questa nota?' })).getByRole('button', { name: 'Elimina' }));
+    expect(await screen.findByText('Nota eliminata.')).toBeInTheDocument();
+    expect(screen.queryByText('Bruciore di stomaco')).toBeNull();
+    expect(native).not.toHaveBeenCalled();
+  });
+
+  it('salvare una visita annuncia quando arriverà il promemoria', async () => {
+    wrap(<CalendarTab />);
+    fireEvent.click(screen.getByRole('button', { name: 'Visita' }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Salva visita' }));
+    expect(await screen.findByText(/^Visita salvata/)).toBeInTheDocument();
   });
 });

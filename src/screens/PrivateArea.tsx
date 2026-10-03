@@ -7,6 +7,7 @@ import { belongsToEmail } from '../lib/screeningStorage';
 import { localeOf } from '../i18n';
 import { Check, NumberInput, Segmented, Sheet, TextInput, WeekStepper } from '../ui/kit';
 import { ScreeningHistory } from './ScreeningHistory';
+import { useFeedback } from '../ui/feedback';
 
 type Edit = 'name' | 'email' | 'password' | 'body' | 'sex' | 'week' | 'due' | 'delete' | 'history' | null;
 
@@ -19,7 +20,7 @@ export function PrivateArea({ onBack, onPrivacy, onScans, onJourney }: { onBack:
   const it = lang === 'it';
   const loc = localeOf(lang);
   const [edit, setEdit] = useState<Edit>(null);
-  const [msg, setMsg] = useState('');
+  const { toast } = useFeedback();
   const full = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ');
   const initial = (profile?.firstName || user?.email || '·').trim()[0]?.toUpperCase();
   const due = gaValid ? estimatedDueDate(state.referenceDate, ga) : null;
@@ -80,7 +81,6 @@ export function PrivateArea({ onBack, onPrivacy, onScans, onJourney }: { onBack:
           <span className="nt-avatar nt-avatar--xl" aria-hidden="true">{initial}</span>
           <div><div className="nt-me__name">{full || (it ? 'Il tuo account' : 'Your account')}</div><div className="nt-note">{user?.email}</div></div>
         </div>
-        {msg ? <p className="nt-ok" role="status">{msg}</p> : null}
         <div className="nt-private__grid">
           <section className="nt-stack6">
             <h2 className="nt-eyebrow">{it ? 'I tuoi dati' : 'Your details'}</h2>
@@ -122,7 +122,7 @@ export function PrivateArea({ onBack, onPrivacy, onScans, onJourney }: { onBack:
           </section>
         </div>
       </main>
-      <EditSheets edit={edit} close={() => setEdit(null)} done={(m) => { setEdit(null); setMsg(m); }} setGa={setGa} onJourney={onJourney} />
+      <EditSheets edit={edit} close={() => setEdit(null)} done={(m) => { setEdit(null); if (m) toast(m); }} setGa={setGa} onJourney={onJourney} />
     </div>
   );
 }
@@ -166,7 +166,7 @@ function EditSheets({ edit, close, done, setGa, onJourney }: { edit: Edit; close
       {error ? <p className="nt-error" role="alert">{error}</p> : null}
     </Sheet>
   );
-  const save = (label: string, disabled: boolean, onClick: () => void) => <button type="button" className="nt-btn nt-btn--block" disabled={disabled || busy} onClick={onClick}>{label}</button>;
+  const save = (label: string, disabled: boolean, onClick: () => void) => <button aria-busy={busy} type="button" className="nt-btn nt-btn--block" disabled={disabled || busy} onClick={onClick}>{label}</button>;
   const S = it ? 'Salva' : 'Save';
   switch (edit) {
     case 'name':
@@ -219,7 +219,7 @@ function EditSheets({ edit, close, done, setGa, onJourney }: { edit: Edit; close
       return sheet(it ? 'Elimina account' : 'Delete account', <>
         <p className="nt-body">{it ? 'Cancelliamo per sempre account, screening, visite, integratori, note e promemoria. Non si può annullare: se vuoi, prima scarica i tuoi dati.' : 'We permanently delete your account, screenings, visits, supplements, notes and reminders. This cannot be undone: download your data first if you wish.'}</p>
         <Check checked={ok} onChange={setOk}>{it ? 'Ho capito, voglio eliminare il mio account.' : 'I understand, delete my account.'}</Check>
-        <button type="button" className="nt-btn nt-btn--block nt-btn--danger" disabled={!ok || busy} onClick={() => void run(async () => {
+        <button aria-busy={busy} type="button" className="nt-btn nt-btn--block nt-btn--danger" disabled={!ok || busy} onClick={() => void run(async () => {
           const r = await call('delete-account', { confirm: 'ELIMINA' });
           if (r.status !== 'ok') return false;
           await account.signOut();
