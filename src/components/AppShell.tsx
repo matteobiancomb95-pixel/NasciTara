@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { UsageTracker } from './UsageTracker';
 import { IconInstagram } from './icons';
 import { useNasciTara } from '../state/NasciTaraStore';
@@ -12,7 +12,7 @@ import { Area, type AreaTab } from '../screens/Area';
 import { PrivateArea } from '../screens/PrivateArea';
 import { Privacy } from '../screens/Privacy';
 import { APP_VERSION } from '../version';
-import { belongsToEmail } from '../lib/screeningStorage';
+import { belongsToEmail, hasProgress, pickResume } from '../lib/screeningStorage';
 import { useFeedback } from '../ui/feedback';
 
 const INSTAGRAM_URL = 'https://www.instagram.com/nascitara?stkn=MWo4ZDJzcW45enYzcw%3D%3D&utm_source=qr';
@@ -25,7 +25,7 @@ type View = 'welcome' | 'journey' | 'area' | 'account';
  * `#demo` apre un esempio senza account, mai salvato.
  */
 export function AppShell({ demo = false }: { demo?: boolean }) {
-  const { state, dispatch, newScreening, lang } = useNasciTara();
+  const { state, dispatch, newScreening, openScreening, lang } = useNasciTara();
   const account = useAccount();
   const { confirm } = useFeedback();
   const { user, profile } = account;
@@ -55,6 +55,16 @@ export function AppShell({ demo = false }: { demo?: boolean }) {
       dispatch({ type: 'setProfileGa', weeks: Math.floor(total / 7), days: total % 7, referenceDate: toISO(todayUTC()) });
     }
   }, [user, profile?.consent, profile?.gaWeeks, profile?.gaReference, state.email, state.emailConsent, state.gaWeeks, dispatch, newScreening]);
+
+  // Nuovo dispositivo o dati locali cancellati: si riapre il percorso salvato nell'account, una volta per accesso.
+  const resumed = useRef<string | null>(null);
+  useEffect(() => {
+    if (demo || !user || !account.cloudReady || resumed.current === user.id) return;
+    resumed.current = user.id;
+    if (hasProgress(state) && belongsToEmail(state, user.email)) return;
+    const best = pickResume(account.cloud, user.email ?? undefined);
+    if (best) openScreening(best);
+  }, [demo, user, account.cloudReady, account.cloud, state, openScreening]);
 
   // A different screening (opened from history or new) decides its own landing screen.
   useEffect(() => {

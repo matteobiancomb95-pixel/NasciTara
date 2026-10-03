@@ -1,7 +1,7 @@
 import { useNasciTara } from '../state/NasciTaraStore';
 import { useAccount } from '../state/AccountContext';
 import type { SavedScreening } from '../lib/screeningStorage';
-import { belongsToEmail } from '../lib/screeningStorage';
+import { belongsToEmail, hasProgress } from '../lib/screeningStorage';
 import { localeOf } from '../i18n';
 import { Sheet } from '../ui/kit';
 import { useFeedback } from '../ui/feedback';
@@ -15,6 +15,8 @@ export function ScreeningHistory({ open, onClose, onJourney }: { open: boolean; 
   const records = new Map<string, SavedScreening>();
   for (const r of [...account.cloud, ...screenings]) {
     if (!belongsToEmail(r.state, account.user?.email)) continue;
+    // Gli screening vuoti (aperti e mai compilati) non servono nello storico, tranne quello aperto ora.
+    if (!hasProgress(r.state) && r.id !== screeningId) continue;
     const previous = records.get(r.id);
     if (!previous || r.updatedAt > previous.updatedAt) records.set(r.id, r);
   }
