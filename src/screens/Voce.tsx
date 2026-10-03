@@ -84,7 +84,7 @@ export function VoiceTab({ firstName }: { firstName: string }) {
               <Toggle checked={contact} onChange={setContact} label={it ? 'Ricontatto via email' : 'Contact by email'} />
             </div>
             {error ? <p className="nt-error" role="alert">{error}</p> : null}
-            <button type="button" className="nt-btn nt-btn--block" disabled={!valid || busy || !online} onClick={() => void send()}>{busy ? (it ? 'Invio…' : 'Sending…') : it ? 'Invia' : 'Send'}</button>
+            <button aria-busy={busy} type="button" className="nt-btn nt-btn--block" disabled={!valid || busy || !online} onClick={() => void send()}>{busy ? (it ? 'Invio…' : 'Sending…') : it ? 'Invia' : 'Send'}</button>
             <p className="nt-note nt-center">{online ? (it ? 'Leggiamo ogni messaggio. Le idee più richieste entrano nei prossimi rilasci.' : 'We read every message. The most requested ideas make it into future releases.') : it ? 'Per scriverci serve il tuo account.' : 'You need your account to write to us.'}</p>
           </fieldset>
         )}

@@ -12,6 +12,7 @@ import { readLeafletImage } from '../lib/readLeafletImage';
 import { dailyFor, searchSupport, sourceLogo, type SupportItem } from '../lib/support';
 import { Field, ReminderBox, Segmented, Sheet, TextInput } from '../ui/kit';
 import { Icon, IconBubble, type IconName } from '../ui/icons';
+import { useFeedback } from '../ui/feedback';
 
 type L = 'it' | 'en';
 const useLang = () => {
@@ -47,6 +48,7 @@ export function CalendarTab() {
   const { lang, it } = useLang();
   const { visits, supplements, remove, error } = useMamma();
   const { user } = useAccount();
+  const { toast, confirm } = useFeedback();
   const [selectedVisit, setSelectedVisit] = useState<Visit | null>(null);
   const today = romeToday();
   const [ty, tm] = today.split('-').map(Number);
@@ -64,8 +66,11 @@ export function CalendarTab() {
   const history = visits.filter(v => (romeInstant(v.visit_date, v.visit_time)?.getTime() ?? Infinity) < Date.now()).sort((a,b) => (b.visit_date+b.visit_time).localeCompare(a.visit_date+a.visit_time));
   const dayTitle = day === today ? (it ? 'Oggi' : 'Today') : shortDate(day, lang, { weekday: 'long', day: 'numeric', month: 'long' });
   const tag = (k: 'visit' | 'ai' | 'doctor') => k === 'visit' ? (it ? 'Visita' : 'Visit') : k === 'ai' ? (it ? 'Dal foglietto' : 'From leaflet') : it ? 'Dal medico' : 'From doctor';
-  const del = (e: { kind: 'visit' | 'ai' | 'doctor'; id: string; title: string }) => {
-    if (window.confirm(it ? `Eliminare “${e.title}”? Si fermano anche i suoi promemoria.` : `Remove “${e.title}”? Its reminders stop too.`)) void remove(e.kind === 'visit' ? 'visits' : 'supplements', e.id);
+  const del = async (e: { kind: 'visit' | 'ai' | 'doctor'; id: string; title: string }) => {
+    const ok = await confirm({ title: it ? `Eliminare “${e.title}”?` : `Remove “${e.title}”?`, body: it ? 'Si fermano anche i suoi promemoria.' : 'Its reminders stop too.', confirm: it ? 'Elimina' : 'Remove', cancel: it ? 'Annulla' : 'Cancel', danger: true });
+    if (!ok) return;
+    if (await remove(e.kind === 'visit' ? 'visits' : 'supplements', e.id)) toast(it ? 'Eliminato dal calendario.' : 'Removed from the calendar.');
+    else toast(it ? 'Eliminazione non riuscita. Riprova.' : 'Could not remove. Try again.', 'error');
   };
   return (
     <main className="nt-wrap nt-main nt-mamma">
@@ -116,7 +121,7 @@ export function CalendarTab() {
                   <span className="nt-tl__time">{e.time}</span>
                   <IconBubble name={e.kind === 'visit' ? 'stethoscope' : 'pill'} tone={e.kind === 'visit' ? 'brand' : 'tint'} size={38} />
                   <span className="nt-row__body">{e.kind === 'visit' ? <button className="nt-link" type="button" onClick={() => setSelectedVisit(visits.find(v => v.id === e.id) ?? null)}>{e.title}</button> : <span className="nt-row__title">{e.title}</span>}<span className="nt-row__meta">{[e.sub, tag(e.kind)].filter(Boolean).join(' · ')}</span></span>
-                  <button type="button" className="nt-iconbtn" aria-label={it ? `Elimina ${e.title}` : `Delete ${e.title}`} onClick={() => del(e)}><Icon name="trash" size={18} /></button>
+                  <button type="button" className="nt-iconbtn" aria-label={it ? `Elimina ${e.title}` : `Delete ${e.title}`} onClick={() => void del(e)}><Icon name="trash" size={18} /></button>
                 </div>
               ))}
               {!events.length ? <p className="nt-empty"><Icon name="sparkle" size={18} />{it ? 'Giornata libera. Goditela!' : 'A free day. Enjoy it!'}</p> : null}
@@ -177,6 +182,7 @@ function VisitSheet({ open, onClose, day }: { open: boolean; onClose: () => void
   const { lang, it } = useLang();
   const { user } = useAccount();
   const { add } = useMamma();
+  const { toast } = useFeedback();
   const [v, setV] = useState({ kind: '', visit_date: day, visit_time: '10:30', place: '', notes: '', remind: true });
   const [busy, setBusy] = useState(false);
   useEffect(() => {
@@ -188,7 +194,13 @@ function VisitSheet({ open, onClose, day }: { open: boolean; onClose: () => void
     setBusy(true);
     const ok = await add('visits', { ...v, kind: v.kind.trim(), place: v.place.trim(), notes: v.notes.trim() } as Omit<Visit, 'id'>);
     setBusy(false);
-    if (ok) onClose();
+    if (ok) {
+      const late = (romeInstant(v.visit_date, v.visit_time)?.getTime() ?? 0) - 6 * 3600000 < Date.now();
+      toast(!v.remind ? (it ? 'Visita salvata.' : 'Visit saved.')
+        : late ? (it ? 'Visita salvata. Mancano meno di 6 ore: il promemoria completo non è possibile.' : 'Visit saved. Less than 6 hours left: no full-notice reminder.')
+        : it ? `Visita salvata. Promemoria il ${shortDate(r.date, lang)} alle ${r.time}.` : `Visit saved. Reminder on ${shortDate(r.date, lang)} at ${r.time}.`, late && v.remind ? 'info' : 'success');
+      onClose();
+    } else toast(it ? 'Salvataggio non riuscito. Riprova.' : 'Could not save. Try again.', 'error');
   };
   return (
     <Sheet open={open} onClose={onClose} title={it ? 'Nuova visita' : 'New visit'} subtitle={it ? 'La aggiungiamo al tuo calendario' : 'We add it to your calendar'} labelClose={it ? 'Chiudi' : 'Close'}>
@@ -207,7 +219,7 @@ function VisitSheet({ open, onClose, day }: { open: boolean; onClose: () => void
       {valid && v.remind && (romeInstant(v.visit_date, v.visit_time)?.getTime() ?? 0) - 6*3600000 < Date.now() && <p className="nt-note">{it ? 'Mancano meno di 6 ore oppure la visita è già trascorsa: il preavviso completo non è possibile. Non fare affidamento sul promemoria per questa visita.' : 'Less than 6 hours remain or the appointment is past: the full notice is not possible. Do not rely on the reminder for this visit.'}</p>}
       <div className="nt-editor__actions">
         <button type="button" className="nt-btn nt-btn--soft" onClick={onClose}>{it ? 'Annulla' : 'Cancel'}</button>
-        <button type="button" className="nt-btn nt-btn--block" disabled={!valid || busy} onClick={() => void save()}>{it ? 'Salva visita' : 'Save visit'}</button>
+        <button aria-busy={busy} type="button" className="nt-btn nt-btn--block" disabled={!valid || busy} onClick={() => void save()}>{it ? 'Salva visita' : 'Save visit'}</button>
       </div>
     </Sheet>
   );
@@ -218,6 +230,7 @@ function SupplementSheet({ open, onClose, today }: { open: boolean; onClose: () 
   const { it } = useLang();
   const { user } = useAccount();
   const { add, call } = useMamma();
+  const { toast } = useFeedback();
   const [mode, setMode] = useState<'ai' | 'doctor'>('ai');
   const [name, setName] = useState('');
   const [dose, setDose] = useState('');
@@ -265,7 +278,10 @@ function SupplementSheet({ open, onClose, today }: { open: boolean; onClose: () 
     setBusy(true);
     const ok = await add('supplements', { name: name.trim(), source: mode, dose: dose.trim(), times, start_date: from, end_date: to || null, leaflet_quote: mode === 'ai' ? quote : '', remind } as Omit<Supplement, 'id'>);
     setBusy(false);
-    if (ok) onClose();
+    if (ok) {
+      toast(it ? `Integratore salvato: ${times.length} ${times.length === 1 ? 'promemoria' : 'promemoria'} al giorno.` : `Supplement saved: ${times.length} reminders a day.`);
+      onClose();
+    } else toast(it ? 'Salvataggio non riuscito. Riprova.' : 'Could not save. Try again.', 'error');
   };
   const slots = (
     <div className="nt-field">
@@ -311,7 +327,7 @@ function SupplementSheet({ open, onClose, today }: { open: boolean; onClose: () 
       <ReminderBox title={it ? 'Promemoria via email' : 'Email reminder'} when={it ? 'All’orario di assunzione' : 'At each time you take it'}
         to={user?.email ? (it ? `a ${user.email}` : `to ${user.email}`) : ''} checked={remind} onChange={setRemind} label={it ? 'Promemoria via email' : 'Email reminder'} />
       <p className="nt-note">{it ? 'Il suggerimento AI legge il foglio illustrativo: vale sempre l’indicazione del tuo medico.' : 'The AI suggestion reads the leaflet: your doctor’s advice always comes first.'}</p>
-      <button type="button" className="nt-btn nt-btn--block" disabled={!valid || busy} onClick={() => void save()}>{it ? 'Salva integratore' : 'Save supplement'}</button>
+      <button aria-busy={busy} type="button" className="nt-btn nt-btn--block" disabled={!valid || busy} onClick={() => void save()}>{it ? 'Salva integratore' : 'Save supplement'}</button>
     </Sheet>
   );
 }
@@ -332,6 +348,7 @@ export function NotebookTab({ onCalendar }: { onCalendar: () => void }) {
   const { ga, gaValid } = useNasciTara();
   const { user } = useAccount();
   const { notes, add, remove, call, error } = useMamma();
+  const { toast, confirm } = useFeedback();
   const week = useWeek();
   const [text, setText] = useState('');
   const [tag, setTag] = useState<NoteTag>('sintomi');
@@ -353,7 +370,10 @@ export function NotebookTab({ onCalendar }: { onCalendar: () => void }) {
     setBusy(true);
     const ok = await add('notes', { tag, body: text.trim(), ga_label: gaValid ? formatGA(ga) : '' });
     setBusy(false);
-    if (ok) setText('');
+    if (ok) {
+      setText('');
+      toast(it ? 'Nota salvata.' : 'Note saved.');
+    } else toast(it ? 'Salvataggio non riuscito. Riprova.' : 'Could not save. Try again.', 'error');
   };
   const ask = async () => {
     setThinking(true);
@@ -374,7 +394,8 @@ export function NotebookTab({ onCalendar }: { onCalendar: () => void }) {
   };
   const addQuestion = async () => {
     if (!insight?.question) return;
-    if (await add('notes', { tag: 'medico', body: insight.question, ga_label: gaValid ? formatGA(ga) : '' })) setMsg(it ? 'Aggiunta alle note “Per il medico”.' : 'Added to “For the doctor” notes.');
+    if (await add('notes', { tag: 'medico', body: insight.question, ga_label: gaValid ? formatGA(ga) : '' })) toast(it ? 'Aggiunta alle note “Per il medico”.' : 'Added to “For the doctor” notes.');
+    else toast(it ? 'Salvataggio non riuscito. Riprova.' : 'Could not save. Try again.', 'error');
   };
   return (
     <main className="nt-wrap nt-main nt-mamma nt-narrow">
@@ -397,7 +418,7 @@ export function NotebookTab({ onCalendar }: { onCalendar: () => void }) {
         </div>
         <div className="nt-spread">
           <span className="nt-chip nt-chip--soft">{gaValid ? `${formatGA(ga)} ${it ? 'sett.' : 'wk'}` : ''}</span>
-          <button type="button" className="nt-btn nt-btn--sm nt-pop" disabled={!text.trim() || busy} onClick={() => void save()}><Icon name="check" size={18} />{it ? 'Salva nota' : 'Save note'}</button>
+          <button aria-busy={busy} type="button" className="nt-btn nt-btn--sm nt-pop" disabled={!text.trim() || busy} onClick={() => void save()}><Icon name="check" size={18} />{it ? 'Salva nota' : 'Save note'}</button>
         </div>
       </div>
       <div className="nt-card nt-insight">
@@ -415,7 +436,7 @@ export function NotebookTab({ onCalendar }: { onCalendar: () => void }) {
             <p className="nt-body">{notes.length ? (it ? 'Leggo le tue note e ti propongo un suggerimento per questa settimana.' : 'I read your notes and suggest something for this week.') : it ? 'Scrivi qualche nota: poi le leggo insieme e ti propongo un suggerimento.' : 'Write a few notes: then I read them together and suggest something.'}</p>
           )}
           <div className="nt-spread">
-            <button type="button" className="nt-btn nt-btn--sm nt-btn--white nt-pop" disabled={!notes.length || thinking} onClick={() => void ask()}><Icon name="sparkle" size={18} />{thinking ? (it ? 'Sto leggendo…' : 'Reading…') : insight ? (it ? 'Aggiorna' : 'Refresh') : it ? 'Leggi le mie note' : 'Read my notes'}</button>
+            <button aria-busy={thinking} type="button" className="nt-btn nt-btn--sm nt-btn--white nt-pop" disabled={!notes.length || thinking} onClick={() => void ask()}><Icon name="sparkle" size={18} />{thinking ? (it ? 'Sto leggendo…' : 'Reading…') : insight ? (it ? 'Aggiorna' : 'Refresh') : it ? 'Leggi le mie note' : 'Read my notes'}</button>
             {insight?.question ? <button type="button" className="nt-link nt-link--sm" onClick={onCalendar}>{it ? 'Appuntamenti →' : 'Appointments →'}</button> : null}
           </div>
           {msg ? <p className="nt-note" role="status">{msg}</p> : null}
@@ -439,7 +460,10 @@ export function NotebookTab({ onCalendar }: { onCalendar: () => void }) {
             <div className="nt-grow">
               <div className="nt-spread">
                 <span className="nt-note">{shortDate(n.created_at, lang, { weekday: 'short', day: 'numeric', month: 'short' })}{n.ga_label ? ` · ${n.ga_label} ${it ? 'sett.' : 'wk'}` : ''}</span>
-                <button type="button" className="nt-iconbtn" aria-label={it ? 'Elimina nota' : 'Delete note'} onClick={() => { if (window.confirm(it ? 'Eliminare questa nota?' : 'Delete this note?')) void remove('notes', n.id); }}><Icon name="trash" size={16} /></button>
+                <button type="button" className="nt-iconbtn" aria-label={it ? 'Elimina nota' : 'Delete note'} onClick={() => void (async () => {
+                  if (!(await confirm({ title: it ? 'Eliminare questa nota?' : 'Delete this note?', confirm: it ? 'Elimina' : 'Delete', cancel: it ? 'Annulla' : 'Cancel', danger: true }))) return;
+                  if (await remove('notes', n.id)) toast(it ? 'Nota eliminata.' : 'Note deleted.');
+                })()}><Icon name="trash" size={16} /></button>
               </div>
               <p className="nt-body nt-prewrap">{n.body}</p>
             </div>
@@ -575,7 +599,7 @@ export function SupportTab() {
         {msg ? <p className="nt-note" role="status">{msg}</p> : null}
         <form className="nt-ask" onSubmit={(e) => { e.preventDefault(); void send(draft); }}>
           <input value={draft} maxLength={1500} onChange={(e) => setDraft(e.target.value)} placeholder={it ? 'Chiedi all’assistente…' : 'Ask the assistant…'} aria-label={it ? 'Domanda' : 'Question'} />
-          <button type="submit" aria-label={it ? 'Invia' : 'Send'} disabled={!draft.trim() || busy}><Icon name="arrow" size={18} /></button>
+          <button aria-busy={busy} type="submit" aria-label={it ? 'Invia' : 'Send'} disabled={!draft.trim() || busy}><Icon name="arrow" size={18} /></button>
         </form>
       </AiGate>
     </div>

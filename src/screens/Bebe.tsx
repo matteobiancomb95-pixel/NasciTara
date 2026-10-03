@@ -13,6 +13,7 @@ import { Fetus, GarmentGlyph, ShareIcon } from '../ui/art';
 import { Icon, IconBubble, type IconName } from '../ui/icons';
 import { ScanEditor, MEASURES } from './ScanEditor';
 import { useScanRows } from './Journey';
+import { useFeedback } from '../ui/feedback';
 
 type Go = (tab: 'baby' | 'corredino' | 'calendario') => void;
 
@@ -171,6 +172,7 @@ export function BabyTab() {
   const rows = useScanRows();
   const [edit, setEdit] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
+  const { toast, confirm } = useFeedback();
   const [metric, setMetric] = useState<'weight' | 'length'>('weight');
   const [selectedWeek, setSelectedWeek] = useState<number | null>(null);
   const g = (v: number) => grams(v, lang);
@@ -265,7 +267,7 @@ export function BabyTab() {
         title={it ? `Ecografia ${scanNumber}` : `Scan ${scanNumber}`}
         subtitle={editing ? editing.label : it ? 'Nuova ecografia' : 'New scan'}>
         <ScanEditor key={edit ?? 'none'} compact initial={editing?.scan} number={scanNumber} onSave={save}
-          onDelete={editing ? () => { if (window.confirm(it ? 'Eliminare questa ecografia?' : 'Delete this scan?')) { dispatch({ type: 'removeScan', id: editing.scan.id }); setEdit(null); } } : undefined} />
+          onDelete={editing ? () => void (async () => { if (await confirm({ title: it ? 'Eliminare questa ecografia?' : 'Delete this scan?', body: it ? 'Stima e corredino si aggiornano subito.' : 'Estimate and layette update right away.', confirm: it ? 'Elimina' : 'Delete', cancel: it ? 'Annulla' : 'Cancel', danger: true })) { dispatch({ type: 'removeScan', id: editing.scan.id }); setEdit(null); toast(it ? 'Ecografia eliminata.' : 'Scan deleted.'); } })() : undefined} />
       </Sheet>
     </main>
   );
@@ -299,7 +301,7 @@ export function CorredinoTab() {
   const it = lang === 'it';
   const { c, basis, dueShort } = useCorredino();
   const [open, setOpen] = useState<string | null>(null);
-  const [msg, setMsg] = useState('');
+  const { toast } = useFeedback();
   if (!c || !analysis) {
     return (
       <main className="nt-wrap nt-main nt-narrow">
@@ -319,7 +321,7 @@ export function CorredinoTab() {
       if (navigator.share) await navigator.share({ title: it ? 'Corredino NasciTara' : 'NasciTara layette', text });
       else {
         await navigator.clipboard.writeText(text);
-        setMsg(it ? 'Lista copiata negli appunti.' : 'List copied to the clipboard.');
+        toast(it ? 'Lista copiata negli appunti.' : 'List copied to the clipboard.');
       }
     } catch {
       /* Share sheet closed. */
@@ -417,7 +419,6 @@ export function CorredinoTab() {
             <button type="button" className="nt-btn nt-btn--soft nt-btn--block" onClick={() => void exportCorredinoPdf(c, lang, basis)}>{it ? 'Scarica lista PDF' : 'Download PDF list'}</button>
           </>
         )}
-        {msg ? <p className="nt-ok" role="status">{msg}</p> : null}
       </div>
       <div className="nt-desk nt-cor__grid">
         <aside className="nt-stack">
@@ -427,7 +428,6 @@ export function CorredinoTab() {
             <button type="button" className="nt-btn nt-btn--block" onClick={() => void exportCorredinoPdf(c, lang, basis)}>{it ? 'Scarica lista PDF' : 'Download PDF list'}</button>
             <button type="button" className="nt-round" aria-label={it ? 'Condividi la lista' : 'Share the list'} onClick={() => void share()}><ShareIcon /></button>
           </div>
-          {msg ? <p className="nt-ok" role="status">{msg}</p> : null}
         </aside>
         <div className="nt-stack">
           <div className="nt-cor__cols">

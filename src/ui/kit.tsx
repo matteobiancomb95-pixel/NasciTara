@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import markUrl from '../assets/brand/logo-mark-transparent.png';
 import type { NumField } from '../state/NasciTaraStore';
 
@@ -112,22 +112,39 @@ export function Check({ checked, onChange, children }: { checked: boolean; onCha
   );
 }
 
-/** Foglio dal basso su telefono, finestra centrata su desktop. Chiude con Esc e toccando fuori. */
+/**
+ * Foglio dal basso su telefono, finestra centrata su desktop. Chiude con Esc e toccando fuori.
+ * Entra ed esce con una transizione di ~200 ms (nessuna con prefers-reduced-motion).
+ */
 export function Sheet({ open, onClose, title, subtitle, children, labelClose }: {
   open: boolean; onClose: () => void; title: ReactNode; subtitle?: ReactNode; children: ReactNode; labelClose: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const [shown, setShown] = useState(open);
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
-    if (open && !d.open) {
-      d.showModal();
-      d.scrollTop = 0;
+    if (open) {
+      setShown(true);
+      d.classList.remove('is-closing');
+      if (!d.open) {
+        d.showModal();
+        d.scrollTop = 0;
+      }
+      return;
     }
-    if (!open && d.open) d.close();
+    if (!d.open) return;
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    d.classList.add('is-closing');
+    const t = setTimeout(() => {
+      d.classList.remove('is-closing');
+      if (d.open) d.close();
+      setShown(false);
+    }, reduce ? 0 : 180);
+    return () => clearTimeout(t);
   }, [open]);
   return (
-    <dialog ref={ref} className="nt-sheet" onClose={onClose} onCancel={onClose} onClick={(e) => e.target === ref.current && onClose()}>
+    <dialog ref={ref} className="nt-sheet" onCancel={(e) => { e.preventDefault(); onClose(); }} onClick={(e) => e.target === ref.current && onClose()}>
       <div className="nt-sheet__body">
         <span className="nt-sheet__grip nt-mob" aria-hidden="true" />
         <div className="nt-sheet__head">
@@ -139,7 +156,7 @@ export function Sheet({ open, onClose, title, subtitle, children, labelClose }: 
             ✕
           </button>
         </div>
-        {open ? children : null}
+        {open || shown ? children : null}
       </div>
     </dialog>
   );

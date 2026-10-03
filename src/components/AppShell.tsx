@@ -13,6 +13,7 @@ import { PrivateArea } from '../screens/PrivateArea';
 import { Privacy } from '../screens/Privacy';
 import { APP_VERSION } from '../version';
 import { belongsToEmail } from '../lib/screeningStorage';
+import { useFeedback } from '../ui/feedback';
 
 const INSTAGRAM_URL = 'https://www.instagram.com/nascitara?stkn=MWo4ZDJzcW45enYzcw%3D%3D&utm_source=qr';
 type View = 'welcome' | 'journey' | 'area' | 'account';
@@ -26,6 +27,7 @@ type View = 'welcome' | 'journey' | 'area' | 'account';
 export function AppShell({ demo = false }: { demo?: boolean }) {
   const { state, dispatch, newScreening, lang } = useNasciTara();
   const account = useAccount();
+  const { confirm } = useFeedback();
   const { user, profile } = account;
   const it = lang === 'it';
   const [view, setView] = useState<View>(() => (demo ? 'journey' : state.completed ? 'area' : 'welcome'));
@@ -79,7 +81,7 @@ export function AppShell({ demo = false }: { demo?: boolean }) {
 
   const exit = () => {
     if (demo) return void (window.location.hash = '');
-    if (window.confirm(it ? 'Vuoi uscire? Le tue misure restano salvate.' : 'Sign out? Your measurements stay saved.')) void account.signOut();
+    void confirm({ title: it ? 'Vuoi uscire?' : 'Sign out?', body: it ? 'Le tue misure restano salvate.' : 'Your measurements stay saved.', confirm: it ? 'Esci' : 'Sign out', cancel: it ? 'Resta' : 'Stay' }).then((ok) => { if (ok) void account.signOut(); });
   };
 
   // Test environment (Vercel previews, `npm run dev:test`): always say so, never mistake it for the real site.

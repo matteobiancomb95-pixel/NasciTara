@@ -34,7 +34,7 @@ export function DoctorContacts() {
       <TextInput label={it ? 'Telefono' : 'Phone'} type="tel" value={form.phone} maxLength={30} onChange={phone => setForm({ ...form, phone })} />
       <TextInput label="Email" type="email" value={form.email} maxLength={254} onChange={email => setForm({ ...form, email })} />
       {(!phoneValid || !emailValid) && <p className="nt-error">{it ? 'Controlla telefono ed email.' : 'Check phone and email.'}</p>}
-      <button type="submit" className="nt-btn" disabled={busy || !phoneValid || !emailValid}>{it ? 'Salva contatti' : 'Save contacts'}</button>
+      <button aria-busy={busy} type="submit" className="nt-btn" disabled={busy || !phoneValid || !emailValid}>{it ? 'Salva contatti' : 'Save contacts'}</button>
       <button type="button" className="nt-link" onClick={() => setEditing(false)}>{it ? 'Annulla' : 'Cancel'}</button>
     </form> : <>
       <p className="nt-note">{form.name || (it ? 'Salva i riferimenti del professionista che ti segue.' : 'Save contact details for your clinician.')}</p>
