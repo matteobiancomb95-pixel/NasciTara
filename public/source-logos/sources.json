@@ -1,0 +1,47 @@
+[
+  [
+    "issalute",
+    "issalute.ico",
+    "https://www.issalute.it/templates/jm-commune-offices/images/favicon.ico"
+  ],
+  [
+    "efsa",
+    "efsa.ico",
+    "https://www.efsa.europa.eu/themes/custom/efsa_theme/favicon.ico"
+  ],
+  [
+    "niguarda",
+    "niguarda.ico",
+    "https://www.ospedaleniguarda.it/favicon.ico"
+  ],
+  [
+    "salute",
+    null,
+    "No icon"
+  ],
+  [
+    "bambinogesu",
+    "bambinogesu.ico",
+    "https://www.ospedalebambinogesu.it/static/images/favicon.ico"
+  ],
+  [
+    "iss",
+    null,
+    "No icon"
+  ],
+  [
+    "leggere",
+    "leggere.png",
+    "https://www.natiperleggere.it/assets/images/npl200-128x128.png"
+  ],
+  [
+    "musica",
+    "musica.png",
+    "https://natiperlamusica.org/wp-content/uploads/2022/07/favicon-150x150.png"
+  ],
+  [
+    "genitoripiu",
+    "genitoripiu.ico",
+    "https://www.genitoripiu.it/favicon.ico"
+  ]
+]

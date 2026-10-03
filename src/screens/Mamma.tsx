@@ -1,14 +1,15 @@
+import { DoctorContacts } from '../components/DoctorContacts';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNasciTara } from '../state/NasciTaraStore';
 import { useAccount } from '../state/AccountContext';
 import { useMamma, type FnResult } from '../state/MammaStore';
 import { formatGA } from '../lib/gestationalAge';
 import {
-  NOTE_TAGS, SLOTS, eventsOn, isoDate, monthGrid, romeToday, shortDate, takesOn, upcoming, visitReminder,
+  NOTE_TAGS, SLOTS, eventsOn, isoDate, monthGrid, romeToday, shortDate, takesOn, upcoming, visitReminder, romeInstant,
   type NoteTag, type Slot, type Supplement, type Visit,
 } from '../lib/mamma';
 import { readLeafletImage } from '../lib/readLeafletImage';
-import { dailyFor, searchSupport, type SupportItem } from '../lib/support';
+import { dailyFor, searchSupport, sourceLogo, type SupportItem } from '../lib/support';
 import { Field, ReminderBox, Segmented, Sheet, TextInput } from '../ui/kit';
 import { Icon, IconBubble, type IconName } from '../ui/icons';
 
@@ -45,6 +46,8 @@ function aiError(r: FnResult, it: boolean): string {
 export function CalendarTab() {
   const { lang, it } = useLang();
   const { visits, supplements, remove, error } = useMamma();
+  const { user } = useAccount();
+  const [selectedVisit, setSelectedVisit] = useState<Visit | null>(null);
   const today = romeToday();
   const [ty, tm] = today.split('-').map(Number);
   const [month, setMonth] = useState({ y: ty, m: tm - 1 });
@@ -57,7 +60,8 @@ export function CalendarTab() {
   const shift = (n: number) => setMonth(({ y, m }) => ({ y: m + n < 0 ? y - 1 : m + n > 11 ? y + 1 : y, m: (m + n + 12) % 12 }));
   const goToday = () => { setMonth({ y: ty, m: tm - 1 }); setDay(today); };
   const events = eventsOn(day, visits, supplements, lang);
-  const next = upcoming(visits, today);
+  const next = upcoming(visits.filter(v => (romeInstant(v.visit_date, v.visit_time)?.getTime() ?? 0) >= Date.now()), today);
+  const history = visits.filter(v => (romeInstant(v.visit_date, v.visit_time)?.getTime() ?? Infinity) < Date.now()).sort((a,b) => (b.visit_date+b.visit_time).localeCompare(a.visit_date+a.visit_time));
   const dayTitle = day === today ? (it ? 'Oggi' : 'Today') : shortDate(day, lang, { weekday: 'long', day: 'numeric', month: 'long' });
   const tag = (k: 'visit' | 'ai' | 'doctor') => k === 'visit' ? (it ? 'Visita' : 'Visit') : k === 'ai' ? (it ? 'Dal foglietto' : 'From leaflet') : it ? 'Dal medico' : 'From doctor';
   const del = (e: { kind: 'visit' | 'ai' | 'doctor'; id: string; title: string }) => {
@@ -111,7 +115,7 @@ export function CalendarTab() {
                 <div key={e.id + e.time + i} className={`nt-tl nt-tl--${e.kind}`}>
                   <span className="nt-tl__time">{e.time}</span>
                   <IconBubble name={e.kind === 'visit' ? 'stethoscope' : 'pill'} tone={e.kind === 'visit' ? 'brand' : 'tint'} size={38} />
-                  <span className="nt-row__body"><span className="nt-row__title">{e.title}</span><span className="nt-row__meta">{[e.sub, tag(e.kind)].filter(Boolean).join(' · ')}</span></span>
+                  <span className="nt-row__body">{e.kind === 'visit' ? <button className="nt-link" type="button" onClick={() => setSelectedVisit(visits.find(v => v.id === e.id) ?? null)}>{e.title}</button> : <span className="nt-row__title">{e.title}</span>}<span className="nt-row__meta">{[e.sub, tag(e.kind)].filter(Boolean).join(' · ')}</span></span>
                   <button type="button" className="nt-iconbtn" aria-label={it ? `Elimina ${e.title}` : `Delete ${e.title}`} onClick={() => del(e)}><Icon name="trash" size={18} /></button>
                 </div>
               ))}
@@ -127,12 +131,12 @@ export function CalendarTab() {
             {next.map((v) => {
               const r = visitReminder(v);
               return (
-                <button key={v.id} type="button" className="nt-row nt-linkcard nt-pop" onClick={() => { setDay(v.visit_date); const [y, m] = v.visit_date.split('-').map(Number); setMonth({ y, m: m - 1 }); }}>
+                <button key={v.id} type="button" className="nt-row nt-linkcard nt-pop" onClick={() => { setSelectedVisit(v); setDay(v.visit_date); const [y, m] = v.visit_date.split('-').map(Number); setMonth({ y, m: m - 1 }); }}>
                   <span className="nt-ev__date"><small>{shortDate(v.visit_date, lang, { month: 'short' }).replace('.', '').toUpperCase()}</small><b>{Number(v.visit_date.slice(8))}</b></span>
                   <span className="nt-row__body">
                     <span className="nt-row__title">{v.kind}</span>
                     <span className="nt-row__meta">{shortDate(v.visit_date, lang, { weekday: 'long' })} · {v.visit_time}{v.place ? ` · ${v.place}` : ''}</span>
-                    {v.remind ? <span className="nt-ev__rem"><Icon name="bell" size={13} /> {it ? `email alle ${r.time}` : `email at ${r.time}`}</span> : null}
+                    {v.remind ? <span className="nt-ev__rem"><Icon name="bell" size={13} /> {it ? `Invio previsto ${shortDate(r.date, lang)} alle ${r.time} · ${user?.email ?? '—'} · ora italiana` : `Scheduled ${shortDate(r.date, lang)} at ${r.time} · ${user?.email ?? '—'} · Rome time`}</span> : null}
                   </span>
                   <Icon name="chevron" className="nt-chev" />
                 </button>
@@ -140,17 +144,33 @@ export function CalendarTab() {
             })}
             {!next.length ? <p className="nt-empty"><Icon name="calendar" size={18} />{it ? 'Nessuna visita in programma.' : 'No visits planned.'}</p> : null}
           </div>
+          <details className="nt-card nt-history"><summary>{it ? 'Visite precedenti' : 'Previous visits'} · {history.length}</summary>
+            <p className="nt-note">{it ? 'Appuntamenti con data trascorsa, non conferma di visita effettuata.' : 'Past appointments, not confirmation of attendance.'}</p>
+            {history.map(v => <button key={v.id} type="button" className="nt-row nt-linkcard" onClick={() => setSelectedVisit(v)}><IconBubble name="stethoscope" size={36} /><span className="nt-row__body"><b>{v.kind}</b><span className="nt-row__meta">{shortDate(v.visit_date, lang, { day: 'numeric', month: 'short', year: 'numeric' })} · {v.visit_time.slice(0,5)}</span></span><Icon name="chevron" /></button>)}
+            {!history.length && <p className="nt-note">{it ? 'Qui ritroverai i tuoi appuntamenti passati.' : 'Your past appointments will appear here.'}</p>}
+          </details>
           {error ? <p className="nt-error" role="alert">{error === 'limit' ? (it ? 'Hai raggiunto il numero massimo di elementi.' : 'You reached the maximum number of items.') : it ? 'Salvataggio non riuscito. Riprova.' : 'Could not save. Try again.'}</p> : null}
         </div>
       </div>
+      <Sheet open={!!selectedVisit} onClose={() => setSelectedVisit(null)} title={selectedVisit?.kind ?? ''} subtitle={it ? 'Riepilogo visita' : 'Visit details'} labelClose={it ? 'Chiudi' : 'Close'}>
+        {selectedVisit && <>
+          <p className="nt-body"><Icon name="calendar" /> {shortDate(selectedVisit.visit_date, lang, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · {selectedVisit.visit_time.slice(0,5)} ({it ? 'ora italiana' : 'Rome time'})</p>
+          {selectedVisit.place && <p className="nt-body">{selectedVisit.place}</p>}
+          <div className="nt-card nt-card--pink"><h3 className="nt-h3">{it ? 'Promemoria' : 'Reminder'}</h3><p className="nt-note">{selectedVisit.remind ? (it ? `Invio previsto il ${shortDate(visitReminder(selectedVisit).date, lang, { day: 'numeric', month: 'long', year: 'numeric' })} alle ${visitReminder(selectedVisit).time}, a ${user?.email ?? '—'} (ora italiana). L’orario indica la programmazione, non la consegna nella casella.` : `Scheduled on ${shortDate(visitReminder(selectedVisit).date, lang)} at ${visitReminder(selectedVisit).time}, to ${user?.email ?? '—'} (Rome time). Scheduled time is not proof of inbox delivery.`) : (it ? 'Promemoria disattivato.' : 'Reminder off.')}</p></div>
+          <h3 className="nt-h3">{it ? 'Da ricordare per la visita' : 'Notes for your visit'}</h3><p className="nt-prewrap">{selectedVisit.notes || (it ? 'Nessuna nota aggiunta.' : 'No notes added.')}</p>
+          <h3 className="nt-h3">{it ? 'Appuntamenti precedenti dello stesso tipo' : 'Previous appointments of this type'}</h3>
+          {visits.filter(v => v.kind.toLocaleLowerCase().trim() === selectedVisit.kind.toLocaleLowerCase().trim() && v.visit_date+v.visit_time < selectedVisit.visit_date+selectedVisit.visit_time).sort((a,b) => (b.visit_date+b.visit_time).localeCompare(a.visit_date+a.visit_time)).map(v => <div className="nt-card" key={v.id}><b>{shortDate(v.visit_date, lang, { day: 'numeric', month: 'short', year: 'numeric' })} · {v.visit_time.slice(0,5)}</b><p className="nt-note nt-prewrap">{[v.place, v.notes].filter(Boolean).join(' · ') || (it ? 'Nessuna nota.' : 'No notes.')}</p></div>)}
+          {!visits.some(v => v.kind.toLocaleLowerCase().trim() === selectedVisit.kind.toLocaleLowerCase().trim() && v.visit_date+v.visit_time < selectedVisit.visit_date+selectedVisit.visit_time) && <p className="nt-note">{it ? 'Non ci sono appuntamenti precedenti di questo tipo.' : 'No previous appointments of this type.'}</p>}
+        </>}
+      </Sheet>
       <VisitSheet open={sheet === 'visit'} onClose={() => setSheet(null)} day={day < today ? today : day} />
       <SupplementSheet open={sheet === 'supp'} onClose={() => setSheet(null)} today={today} />
     </main>
   );
 }
 
-const VISIT_KINDS_IT = ['Visita ginecologica', 'Ecografia', 'Esami del sangue', 'Monitoraggio (tracciato)', 'Corso preparto', 'Visita ostetrica'];
-const VISIT_KINDS_EN = ['Gynaecologist visit', 'Ultrasound scan', 'Blood tests', 'Fetal monitoring (CTG)', 'Antenatal class', 'Midwife visit'];
+const VISIT_KINDS_IT = ['Visita ginecologica', 'Ecografia', 'Esami del sangue', 'Monitoraggio (tracciato)', 'Corso preparto', 'Visita ostetrica', 'Translucenza nucale', 'Test combinato', 'Ecografia morfologica', 'Ecografia di accrescimento', 'Test del DNA fetale (NIPT)', 'Curva glicemica', 'Tampone vagino-rettale', 'Consulenza anestesiologica'];
+const VISIT_KINDS_EN = ['Gynaecologist visit', 'Ultrasound scan', 'Blood tests', 'Fetal monitoring (CTG)', 'Antenatal class', 'Midwife visit', 'Nuchal translucency', 'Combined screening', 'Anomaly scan', 'Growth scan', 'NIPT', 'Glucose tolerance test', 'Vaginal-rectal swab', 'Anaesthetic consultation'];
 
 /** Nuova visita (M14). */
 function VisitSheet({ open, onClose, day }: { open: boolean; onClose: () => void; day: string }) {
@@ -163,7 +183,7 @@ function VisitSheet({ open, onClose, day }: { open: boolean; onClose: () => void
     if (open) setV({ kind: it ? VISIT_KINDS_IT[0] : VISIT_KINDS_EN[0], visit_date: day, visit_time: '10:30', place: '', notes: '', remind: true });
   }, [open, day, it]);
   const r = visitReminder(v);
-  const valid = v.kind.trim() && /^\d{4}-\d{2}-\d{2}$/.test(v.visit_date) && /^\d{2}:\d{2}$/.test(v.visit_time);
+  const valid = !!v.kind.trim() && !!romeInstant(v.visit_date, v.visit_time);
   const save = async () => {
     setBusy(true);
     const ok = await add('visits', { ...v, kind: v.kind.trim(), place: v.place.trim(), notes: v.notes.trim() } as Omit<Visit, 'id'>);
@@ -173,7 +193,8 @@ function VisitSheet({ open, onClose, day }: { open: boolean; onClose: () => void
   return (
     <Sheet open={open} onClose={onClose} title={it ? 'Nuova visita' : 'New visit'} subtitle={it ? 'La aggiungiamo al tuo calendario' : 'We add it to your calendar'} labelClose={it ? 'Chiudi' : 'Close'}>
       <TextInput label={it ? 'Tipo di visita' : 'Type of visit'} value={v.kind} maxLength={80} onChange={(kind) => setV({ ...v, kind })} />
-      <div className="nt-chips">{(it ? VISIT_KINDS_IT : VISIT_KINDS_EN).map((k) => <button key={k} type="button" className={`nt-chip nt-chip--btn${v.kind === k ? ' nt-chip--on' : ''}`} onClick={() => setV({ ...v, kind: k })}>{k}</button>)}</div>
+      <p className="nt-note">{it ? 'Scegli una tipologia o scrivine una. Esami e tempi vanno concordati con il professionista che ti segue.' : 'Choose a type or enter your own. Agree tests and timing with your clinician.'}</p>
+      <div className="nt-chips nt-visit-kinds">{(it ? VISIT_KINDS_IT : VISIT_KINDS_EN).map((k) => <button key={k} type="button" className={`nt-chip nt-chip--btn${v.kind === k ? ' nt-chip--on' : ''}`} onClick={() => setV({ ...v, kind: k })}>{k}</button>)}</div>
       <div className="nt-grid2">
         <TextInput label={it ? 'Data' : 'Date'} type="date" value={v.visit_date} onChange={(visit_date) => setV({ ...v, visit_date })} />
         <TextInput label={it ? 'Ora' : 'Time'} type="time" value={v.visit_time} onChange={(visit_time) => setV({ ...v, visit_time })} />
@@ -182,6 +203,8 @@ function VisitSheet({ open, onClose, day }: { open: boolean; onClose: () => void
       <TextInput label={it ? 'Note' : 'Notes'} value={v.notes} maxLength={500} placeholder={it ? 'Portare gli esami del sangue' : 'Bring blood test results'} onChange={(notes) => setV({ ...v, notes })} />
       <ReminderBox title={it ? 'Promemoria via email' : 'Email reminder'} when={(it ? '6 ore prima · ' : '6 hours before · ') + shortDate(r.date, lang, { weekday: 'short', day: 'numeric', month: 'short' }) + ', ' + r.time}
         to={user?.email ? (it ? `a ${user.email}` : `to ${user.email}`) : ''} checked={v.remind} onChange={(remind) => setV({ ...v, remind })} label={it ? 'Promemoria via email' : 'Email reminder'} />
+      {v.visit_date && v.visit_time && !romeInstant(v.visit_date, v.visit_time) && <p className="nt-error" role="alert">{it ? 'Controlla data e ora: questo orario non esiste nel fuso italiano.' : 'Check date and time: this time does not exist in the Rome timezone.'}</p>}
+      {valid && v.remind && (romeInstant(v.visit_date, v.visit_time)?.getTime() ?? 0) - 6*3600000 < Date.now() && <p className="nt-note">{it ? 'Mancano meno di 6 ore oppure la visita è già trascorsa: il preavviso completo non è possibile. Non fare affidamento sul promemoria per questa visita.' : 'Less than 6 hours remain or the appointment is past: the full notice is not possible. Do not rely on the reminder for this visit.'}</p>}
       <div className="nt-editor__actions">
         <button type="button" className="nt-btn nt-btn--soft" onClick={onClose}>{it ? 'Annulla' : 'Cancel'}</button>
         <button type="button" className="nt-btn nt-btn--block" disabled={!valid || busy} onClick={() => void save()}>{it ? 'Salva visita' : 'Save visit'}</button>
@@ -445,7 +468,6 @@ function UrgentBox({ kind }: { kind: 'medical' | 'crisis' }) {
 }
 
 type Msg = { role: 'user' | 'assistant'; content: string; sources?: Array<{ url: string; title: string }>; urgent?: string };
-const KIND_ICON: Record<SupportItem['kind'], IconName> = { formazione: 'book', fisica: 'run', ludica: 'play', benessere: 'smile' };
 const READ_KEY = 'nascitara.letture';
 
 /** Supporto mamma (M17 / D09): letture del giorno da fonti ufficiali, assistente AI con fonti. */
@@ -511,7 +533,7 @@ export function SupportTab() {
     return (
       <article key={s.id} className={`nt-read nt-read--${s.kind}${isRead ? ' is-read' : ''}`}>
         <div className="nt-read__top">
-          <span className="nt-read__icon"><Icon name={KIND_ICON[s.kind]} size={26} /></span>
+          <span className="nt-read__icon nt-source-logo"><img src={sourceLogo(s.url)} alt={s.source} width="36" height="36" loading="lazy" /></span>
           <span className="nt-read__kind">{kindName(s.kind)}</span>
           {isRead ? <span className="nt-read__done"><Icon name="check" size={14} />{it ? 'Letto' : 'Read'}</span> : null}
         </div>
@@ -562,11 +584,7 @@ export function SupportTab() {
     <div className="nt-stack6">
       <h2 className="nt-h3">{it ? 'Quando serve una persona' : 'When you need a person'}</h2>
       <div className="nt-grid2">
-        <button type="button" className="nt-card nt-person nt-pop" onClick={() => { setTopic('pregnancy'); setChat([]); }}>
-          <IconBubble name="stethoscope" />
-          <span className="nt-row__title">{it ? 'Ginecologo, ostetrica, consultorio' : 'Gynaecologist, midwife, clinic'}</span>
-          <span className="nt-row__meta">{it ? 'Il consultorio della tua ASL segue la gravidanza gratis.' : 'Your local family clinic follows pregnancy for free.'}</span>
-        </button>
+        <DoctorContacts />
         <a className="nt-card nt-person nt-pop" href="tel:+390223272327">
           <IconBubble name="phone" />
           <span className="nt-row__title">Telefono Amico</span>

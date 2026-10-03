@@ -21,7 +21,7 @@ export function reminderMessage(r: { kind: string; lang: string; title: string; 
     ? '\n\nGestisci o spegni i promemoria su https://nascitara.tech/ in La mamma › Calendario. Vale sempre l’indicazione del tuo medico.'
     : '\n\nManage or turn off reminders at https://nascitara.tech/ under Mum › Calendar. Your doctor’s advice always comes first.';
   const text = r.kind === 'visit'
-    ? (it ? `Tra 6 ore, il ${r.at_local}: ${r.title}${detail}.` : `In 6 hours, on ${r.at_local}: ${r.title}${detail}.`)
+    ? (it ? `Promemoria per la visita del ${r.at_local} (ora italiana): ${r.title}${detail}.` : `Reminder for your appointment on ${r.at_local} (Rome time): ${r.title}${detail}.`)
     : (it ? `Sono le ${r.at_local}: è il momento di ${r.title}${detail}.` : `It’s ${r.at_local}: time for ${r.title}${detail}.`);
   return { subject: it ? 'Il tuo promemoria NasciTara' : 'Your NasciTara reminder', textContent: text + footer };
 }
