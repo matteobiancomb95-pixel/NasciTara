@@ -11,6 +11,9 @@ export async function deliverReminder(r: DueReminder, key: string, sender: strin
     const body = await res.json().catch(() => ({}));
     const id = typeof body.messageId === 'string' ? body.messageId.slice(0, 250) : null;
     const status = mailOutcome(res.status, id);
-    return { status, provider_id: id, retryable: status === 'failed' && reminderRetryable(res.status), last_error: status === 'accepted' ? null : `brevo_${res.status}` };
+    // Il motivo indicato da Brevo (chiave non valida, IP non autorizzato...) senza segreti ne' destinatari.
+    const reason = typeof body.code === 'string' ? body.code : '';
+    const detail = typeof body.message === 'string' ? body.message.replace(/[\w.+-]+@[\w.-]+/g, '<email>').slice(0, 120) : '';
+    return { status, provider_id: id, retryable: status === 'failed' && reminderRetryable(res.status), last_error: status === 'accepted' ? null : [`brevo_${res.status}`, reason, detail].filter(Boolean).join(' · ') };
   } catch { return { status: 'unknown' as const, provider_id: null, retryable: false, last_error: 'network_unknown' }; }
 }
