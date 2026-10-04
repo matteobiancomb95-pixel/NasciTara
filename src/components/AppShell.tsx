@@ -11,7 +11,6 @@ import { Journey } from '../screens/Journey';
 import { Area, type AreaTab } from '../screens/Area';
 import { PrivateArea } from '../screens/PrivateArea';
 import { Privacy } from '../screens/Privacy';
-import { APP_VERSION } from '../version';
 import { belongsToEmail, hasProgress, pickResume } from '../lib/screeningStorage';
 import { useFeedback } from '../ui/feedback';
 
@@ -132,7 +131,7 @@ export function AppShell({ demo = false }: { demo?: boolean }) {
       <footer className="nt-foot">
         <span>{it ? 'Un progetto di Matteo Bianco' : 'A project by Matteo Bianco'} · CF BNCMTT95B02F027P</span>
         <button type="button" className="nt-foot__link" onClick={() => setPrivacy(true)}>Privacy</button>
-        <span>NasciTara v{APP_VERSION.replace(/\.0$/, '')}{demo ? (it ? ' · esempio' : ' · demo') : ''}</span>
+        {demo ? <span>{it ? 'Esempio' : 'Demo'}</span> : null}
         <a href={INSTAGRAM_URL} target="_blank" rel="noreferrer noopener" aria-label="Instagram"><IconInstagram /></a>
       </footer>
     </div>
