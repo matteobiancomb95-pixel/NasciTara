@@ -1108,3 +1108,9 @@ button.nt-row:hover { box-shadow: 0 8px 22px rgba(255, 57, 92, 0.14); }
 /* L'interruttore resta 48×28 alla vista ma si tocca su un'area di 48×44. */
 .nt-toggle { position: relative; }
 .nt-toggle::before { content: ''; position: absolute; inset: -8px 0; }
+/* 0.9.3: misure escluse dalla stima per incoerenza. */
+.nt-measure.is-excluded { background: #fff4e5; box-shadow: inset 0 0 0 2px #f2b46d; }
+.nt-measure.is-excluded small { color: #8a4b00; font-weight: 900; }
+.nt-qc { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 10px 12px; border-radius: 14px; background: #fff4e5; color: #6b3a00; font-size: 13px; font-weight: 700; line-height: 1.4; }
+.nt-qc svg { flex: none; margin-top: 1px; }
+.nt-acc__w--warn { color: #8a4b00; display: inline-flex; }

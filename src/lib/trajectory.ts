@@ -35,55 +35,86 @@ export interface TrajectoryFit {
   shrink: number;
 }
 
-export function fitTrajectory(pts: TrajectoryPoint[], target: number): TrajectoryFit | null {
+/** Oltre questa pendenza (in deviazioni standard a settimana) il cambio di centile non e' fisiologico. */
+export const MAX_SLOPE = 0.2;
+/** Fuori dalle ecografie la retta non puo' spostare lo z di piu' di cosi': niente proiezioni esplosive. */
+export const MAX_EXTRAPOLATION_Z = 1;
+/** Soglia di Huber: residui fino a 1,5 volte il rumore pesano per intero. */
+const HUBER_K = 1.5;
+
+const median = (v: number[]) => {
+  const s = [...v].sort((a, b) => a - b);
+  return s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2;
+};
+
+/**
+ * Retta ai minimi quadrati pesati sugli z, robusta (0.8):
+ *  - con 3 o piu' ecografie i pesi di Huber riducono l'influenza di un punto anomalo (IRLS);
+ *    se tutti i residui stanno entro 1,5 volte il rumore, i pesi restano 1 e il risultato e' quello di prima;
+ *  - la pendenza viene contratta come prima e poi limitata a +/-0,2 z a settimana;
+ *  - prima della prima ecografia e dopo l'ultima, la proiezione si sposta al massimo di 1 z.
+ * `noise` e' il rumore di misura sulla scala z (peso: SIG_Z; femore: circa 0,6).
+ */
+export function fitTrajectory(pts: TrajectoryPoint[], target: number, noise = SIG_Z): TrajectoryFit | null {
   const n = pts.length;
-  let i: number;
   if (n === 0) return null;
-  if (n === 1) return { z: pts[0].z, slope: 0, se: SIG_Z, shrink: 0 };
-
-  const xs: number[] = [];
-  const ys: number[] = [];
-  let mx = 0;
-  let my = 0;
-  for (i = 0; i < n; i++) {
-    xs.push(pts[i].ga - target);
-    ys.push(pts[i].z);
-    mx += xs[i];
-    my += ys[i];
+  if (n === 1) return { z: pts[0].z, slope: 0, se: noise, shrink: 0 };
+  const xs = pts.map((p) => p.ga - target);
+  const ys = pts.map((p) => p.z);
+  let w = pts.map(() => 1);
+  const wfit = () => {
+    const W = w.reduce((a, b) => a + b, 0);
+    const mx = w.reduce((a, wi, i) => a + wi * xs[i], 0) / W;
+    const my = w.reduce((a, wi, i) => a + wi * ys[i], 0) / W;
+    let sxx = 0, sxy = 0;
+    for (let i = 0; i < n; i++) {
+      sxx += w[i] * (xs[i] - mx) * (xs[i] - mx);
+      sxy += w[i] * (xs[i] - mx) * (ys[i] - my);
+    }
+    return { W, mx, my, sxx, b: sxx > 1e-9 ? sxy / sxx : 0 };
+  };
+  let f = wfit();
+  if (f.sxx <= 1e-9) {
+    return { z: f.my, slope: 0, se: Math.max(noise / Math.sqrt(n), noise * 0.5), shrink: 0 };
   }
-  mx /= n;
-  my /= n;
-
-  let sxx = 0;
-  let sxy = 0;
-  for (i = 0; i < n; i++) {
-    sxx += (xs[i] - mx) * (xs[i] - mx);
-    sxy += (xs[i] - mx) * (ys[i] - my);
+  if (n >= 3) {
+    for (let iter = 0; iter < 20; iter++) {
+      const a0 = f.my - f.b * f.mx;
+      const r = xs.map((x, i) => ys[i] - (a0 + f.b * x));
+      const scale = Math.max(noise, 1.4826 * median(r.map(Math.abs)));
+      const next = r.map((ri) => (Math.abs(ri) <= HUBER_K * scale ? 1 : (HUBER_K * scale) / Math.abs(ri)));
+      const moved = next.some((v, i) => Math.abs(v - w[i]) > 1e-6);
+      w = next;
+      f = wfit();
+      if (!moved) break;
+    }
   }
-  if (sxx <= 1e-9) {
-    return { z: my, slope: 0, se: Math.max(SIG_Z / Math.sqrt(n), SIG_Z * 0.5), shrink: 0 };
-  }
-
-  let b = sxy / sxx;
+  const { W, mx, my, sxx } = f;
+  let b = f.b;
   let sig2: number;
   if (n > 2) {
     let rss = 0;
     const a0 = my - b * mx;
-    for (i = 0; i < n; i++) {
+    for (let i = 0; i < n; i++) {
       const r = ys[i] - (a0 + b * xs[i]);
-      rss += r * r;
+      rss += w[i] * r * r;
     }
-    sig2 = Math.max(rss / (n - 2), SIG_Z * SIG_Z * 0.25);
+    sig2 = Math.max(rss / Math.max(W - 2, 0.5), noise * noise * 0.25);
   } else {
-    sig2 = SIG_Z * SIG_Z;
+    sig2 = noise * noise;
   }
-
   const seb = Math.sqrt(sig2 / sxx);
   const t = seb > 0 ? Math.abs(b / seb) : 0;
   const shrink = (t * t) / (1 + t * t); // una pendenza indistinguibile dal rumore viene azzerata
-  b *= shrink;
-  const a = my - b * mx;
-  const se = Math.max(Math.sqrt(sig2 * (1 / n + (mx * mx) / sxx)), SIG_Z / Math.sqrt(n));
+  b = Math.max(-MAX_SLOPE, Math.min(MAX_SLOPE, b * shrink));
+  let a = my - b * mx;
+  // xs sono relativi al target: se il target sta fuori dall'intervallo osservato, limita la parte estrapolata.
+  const edge = Math.max(...xs) < 0 ? Math.max(...xs) : Math.min(...xs) > 0 ? Math.min(...xs) : null;
+  if (edge !== null) {
+    const zEdge = a + b * edge;
+    a = zEdge + Math.max(-MAX_EXTRAPOLATION_Z, Math.min(MAX_EXTRAPOLATION_Z, a - zEdge));
+  }
+  const se = Math.max(Math.sqrt(sig2 * (1 / W + (mx * mx) / sxx)), noise / Math.sqrt(W));
   return { z: a, slope: b, se, shrink };
 }
 

@@ -77,7 +77,7 @@ export function VoiceTab({ firstName }: { firstName: string }) {
               <label className="nt-field__label" htmlFor="nt-voice-text">{it ? 'Descrizione' : 'Description'}</label>
               <textarea id="nt-voice-text" className="nt-textarea nt-textarea--tall" maxLength={2000} value={text} onChange={(e) => setText(e.target.value)}
                 placeholder={kind === 'review' ? (it ? 'Cosa ti è piaciuto? Cosa miglioreresti?' : 'What did you like? What would you improve?') : it ? 'Che cosa vorresti poter fare con NasciTara, e in quale momento ti servirebbe?' : 'What would you like to do with NasciTara, and when would you need it?'} />
-              <span className="nt-field__hint">{it ? 'Non scrivere dati sulla salute: qui raccogliamo opinioni e idee.' : 'Please don’t include health details: this is for opinions and ideas.'}</span>
+              <span className="nt-field__hint">{it ? 'Non scrivere dati sulla salute: qui raccogliamo opinioni e idee. Il messaggio arriva al team insieme alla tua email.' : 'Please don’t include health details: this is for opinions and ideas. Your message reaches the team with your email.'}</span>
             </div>
             <div className="nt-spread">
               <span className="nt-row__title">{it ? 'Potete ricontattarmi via email' : 'You may contact me by email'}</span>

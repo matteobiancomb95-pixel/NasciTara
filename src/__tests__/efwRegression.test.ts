@@ -55,11 +55,12 @@ describe('caso di riferimento — parita con il prototipo', () => {
     expect(Math.round(r!.now.pct)).toBe(47);
   });
 
-  // 0.8: lunghezza solo dal femore (62 mm a 32+3 -> 40,3 cm, proiettata a 33+2). Prima era 41,5 con la media 60/40.
-  it('lunghezza 41,3 cm, dal femore', () => {
-    expect(r!.lengthNow.cm).toBeCloseTo(41.32, 1);
-    expect(r!.lengthNow.cm.toFixed(1)).toBe('41.3');
-    expect(r!.lengthTerm.cm).toBeCloseTo(49.42, 1);
+  // 0.9.3: lunghezza dal femore di TUTTE le ecografie (z Chitty & Altman -1,19 / +0,11 / -0,01, retta robusta).
+  // Prima: 41,3 e 49,4 cm dal solo ultimo femore; prima ancora 41,5 con la media 60/40.
+  it('lunghezza 41,7 cm oggi e 50,8 alla nascita, dal femore di tutte le ecografie', () => {
+    expect(r!.lengthNow.cm).toBeCloseTo(41.75, 1);
+    expect(r!.lengthTerm.cm).toBeCloseTo(50.76, 1);
+    expect(r!.points.every((p) => p.qc.formula === 'hadlock4')).toBe(true);
   });
 
   it('proiezione a termine 3,70 kg', () => {

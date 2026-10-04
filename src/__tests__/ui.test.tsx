@@ -158,3 +158,14 @@ describe('Riscontri (0.9.1)', () => {
     expect(await screen.findByText(/^Visita salvata/)).toBeInTheDocument();
   });
 });
+
+describe('Robustezza visibile (0.9.3)', () => {
+  it('Crescita: una misura incoerente viene segnalata come esclusa', () => {
+    const s = demoState();
+    const scans = s.scans.map((sc, i) => (i === s.scans.length - 1 ? { ...sc, bpdMm: 38 } : sc));
+    wrap(<BabyTab />, { ...s, scans });
+    fireEvent.click(screen.getAllByRole('button', { expanded: false })[0]);
+    expect(screen.getByText('esclusa')).toBeInTheDocument();
+    expect(screen.getByRole('note')).toHaveTextContent('BPD non torna con le altre misure');
+  });
+});

@@ -10,7 +10,7 @@ export async function sendMail(f: Fields, env: Env, fetcher: typeof fetch = fetc
     const lines = [
       `Tipo: ${f.type}${f.stars ? ` · voto ${f.stars}/5` : ""}`,
       `Utente: ${f.who} · ${f.platform} · v${f.version}`,
-      `Ricontatto: ${f.contact}${f.email ? ` (${f.email})` : ""}`,
+      `Email: ${f.email || "—"} · ricontatto: ${f.contact}`,
       "",
       f.text,
     ];
@@ -21,7 +21,7 @@ export async function sendMail(f: Fields, env: Env, fetcher: typeof fetch = fetc
       body: JSON.stringify({
         sender: { name: "NasciTara · La tua voce", email: sender },
         to: [{ email: to }],
-        ...(f.email ? { replyTo: { email: f.email } } : {}),
+        ...(f.email && f.contact === 'sì' ? { replyTo: { email: f.email } } : {}),
         subject: `La tua voce · ${f.type}${f.stars ? ` · ${f.stars}/5` : ""}`,
         textContent: lines.join("\n"),
       }),

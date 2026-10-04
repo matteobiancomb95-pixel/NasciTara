@@ -242,14 +242,25 @@ export function BabyTab() {
                   <button type="button" className="nt-acc__head" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : r.scan.id)}>
                     <span className="nt-badge">{i + 1}</span>
                     <span className="nt-row__body"><span className="nt-row__title">{it ? 'Ecografia' : 'Scan'} {i + 1}</span><span className="nt-row__meta">{r.label}</span></span>
-                    {r.result ? <span className="nt-acc__w">{g(r.result.efw)} g</span> : null}
+                    {r.result && r.result.qc.weightUsable ? <span className="nt-acc__w">{g(r.result.efw)} g</span> : r.result ? <span className="nt-acc__w nt-acc__w--warn"><Icon name="info" size={16} /></span> : null}
                     <Icon name="chevron" className="nt-acc__chev" />
                   </button>
                   {isOpen ? (
                     <div className="nt-acc__body">
                       <div className="nt-measures nt-measures--4">
-                        {MEASURES.map((m) => <div key={m.key} className="nt-measure"><b>{m.key}</b><span>{r.scan[m.field] === '' ? '—' : r.scan[m.field]}</span><small>{it ? m.it : m.en}</small></div>)}
+                        {MEASURES.map((m) => {
+                          const out = r.result?.qc.excluded.find((e) => e.key === m.key);
+                          return <div key={m.key} className={`nt-measure${out ? ' is-excluded' : ''}`}><b>{m.key}</b><span>{r.scan[m.field] === '' ? '—' : r.scan[m.field]}</span><small>{out ? (it ? 'esclusa' : 'excluded') : it ? m.it : m.en}</small></div>;
+                        })}
                       </div>
+                      {r.result && r.result.qc.excluded.length ? (
+                        <p className="nt-qc" role="note">
+                          <Icon name="info" size={16} />
+                          {!r.result.qc.weightUsable
+                            ? (it ? 'Questa ecografia non entra nella stima del peso: alcune misure sono fuori scala. Controlla i valori sul referto.' : 'This scan is left out of the weight estimate: some values are out of range. Check them against the report.')
+                            : (it ? `${r.result.qc.excluded.map((e) => e.key).join(', ')} non torna con le altre misure: per il peso usiamo le altre. Controlla il valore sul referto.` : `${r.result.qc.excluded.map((e) => e.key).join(', ')} doesn’t match the other values: we estimate weight without it. Check it against the report.`)}
+                        </p>
+                      ) : null}
                       <div className="nt-spread">
                         <span className="nt-note"><Icon name={r.scan.source === 'report' ? 'camera' : 'note'} size={14} /> {r.src}</span>
                         <button type="button" className="nt-btn nt-btn--soft nt-btn--sm" onClick={() => setEdit(r.scan.id)}>{it ? 'Modifica' : 'Edit'}</button>

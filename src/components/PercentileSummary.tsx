@@ -4,7 +4,7 @@ import { formatGA } from '../lib/gestationalAge';
 import { IconBubble } from '../ui/icons';
 export function PercentileSummary({ analysis, lang }: { analysis: AnalysisResult; lang: 'it' | 'en' }) {
   const it = lang === 'it';
-  const femur = summarizeFemur(analysis.points);
+  const femur = summarizeFemur(analysis.femurPoints);
   return <section className="nt-card nt-percentiles" aria-label={it ? 'I percentili' : 'Percentiles'}>
     <h2 className="nt-h3"><IconBubble name="chart" size={36} /> {it ? 'I percentili, con contesto' : 'Percentiles in context'}</h2>
     <div className="nt-grid2">

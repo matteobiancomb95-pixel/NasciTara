@@ -21,7 +21,7 @@
 
 import { maternalContextAt, type MaternalObservation } from './nasciTara';
 import { estimateAt, type Estimate } from './trajectory';
-import { estimateLength, refLength } from './fetalLength';
+import { estimateLength, femurLengthAt, refLength } from './fetalLength';
 import { refAt, refMean, Z } from './percentilesHadlock1991';
 import type { AnalysisResult } from './analysis';
 
@@ -61,7 +61,7 @@ export function isExtrapolated(ga: number): boolean {
 export function pointAt(analysis: AnalysisResult, ga: number): ProjectionPoint | null {
   const est: Estimate | null = estimateAt(analysis.trajectory, ga, analysis.customScale);
   if (!est) return null;
-  const len = estimateLength({
+  const len = femurLengthAt(analysis.femurTrajectory, ga) ?? estimateLength({
     lastFlMm: analysis.lastScan.flMm,
     lastGa: analysis.lastScan.ga,
     targetGa: ga,
