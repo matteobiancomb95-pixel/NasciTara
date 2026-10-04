@@ -83,6 +83,18 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     [savedRevision, setSavedRevision] = useState("");
   const queue = useRef<Promise<unknown>>(Promise.resolve());
   const userId = useRef<string | null>(null);
+  // Per-tab base: localStorage is shared across tabs, their in-memory payloads are not.
+  // A different tab acknowledging a newer version must not authorize this tab to overwrite it.
+  const bases = useRef(new Map<string, string | null>());
+  const baseFor = (id: string) => {
+    if (!bases.current.has(id)) bases.current.set(id, syncedRevision(id));
+    return bases.current.get(id) ?? null;
+  };
+  const acknowledge = (id: string, revision: string) => {
+    bases.current.set(id, revision);
+    rememberSynced(id, revision);
+  };
+  const refreshSequence = useRef(0);
   useEffect(() => {
     if (!supabase) return;
     let alive = true;
@@ -113,20 +125,21 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   }, []);
   const refresh = useCallback(async () => {
     if (!supabase || !user) return;
+    const sequence = ++refreshSequence.current;
     const { data, error } = await supabase
       .from("screenings")
       .select("id,payload,created_at,updated_at,revision")
       .eq("owner_id", user.id)
       .order("updated_at", { ascending: false })
       .limit(50);
-    if (userId.current !== user.id) return;
-    setCloudFor(user.id);
+    if (userId.current !== user.id || sequence !== refreshSequence.current) return;
     if (error) {
       setStatus(
         "Storico online non disponibile. I dati su questo dispositivo restano accessibili.",
       );
       return;
     }
+    setCloudFor(user.id);
     setCloud(
       (data ?? [])
         .filter((r) => validSavedState(r.payload))
@@ -162,18 +175,26 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     const id = screeningId;
     reconciling.current = id;
     const remote = cloud.find((r) => r.id === id);
+    let cancelled = false;
     void (async () => {
       if (remote?.revision) {
-        const decision = syncDecision(await screeningRevision(state), remote.revision, syncedRevision(id));
-        if (reconciling.current !== id) return;
+        const decision = syncDecision(await screeningRevision(state), remote.revision, baseFor(id));
+        if (cancelled || reconciling.current !== id) return;
         if (decision === 'pull') dispatch({ type: "restore", state: remote.state });
         if (decision === 'merge') dispatch({ type: "restore", state: mergeScreenings(remote.state, state) });
         // La base del prossimo salvataggio e' la versione online appena vista.
-        rememberSynced(id, remote.revision);
+        acknowledge(id, remote.revision);
       }
+      if (cancelled) return;
       reconciling.current = null;
       setReconciled(id);
-    })();
+    })().catch(() => {
+      if (!cancelled) setStatus("Confronto con lo storico non riuscito. Riprova riaprendo l’app.");
+    });
+    return () => {
+      cancelled = true;
+      if (reconciling.current === id) reconciling.current = null;
+    };
   }, [user, cloudFor, cloud, screeningId, state, reconciled, dispatch]);
   useEffect(() => {
     setSavedRevision("");
@@ -198,7 +219,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
           setStatus("Salvataggio nello storico…");
           const revision = await screeningRevision(state);
           if (cancelled) return;
-          const base = syncedRevision(screeningId);
+          const base = baseFor(screeningId);
           if (base === revision) {
             setSavedRevision(screeningId + ":" + revision);
             return;
@@ -214,7 +235,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
             // Un altro dispositivo ha salvato nel frattempo: si legge la sua versione e si uniscono le due.
             const { data: current } = await client.from("screenings").select("payload,revision").eq("id", screeningId).eq("owner_id", owner).maybeSingle();
             if (cancelled || !current || !validSavedState(current.payload)) return;
-            rememberSynced(screeningId, current.revision);
+            acknowledge(screeningId, current.revision);
             dispatch({ type: "restore", state: mergeScreenings(current.payload, state) });
             setStatus("Aggiornato con le modifiche fatte su un altro dispositivo.");
             return;
@@ -225,7 +246,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
             );
             return;
           }
-          rememberSynced(screeningId, revision);
+          acknowledge(screeningId, revision);
           setSavedRevision(screeningId + ":" + revision);
           setStatus("Screening salvato nel tuo account.");
           void refresh();

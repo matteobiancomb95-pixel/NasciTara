@@ -1,9 +1,9 @@
 {
   "name": "nascitara",
   "private": true,
-  "version": "0.9.5",
+  "version": "0.9.6",
   "type": "module",
-  "description": "NasciTara — stima del peso, del percentile e della lunghezza del nascituro combinando piu ecografie.",
+  "description": "NasciTara \u2014 stima del peso, del percentile e della lunghezza del nascituro combinando piu ecografie.",
   "scripts": {
     "dev": "vite",
     "dev:test": "node tools/prepare-ocr.mjs && vite --mode test",

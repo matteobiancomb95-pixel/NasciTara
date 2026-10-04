@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, waitFor } from '@testing-library/react';
+import { act, cleanup, render, waitFor } from '@testing-library/react';
 import { demoState, NasciTaraProvider, useNasciTara, type NasciTaraState } from '../state/NasciTaraStore';
 import { mergeScreenings, screeningRevision, storeArchive, syncDecision, rememberSynced } from '../lib/screeningStorage';
 
@@ -60,12 +60,16 @@ vi.mock('../lib/supabaseClient', () => ({
 import { AccountProvider } from '../state/AccountContext';
 
 const ID = '57ee99e2-0000-4000-8000-000000000000';
-const base = { ...demoState(), lang: 'it' as const, email: USER.email, emailConsent: true, completed: true };
+const demo = demoState();
+const base = { ...demo, scans: Array.from({length:6}, (_,i) => ({...demo.scans[0],id:`eco-${i+1}`,date:`2026-09-${String(i+10).padStart(2,'0')}`})), lang: 'it' as const, email: USER.email, emailConsent: true, completed: true };
 const seven: NasciTaraState = { ...base, scans: [...base.scans, { ...base.scans[2], id: 'eco-7', date: '2026-10-02', hcMm: 305, acMm: 292, flMm: 63, bpdMm: 85 }] };
 const six: NasciTaraState = { ...base, gaDays: 0 };
 let seen: NasciTaraState | null = null;
+let change: ReturnType<typeof useNasciTara>['dispatch'];
 function Probe() {
-  seen = useNasciTara().state;
+  const store = useNasciTara();
+  seen = store.state;
+  change = store.dispatch;
   return null;
 }
 const device = (local: NasciTaraState) => {
@@ -128,5 +132,24 @@ describe('due dispositivi (bug 0.9.3)', () => {
       expect(ids).toContain('eco-7');
       expect(ids).toContain('eco-altro');
     }, { timeout: 4000 });
+  });
+});
+
+describe('due schede dello stesso browser', () => {
+  it('una conferma scritta dall’altra scheda non autorizza a sovrascrivere con sei ecografie', async () => {
+    await put(six);
+    rememberSynced(ID, db.get(ID)!.revision);
+    device(six);
+    await waitFor(() => expect(seen?.scans).toHaveLength(6));
+    await new Promise(r => setTimeout(r, 900));
+    // Another tab saves the seventh scan and updates shared localStorage.
+    await put(seven);
+    rememberSynced(ID, db.get(ID)!.revision);
+    act(() => change({type:'setLang',value:'en'}));
+    await waitFor(() => expect(seen?.lang).toBe('en'));
+    await new Promise(r => setTimeout(r, 1800));
+    expect(db.get(ID)!.payload.scans).toHaveLength(7);
+    expect(seen?.scans).toHaveLength(7);
+    expect(db.get(ID)!.payload.scans.some(s=>s.date==='2026-10-02')).toBe(true);
   });
 });
