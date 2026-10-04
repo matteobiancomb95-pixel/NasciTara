@@ -12,7 +12,7 @@ export function parseFeedback(body: Record<string, unknown> | null): Input | nul
 }
 export function feedbackFields(input: Input, user: { email?: string }, who: string, at: string): Fields {
   return { at, who, type: input.kind === 'review' ? 'recensione' : 'nuova funzionalità', stars: input.stars ?? '', text: input.text,
-    contact: input.contact ? 'sì' : 'no', email: input.contact ? user.email ?? '' : '', version: input.version, platform: input.platform };
+    contact: input.contact ? 'sì' : 'no', email: user.email ?? '', version: input.version, platform: input.platform };
 }
 /** Only definite rejections release the quota. A timeout can follow a successful external write. */
 export function definitelyRejected(result: string): boolean {
