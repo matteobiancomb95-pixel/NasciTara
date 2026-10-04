@@ -169,3 +169,21 @@ describe('Robustezza visibile (0.9.3)', () => {
     expect(screen.getByRole('note')).toHaveTextContent('BPD non torna con le altre misure');
   });
 });
+
+describe('Versione dell’app solo in Info', () => {
+  it('il piede e la privacy non mostrano la versione; l’Area riservata la mostra in Info', async () => {
+    const { AppShell } = await import('../components/AppShell');
+    const { PrivateArea } = await import('../screens/PrivateArea');
+    const { Privacy } = await import('../screens/Privacy');
+    const { APP_VERSION } = await import('../version');
+    const shell = wrap(<AppShell demo />);
+    expect(document.body.textContent).not.toMatch(/v?\d+\.\d+\.\d+|versione \d/);
+    shell.unmount();
+    const privacy = wrap(<Privacy onBack={() => {}} />);
+    expect(document.body.textContent).not.toMatch(/versione \d/);
+    privacy.unmount();
+    wrap(<PrivateArea onBack={() => {}} onPrivacy={() => {}} onScans={() => {}} onJourney={() => {}} />);
+    const info = screen.getByRole('heading', { name: 'Info' }).parentElement as HTMLElement;
+    expect(within(info).getByText(APP_VERSION)).toBeInTheDocument();
+  });
+});

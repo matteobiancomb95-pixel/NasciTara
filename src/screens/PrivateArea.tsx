@@ -8,6 +8,7 @@ import { localeOf } from '../i18n';
 import { Check, NumberInput, Segmented, Sheet, TextInput, WeekStepper } from '../ui/kit';
 import { ScreeningHistory } from './ScreeningHistory';
 import { useFeedback } from '../ui/feedback';
+import { APP_VERSION } from '../version';
 
 type Edit = 'name' | 'email' | 'password' | 'body' | 'sex' | 'week' | 'due' | 'delete' | 'history' | null;
 
@@ -116,6 +117,14 @@ export function PrivateArea({ onBack, onPrivacy, onScans, onJourney }: { onBack:
               {link('Privacy policy', onPrivacy)}
               {link(it ? 'Scarica i tuoi dati' : 'Download your data', exportData)}
               {link(it ? 'Elimina account' : 'Delete account', () => setEdit('delete'), true)}
+            </div>
+          </section>
+          <section className="nt-stack6" aria-labelledby="nt-info-title">
+            <h2 className="nt-eyebrow" id="nt-info-title">Info</h2>
+            <div className="nt-card nt-plist">
+              <div className="nt-prow">
+                <div className="nt-grow"><div className="nt-prow__label">{it ? 'Versione dell’app' : 'App version'}</div><div className="nt-prow__value">{APP_VERSION}</div></div>
+              </div>
             </div>
             <button type="button" className="nt-btn nt-btn--block nt-mob" onClick={() => void account.signOut()}>{it ? 'Esci dall’account' : 'Sign out'}</button>
             <button type="button" className="nt-link nt-center" onClick={() => void account.signOut().then(forgetDevice)}>{it ? 'Esci e dimentica questo dispositivo' : 'Sign out and forget this device'}</button>

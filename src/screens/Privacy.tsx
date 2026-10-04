@@ -69,7 +69,7 @@ export function Privacy({ onBack }: { onBack: () => void }) {
       </header>
       <main className="nt-wrap nt-main nt-narrow">
         <h1 className="nt-title">{it ? 'Privacy, in parole semplici' : 'Privacy, in plain words'}</h1>
-        <p className="nt-note">{it ? 'Aggiornata il 1 ottobre 2026 · versione 0.7' : 'Updated 1 October 2026 · version 0.7'}</p>
+        <p className="nt-note">{it ? 'Aggiornata il 1 ottobre 2026' : 'Updated 1 October 2026'}</p>
         <div className="nt-card nt-card--pink nt-stack6">
           <div className="nt-eyebrow">{it ? 'In breve' : 'In short'}</div>
           <p className="nt-body">{it ? 'Usiamo i tuoi dati solo per far funzionare NasciTara. Non li vendiamo. I dati sulla gravidanza restano in Europa; l’AI legge solo ciò che le chiedi. Puoi scaricarli o cancellarli quando vuoi da Area riservata.' : 'We use your data only to run NasciTara. We never sell it. Pregnancy data stays in Europe; AI reads only what you ask it to. Download or delete it any time from the private area.'}</p>

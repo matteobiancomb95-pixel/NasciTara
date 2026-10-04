@@ -1,7 +1,7 @@
 {
   "name": "nascitara",
   "private": true,
-  "version": "0.9.4",
+  "version": "0.9.5",
   "type": "module",
   "description": "NasciTara — stima del peso, del percentile e della lunghezza del nascituro combinando piu ecografie.",
   "scripts": {
