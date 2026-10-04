@@ -19,6 +19,40 @@ export interface SavedScreening {
   createdAt: string;
   updatedAt: string;
   state: NasciTaraState;
+  /** Impronta della versione online (solo per gli screening letti dal cloud). */
+  revision?: string;
+}
+
+/**
+ * Ultima versione online vista da questo dispositivo, per screening: serve a capire chi ha cambiato cosa.
+ * Se la versione online non e' piu' quella vista, qualcun altro ha salvato nel frattempo.
+ */
+const SYNC_KEY = 'nascitara.sync.094';
+export function syncedRevision(id: string): string | null {
+  try {
+    return (JSON.parse(localStorage.getItem(SYNC_KEY) ?? '{}') as Record<string, string>)[id] ?? null;
+  } catch {
+    return null;
+  }
+}
+export function rememberSynced(id: string, revision: string): void {
+  try {
+    const all = JSON.parse(localStorage.getItem(SYNC_KEY) ?? '{}') as Record<string, string>;
+    all[id] = revision;
+    localStorage.setItem(SYNC_KEY, JSON.stringify(all));
+  } catch {
+    /* Senza memoria locale si ricade sul confronto completo a ogni apertura. */
+  }
+}
+
+export type SyncDecision = 'same' | 'pull' | 'merge' | 'push';
+/** Cosa fare con uno screening che esiste sia qui sia online. */
+export function syncDecision(localRev: string, remoteRev: string, lastSeen: string | null): SyncDecision {
+  if (localRev === remoteRev) return 'same';
+  const remoteChanged = lastSeen === null || remoteRev !== lastSeen;
+  const localChanged = lastSeen === null || localRev !== lastSeen;
+  if (remoteChanged && localChanged) return 'merge';
+  return remoteChanged ? 'pull' : 'push';
 }
 export const SCREENING_STORAGE_KEY = "nascitara.screenings.051";
 export interface ScreeningArchive {
@@ -129,7 +163,52 @@ export function screeningContent(state: NasciTaraState): string {
     parents: state.parents,
     scans: state.scans,
     lang: state.lang,
+    // 0.9.4: anche percorso completato e corredino, per accorgersi di ogni modifica fatta su un altro dispositivo.
+    completed: state.completed ?? false,
+    corredino: state.corredino ?? null,
   });
+}
+
+const latestScan = (s: NasciTaraState) => s.scans.map((x) => x.date).filter(Boolean).sort().pop() ?? '';
+const blank = (x: NasciTaraState['scans'][number]) => !x.date && [x.hcMm, x.acMm, x.flMm, x.bpdMm].every((v) => v === '');
+
+/**
+ * Unisce due versioni dello stesso percorso (due dispositivi) senza perdere dati.
+ * - Ecografie: unione per id; a parita' di id vince la versione piu' aggiornata. Copie identiche
+ *   (stessa data e stesse misure con id diversi) restano una sola; ecografie vuote tolte se ce ne sono di piene.
+ * - Dati di gravidanza, genitori, sesso: dalla versione con l'ecografia piu' recente (a parita', quella online),
+ *   completando i campi vuoti con l'altra.
+ * - Corredino: per ogni capo il numero piu' alto di pezzi gia' presi. Percorso completato se lo e' in una delle due.
+ * Un'ecografia cancellata su un solo dispositivo puo' ricomparire: meglio che perderne una.
+ */
+export function mergeScreenings(remote: NasciTaraState, local: NasciTaraState): NasciTaraState {
+  const [primary, other] = latestScan(local) > latestScan(remote) ? [local, remote] : [remote, local];
+  const byId = new Map(other.scans.map((x) => [x.id, x]));
+  for (const x of primary.scans) byId.set(x.id, x);
+  const key = (x: NasciTaraState['scans'][number]) => [x.date, x.hcMm, x.acMm, x.flMm, x.bpdMm].join('|');
+  const seen = new Set<string>();
+  let scans = [...byId.values()].filter((x) => {
+    if (blank(x)) return true;
+    const k = key(x);
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+  if (scans.some((x) => !blank(x))) scans = scans.filter((x) => !blank(x));
+  scans.sort((x, y) => (x.date || '9').localeCompare(y.date || '9'));
+  const parents = { ...primary.parents };
+  for (const k of Object.keys(parents) as Array<keyof typeof parents>) if (parents[k] === '') parents[k] = other.parents[k];
+  const bought: Record<string, number> = { ...(other.corredino?.bought ?? {}) };
+  for (const [k, v] of Object.entries(primary.corredino?.bought ?? {})) bought[k] = Math.max(v, bought[k] ?? 0);
+  const corredino = primary.corredino || other.corredino ? { ...(other.corredino ?? { washes: 3 as const }), ...(primary.corredino ?? {}), bought } : undefined;
+  return {
+    ...primary,
+    babySex: primary.babySex || other.babySex,
+    parents,
+    scans,
+    completed: primary.completed || other.completed,
+    ...(corredino ? { corredino } : {}),
+  };
 }
 
 export async function screeningRevision(

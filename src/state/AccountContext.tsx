@@ -17,6 +17,10 @@ import {
   validSavedState,
   screeningRevision,
   hasProgress,
+  mergeScreenings,
+  rememberSynced,
+  syncDecision,
+  syncedRevision,
   type SavedScreening,
 } from "../lib/screeningStorage";
 /** Versione del consenso mostrato in registrazione (privacy e dati sanitari). */
@@ -63,7 +67,7 @@ interface Account {
 }
 const Context = createContext<Account | null>(null);
 export function AccountProvider({ children }: { children: ReactNode }) {
-  const { state, screeningId } = useNasciTara();
+  const { state, screeningId, dispatch } = useNasciTara();
   const preview = !supabase && import.meta.env.DEV;
   const [ready, setReady] = useState(!supabase);
   const [authError] = useState(() => {
@@ -111,7 +115,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     if (!supabase || !user) return;
     const { data, error } = await supabase
       .from("screenings")
-      .select("id,payload,created_at,updated_at")
+      .select("id,payload,created_at,updated_at,revision")
       .eq("owner_id", user.id)
       .order("updated_at", { ascending: false })
       .limit(50);
@@ -131,14 +135,49 @@ export function AccountProvider({ children }: { children: ReactNode }) {
           state: r.payload,
           createdAt: r.created_at,
           updatedAt: r.updated_at,
+          revision: r.revision,
         })),
     );
   }, [user]);
   useEffect(() => {
     void refresh();
   }, [refresh]);
+  // Tornando sull'app (altra scheda, telefono sbloccato) si rilegge lo storico e si riconcilia di nuovo.
+  useEffect(() => {
+    if (!supabase || !user) return;
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      void refresh().then(() => setReconciled(null));
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [user, refresh]);
+  // Prima di salvare online, ogni screening si riconcilia con la versione nel cloud (0.9.4):
+  // se e' cambiata solo online si scarica, se sono cambiate entrambe si uniscono. Mai sovrascrivere alla cieca.
+  const [reconciled, setReconciled] = useState<string | null>(null);
+  const reconciling = useRef<string | null>(null);
+  useEffect(() => {
+    if (!supabase || !user || cloudFor !== user.id) return;
+    if (reconciled === screeningId || reconciling.current === screeningId) return;
+    const id = screeningId;
+    reconciling.current = id;
+    const remote = cloud.find((r) => r.id === id);
+    void (async () => {
+      if (remote?.revision) {
+        const decision = syncDecision(await screeningRevision(state), remote.revision, syncedRevision(id));
+        if (reconciling.current !== id) return;
+        if (decision === 'pull') dispatch({ type: "restore", state: remote.state });
+        if (decision === 'merge') dispatch({ type: "restore", state: mergeScreenings(remote.state, state) });
+        // La base del prossimo salvataggio e' la versione online appena vista.
+        rememberSynced(id, remote.revision);
+      }
+      reconciling.current = null;
+      setReconciled(id);
+    })();
+  }, [user, cloudFor, cloud, screeningId, state, reconciled, dispatch]);
   useEffect(() => {
     setSavedRevision("");
+    if (reconciled !== screeningId) return;
     if (
       !supabase ||
       !user?.email_confirmed_at ||
@@ -159,22 +198,34 @@ export function AccountProvider({ children }: { children: ReactNode }) {
           setStatus("Salvataggio nello storico…");
           const revision = await screeningRevision(state);
           if (cancelled) return;
-          const { error } = await client
-            .from("screenings")
-            .upsert({
-              id: screeningId,
-              owner_id: owner,
-              payload: state,
-              revision,
-              updated_at: new Date().toISOString(),
-            });
+          const base = syncedRevision(screeningId);
+          if (base === revision) {
+            setSavedRevision(screeningId + ":" + revision);
+            return;
+          }
+          const row = { payload: state, revision, updated_at: new Date().toISOString() };
+          // Salvataggio a condizione: riesce solo se online c'e' ancora la versione che questo dispositivo ha visto.
+          const { data: saved, error } = base
+            ? await client.from("screenings").update(row).eq("id", screeningId).eq("owner_id", owner).eq("revision", base).select("id")
+            : await client.from("screenings").insert({ id: screeningId, owner_id: owner, ...row }).select("id");
           if (cancelled || userId.current !== owner) return;
+          const conflict = (!error && base && (saved ?? []).length === 0) || error?.code === "23505";
+          if (conflict) {
+            // Un altro dispositivo ha salvato nel frattempo: si legge la sua versione e si uniscono le due.
+            const { data: current } = await client.from("screenings").select("payload,revision").eq("id", screeningId).eq("owner_id", owner).maybeSingle();
+            if (cancelled || !current || !validSavedState(current.payload)) return;
+            rememberSynced(screeningId, current.revision);
+            dispatch({ type: "restore", state: mergeScreenings(current.payload, state) });
+            setStatus("Aggiornato con le modifiche fatte su un altro dispositivo.");
+            return;
+          }
           if (error) {
             setStatus(
               "Salvataggio online non riuscito. La copia su questo dispositivo è disponibile.",
             );
             return;
           }
+          rememberSynced(screeningId, revision);
           setSavedRevision(screeningId + ":" + revision);
           setStatus("Screening salvato nel tuo account.");
           void refresh();
@@ -187,7 +238,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [state, screeningId, user, refresh]);
+  }, [state, screeningId, user, refresh, reconciled, dispatch]);
   // Run outside onAuthStateChange: awaiting Supabase calls inside that callback can deadlock.
   useEffect(() => {
     if (!supabase || !user?.email_confirmed_at || user.user_metadata?.welcome_requested !== true || welcomed.current.has(user.id)) return;
