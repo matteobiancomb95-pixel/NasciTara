@@ -1,2 +1,2 @@
-/** Versione mostrata nel piede e inviata con La tua voce. */
-export const APP_VERSION = '0.9.6';
+/** Versione mostrata in Area riservata › Info e inviata con La tua voce. */
+export const APP_VERSION = '1.0-a';

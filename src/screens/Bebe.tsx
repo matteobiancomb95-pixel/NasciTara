@@ -3,6 +3,9 @@ import { PercentileSummary } from '../components/PercentileSummary';
 import { useMemo, useState } from 'react';
 import { useNasciTara, type ScanState, type Washes } from '../state/NasciTaraStore';
 import { useMamma } from '../state/MammaStore';
+import { useFamily } from '../state/AccountContext';
+import { ageLabel, neoUntil, PHASE_NAME } from '../lib/family';
+import { BirthSheet } from '../components/BirthSheet';
 import { buildCorredino, corredinoText, type Corredino, type Group, type Season } from '../lib/corredino';
 import { exportCorredinoPdf } from '../lib/corredinoPdf';
 import { estimatedDueDate, formatGA, todayUTC } from '../lib/gestationalAge';
@@ -32,7 +35,14 @@ const compareOf = (g: number, it: boolean) => {
 
 /** Riepilogo (M08 / D05): il bebe da toccare, il percorso, scorciatoie con icone. */
 export function HomeTab({ firstName, onGo }: { firstName: string; onGo: Go }) {
+  const { born } = useFamily();
+  return born ? <BornHome firstName={firstName} onGo={onGo} /> : <ExpectingHome firstName={firstName} onGo={onGo} />;
+}
+
+function ExpectingHome({ firstName, onGo }: { firstName: string; onGo: Go }) {
   const { analysis, state, dispatch, ga, gaValid, lang } = useNasciTara();
+  const { role } = useFamily();
+  const [birth, setBirth] = useState(false);
   const { visits } = useMamma();
   const it = lang === 'it';
   const rows = useScanRows();
@@ -55,11 +65,11 @@ export function HomeTab({ firstName, onGo }: { firstName: string; onGo: Go }) {
   const pct = week === null ? 0 : Math.min(100, Math.max(2, ((ga - 4) / 36) * 100));
   const lines = analysis
     ? [
-        it ? `Ciao mamma! Oggi peso più o meno quanto ${compareOf(analysis.now.efw, it)}.` : `Hi mum! Today I weigh about as much as ${compareOf(analysis.now.efw, it)}.`,
+        it ? `Ciao ${role === 'papa' ? 'papà' : 'mamma'}! Oggi peso più o meno quanto ${compareOf(analysis.now.efw, it)}.` : `Hi ${role === 'papa' ? 'dad' : 'mum'}! Today I weigh about as much as ${compareOf(analysis.now.efw, it)}.`,
         daysLeft !== null ? (it ? `Ancora ${daysLeft} giorni e ci vediamo, a ${dueMonth}!` : `${daysLeft} more days and we meet, in ${dueMonth}!`) : '',
         it ? `Mi hai già guardato in ${rows.length} ${rows.length === 1 ? 'ecografia' : 'ecografie'}. Sorridevo!` : `You’ve seen me in ${rows.length} scans. I was smiling!`,
       ].filter(Boolean)
-    : [it ? 'Ciao mamma! Aggiungi un’ecografia e ti racconto come cresco.' : 'Hi mum! Add a scan and I’ll tell you how I’m growing.'];
+    : [it ? `Ciao ${role === 'papa' ? 'papà' : 'mamma'}! Aggiungi un’ecografia e ti racconto come cresco.` : `Hi ${role === 'papa' ? 'dad' : 'mum'}! Add a scan and I’ll tell you how I’m growing.`];
   const save = (scan: ScanState) => {
     dispatch({ type: 'saveScan', scan });
     setAdding(false);
@@ -95,6 +105,16 @@ export function HomeTab({ firstName, onGo }: { firstName: string; onGo: Go }) {
           </button>
         </section>
         <section className="nt-stack">
+          {week === null || week >= 36 ? (
+            <button type="button" className="nt-row nt-linkcard nt-linkcard--born nt-pop" onClick={() => setBirth(true)}>
+              <IconBubble name="baby" tone="brand" />
+              <span className="nt-row__body">
+                <span className="nt-row__title">{it ? 'È nato?' : 'Is the baby here?'}</span>
+                <span className="nt-row__meta">{it ? 'Indica la data di nascita: NasciTara passa ai primi mesi.' : 'Add the date of birth: NasciTara moves on to the first months.'}</span>
+              </span>
+              <Icon name="chevron" className="nt-chev" />
+            </button>
+          ) : null}
           {week !== null ? (
             <div className="nt-card nt-journey">
               <div className="nt-spread">
@@ -145,6 +165,83 @@ export function HomeTab({ firstName, onGo }: { firstName: string; onGo: Go }) {
       <Sheet open={adding} onClose={() => setAdding(false)} labelClose={it ? 'Chiudi' : 'Close'} title={it ? `Ecografia ${rows.length + 1}` : `Scan ${rows.length + 1}`} subtitle={it ? 'Nuova ecografia' : 'New scan'}>
         <ScanEditor key={adding ? 'new' : 'none'} compact number={rows.length + 1} onSave={save} />
       </Sheet>
+      <BirthSheet open={birth} onClose={() => setBirth(false)} />
+    </main>
+  );
+}
+
+/** Riepilogo dopo la nascita (1.0-a): età, fase e cosa arriva nei prossimi rilasci. */
+function BornHome({ firstName, onGo }: { firstName: string; onGo: Go }) {
+  const { state, dispatch, lang, completeScans } = useNasciTara();
+  const { phase, birthDate } = useFamily();
+  const { visits } = useMamma();
+  const { c } = useCorredino();
+  const it = lang === 'it';
+  const loc = localeOf(lang);
+  const date = (iso: string) => new Date(iso + 'T12:00:00Z').toLocaleDateString(loc, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+  const age = birthDate ? ageLabel(birthDate, lang) : '';
+  const next = upcoming(visits, romeToday(), 1)[0];
+  const boy = state.babySex === 'male';
+  const sexLabel = state.babySex === 'female' ? (it ? 'È una femmina' : 'It’s a girl') : boy ? (it ? 'È un maschio' : 'It’s a boy') : it ? 'Maschio o femmina?' : 'Boy or girl?';
+  const nextSex = state.babySex === 'female' ? 'male' : 'female';
+  const soon: Array<[IconName, string, string]> = it
+    ? [['stethoscope', 'Libretto sanitario', 'Vaccini, bilanci di salute e crescita, con i promemoria.'], ['heart', 'Gestione bebe', 'Poppate, pannolini e sonno, fino ai 12 mesi.'], ['sparkle', 'Apprendimento guidato', 'Giochi e attività per lo sviluppo, da fonti pediatriche.']]
+    : [['stethoscope', 'Health record', 'Vaccines, check-ups and growth, with reminders.'], ['heart', 'Baby care', 'Feeds, nappies and sleep, up to 12 months.'], ['sparkle', 'Guided learning', 'Play and activities for development, from paediatric sources.']];
+  return (
+    <main className="nt-wrap nt-main nt-home nt-home--born">
+      <div className="nt-home__grid">
+        <section className="nt-home__hero">
+          <div className="nt-spread nt-start">
+            <div>
+              <h1 className="nt-home__hello">{it ? `Ciao${firstName ? ' ' + firstName : ''}` : `Hi${firstName ? ' ' + firstName : ''}`}</h1>
+              {birthDate ? <p className="nt-sub">{it ? `Il tuo bebe ha ${age}` : `Your baby is ${age} old`}</p> : null}
+            </div>
+            <button type="button" className="nt-sex nt-pop" onClick={() => dispatch({ type: 'setBabySex', value: nextSex })} title={it ? 'Cambia' : 'Change'}>{sexLabel}</button>
+          </div>
+          <div className="nt-card nt-card--pink nt-born">
+            <span className="nt-tag">{PHASE_NAME[phase][lang]}</span>
+            {birthDate ? <div className="nt-mid">{it ? `Nato il ${date(birthDate)}` : `Born on ${date(birthDate)}`}</div> : null}
+            {phase === 'neo' && birthDate ? <p className="nt-note">{it ? `Neogenitori fino al ${date(neoUntil(birthDate))}: poi NasciTara passa da sola a “Già genitore”.` : `New parents until ${date(neoUntil(birthDate))}: then NasciTara moves to “Already a parent” on its own.`}</p> : null}
+          </div>
+        </section>
+        <section className="nt-stack">
+          <button type="button" className="nt-row nt-linkcard nt-pop" onClick={() => onGo('calendario')}>
+            <IconBubble name="stethoscope" />
+            <span className="nt-row__body">
+              <span className="nt-eyebrow">{it ? 'Prossimo appuntamento' : 'Next appointment'}</span>
+              <span className="nt-row__title">{next ? `${next.kind} · ${shortDate(next.visit_date, lang, { weekday: 'short', day: 'numeric', month: 'short' })}, ${next.visit_time}` : it ? 'Aggiungi la prossima visita' : 'Add your next visit'}</span>
+            </span>
+            <Icon name="chevron" className="nt-chev" />
+          </button>
+          {c && phase === 'neo' ? (
+            <button type="button" className="nt-home__cor nt-pop" onClick={() => onGo('corredino')}>
+              <Ring value={c.have} total={c.total} />
+              <span className="nt-row__body">
+                <span className="nt-eyebrow">Corredino AI</span>
+                <span className="nt-home__cortitle">{it ? `${c.have} di ${c.total} capi pronti` : `${c.have} of ${c.total} items ready`}</span>
+                <span className="nt-row__meta">{it ? 'Taglie' : 'Sizes'} {c.sizes.join(' · ')} · {c.seasonHeadline}</span>
+              </span>
+              <Icon name="chevron" className="nt-chev" />
+            </button>
+          ) : null}
+          {completeScans > 0 ? (
+            <button type="button" className="nt-row nt-linkcard nt-pop" onClick={() => onGo('baby')}>
+              <IconBubble name="scan" />
+              <span className="nt-row__body"><span className="nt-row__title">{it ? 'Le ecografie della gravidanza' : 'Your pregnancy scans'}</span><span className="nt-row__meta">{it ? 'Restano qui, da riguardare quando vuoi.' : 'They stay here to look back on.'}</span></span>
+              <Icon name="chevron" className="nt-chev" />
+            </button>
+          ) : null}
+          <div className="nt-card nt-stack6">
+            <div className="nt-eyebrow">{it ? 'In arrivo su NasciTara' : 'Coming to NasciTara'}</div>
+            {soon.map(([icon, title, body]) => (
+              <div key={title} className="nt-row nt-row--plain">
+                <IconBubble name={icon} size={36} />
+                <span className="nt-row__body"><span className="nt-row__title">{title}</span><span className="nt-row__meta">{body}</span></span>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
     </main>
   );
 }
@@ -286,9 +383,21 @@ export function BabyTab() {
 
 /* ============================ corredino ============================ */
 
+/** Lunghezza media alla nascita (OMS, 50° percentile) quando dopo la nascita manca una stima. */
+const BIRTH_LENGTH_CM = 50;
+
 export function useCorredino(): { c: Corredino | null; basis: string; dueShort: string } {
   const { analysis, state, ga, gaValid, lang } = useNasciTara();
+  const { birthDate } = useFamily();
   return useMemo(() => {
+    if (birthDate) {
+      // After the birth the season comes from the real date; length from the last estimate or the average.
+      const born = new Date(birthDate + 'T00:00:00Z');
+      const len = analysis?.lengthTerm.cm ?? BIRTH_LENGTH_CM;
+      const c = buildCorredino({ birthLengthCm: len, dueDate: born, washes: state.corredino?.washes ?? 3, dryer: state.corredino?.dryer ?? false, bought: state.corredino?.bought ?? {}, lang });
+      const loc = localeOf(lang);
+      return { c, basis: lang === 'it' ? `Nato il ${born.toLocaleDateString(loc, { day: 'numeric', month: 'long', timeZone: 'UTC' })} · ~${Math.round(len)} cm` : `Born ${born.toLocaleDateString(loc, { day: 'numeric', month: 'long', timeZone: 'UTC' })} · ~${Math.round(len)} cm`, dueShort: born.toLocaleDateString(loc, { day: 'numeric', month: 'short', timeZone: 'UTC' }) };
+    }
     if (!analysis || !gaValid) return { c: null, basis: '', dueShort: '' };
     const due = estimatedDueDate(state.referenceDate, ga) ?? new Date();
     const c = buildCorredino({
@@ -301,19 +410,20 @@ export function useCorredino(): { c: Corredino | null; basis: string; dueShort: 
       basis: `~${Math.round(analysis.lengthTerm.cm)} cm · ~${grams(Math.round(analysis.term.efw / 10) * 10, lang)} g`,
       dueShort: due.toLocaleDateString(loc, { day: 'numeric', month: 'short', timeZone: 'UTC' }),
     };
-  }, [analysis, state.referenceDate, state.corredino, ga, gaValid, lang]);
+  }, [analysis, state.referenceDate, state.corredino, ga, gaValid, lang, birthDate]);
 }
 
 const SEASON_ICON: Record<Season, IconName> = { winter: 'snow', spring: 'flower', summer: 'sun', autumn: 'leaf' };
 
 /** Corredino AI (M11 / M12 / D07): quanti capi, perche', e quanti ne hai gia'. */
 export function CorredinoTab() {
-  const { analysis, state, dispatch, lang } = useNasciTara();
+  const { state, dispatch, lang } = useNasciTara();
+  const { born } = useFamily();
   const it = lang === 'it';
   const { c, basis, dueShort } = useCorredino();
   const [open, setOpen] = useState<string | null>(null);
   const { toast } = useFeedback();
-  if (!c || !analysis) {
+  if (!c) {
     return (
       <main className="nt-wrap nt-main nt-narrow">
         <div className="nt-card nt-card--pink"><div className="nt-eyebrow">Corredino AI</div><p className="nt-body">{it ? 'Si sblocca con la prima stima: aggiungi un’ecografia completa.' : 'It unlocks with your first estimate: add a complete scan.'}</p></div>
@@ -366,7 +476,7 @@ export function CorredinoTab() {
     <div className="nt-card nt-card--pink nt-season">
       <IconBubble name={SEASON_ICON[c.columns[0]?.season ?? 'autumn']} tone="white" />
       <div className="nt-grow nt-stack6">
-        <div className="nt-spread"><span className="nt-eyebrow">{it ? 'Stagione' : 'Season'}</span><span className="nt-small">{it ? 'Parto' : 'Due'} ~{dueShort}</span></div>
+        <div className="nt-spread"><span className="nt-eyebrow">{it ? 'Stagione' : 'Season'}</span><span className="nt-small">{born ? (it ? 'Nato il' : 'Born') : it ? 'Parto' : 'Due'} {born ? '' : '~'}{dueShort}</span></div>
         <div className="nt-h3">{c.seasonHeadline}</div>
         <p className="nt-body">{c.advice}</p>
         <div className="nt-chips">{c.materials.map((m) => <span key={m} className="nt-chip">{m}</span>)}</div>

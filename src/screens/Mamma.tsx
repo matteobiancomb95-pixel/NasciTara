@@ -1,7 +1,8 @@
 import { DoctorContacts } from '../components/DoctorContacts';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNasciTara } from '../state/NasciTaraStore';
-import { useAccount } from '../state/AccountContext';
+import { useAccount, useFamily } from '../state/AccountContext';
+import { ageLabel, ageOf } from '../lib/family';
 import { useMamma, type FnResult } from '../state/MammaStore';
 import { formatGA } from '../lib/gestationalAge';
 import {
@@ -21,7 +22,15 @@ const useLang = () => {
 };
 function useWeek(): number | null {
   const { ga, gaValid } = useNasciTara();
-  return gaValid ? Math.floor(ga) : null;
+  const { born } = useFamily();
+  return gaValid && !born ? Math.floor(ga) : null;
+}
+
+/** Contesto per l'AI: chi scrive e a che punto è la famiglia. Mai nomi né date precise. */
+function useFamilyContext() {
+  const family = useFamily();
+  const ageWeeks = family.birthDate ? ageOf(family.birthDate).weeks : null;
+  return { family, ai: { role: family.role, phase: family.phase, ageWeeks } };
 }
 
 /** Le funzioni AI rispondono solo con l'account (servono le funzioni server). */
@@ -350,6 +359,9 @@ export function NotebookTab({ onCalendar }: { onCalendar: () => void }) {
   const { notes, add, remove, call, error } = useMamma();
   const { toast, confirm } = useFeedback();
   const week = useWeek();
+  const { family, ai } = useFamilyContext();
+  /** In attesa la settimana (33+2), dopo la nascita l'età del bebe. */
+  const stamp = family.birthDate ? (it ? `${ageLabel(family.birthDate, 'it')} di vita` : `${ageLabel(family.birthDate, 'en')} old`) : gaValid ? formatGA(ga) : '';
   const [text, setText] = useState('');
   const [tag, setTag] = useState<NoteTag>('sintomi');
   const [filter, setFilter] = useState<NoteTag | 'all'>('all');
@@ -368,7 +380,7 @@ export function NotebookTab({ onCalendar }: { onCalendar: () => void }) {
   const count = (t: NoteTag) => notes.filter((n) => n.tag === t).length;
   const save = async () => {
     setBusy(true);
-    const ok = await add('notes', { tag, body: text.trim(), ga_label: gaValid ? formatGA(ga) : '' });
+    const ok = await add('notes', { tag, body: text.trim(), ga_label: stamp });
     setBusy(false);
     if (ok) {
       setText('');
@@ -379,7 +391,7 @@ export function NotebookTab({ onCalendar }: { onCalendar: () => void }) {
     setThinking(true);
     setMsg('');
     const r = await call('ai', {
-      mode: 'insight', lang, week,
+      mode: 'insight', lang, week, ...ai,
       notes: notes.slice(0, 30).map((n) => ({ date: n.created_at.slice(0, 10), ga: n.ga_label, tag: TAG_NAME.it[n.tag], text: n.body })),
     });
     setThinking(false);
@@ -394,7 +406,7 @@ export function NotebookTab({ onCalendar }: { onCalendar: () => void }) {
   };
   const addQuestion = async () => {
     if (!insight?.question) return;
-    if (await add('notes', { tag: 'medico', body: insight.question, ga_label: gaValid ? formatGA(ga) : '' })) toast(it ? 'Aggiunta alle note “Per il medico”.' : 'Added to “For the doctor” notes.');
+    if (await add('notes', { tag: 'medico', body: insight.question, ga_label: stamp })) toast(it ? 'Aggiunta alle note “Per il medico”.' : 'Added to “For the doctor” notes.');
     else toast(it ? 'Salvataggio non riuscito. Riprova.' : 'Could not save. Try again.', 'error');
   };
   return (
@@ -417,7 +429,7 @@ export function NotebookTab({ onCalendar }: { onCalendar: () => void }) {
           ))}
         </div>
         <div className="nt-spread">
-          <span className="nt-chip nt-chip--soft">{gaValid ? `${formatGA(ga)} ${it ? 'sett.' : 'wk'}` : ''}</span>
+          <span className="nt-chip nt-chip--soft">{family.born ? stamp : gaValid ? `${formatGA(ga)} ${it ? 'sett.' : 'wk'}` : ''}</span>
           <button aria-busy={busy} type="button" className="nt-btn nt-btn--sm nt-pop" disabled={!text.trim() || busy} onClick={() => void save()}><Icon name="check" size={18} />{it ? 'Salva nota' : 'Save note'}</button>
         </div>
       </div>
@@ -433,7 +445,7 @@ export function NotebookTab({ onCalendar }: { onCalendar: () => void }) {
               {insight.question ? <button type="button" className="nt-pill nt-pill--btn nt-pop" onClick={() => void addQuestion()}><Icon name="stethoscope" size={16} />{it ? 'Aggiungi a “Per il medico”' : 'Add to “For the doctor”'}</button> : null}
             </>
           ) : (
-            <p className="nt-body">{notes.length ? (it ? 'Leggo le tue note e ti propongo un suggerimento per questa settimana.' : 'I read your notes and suggest something for this week.') : it ? 'Scrivi qualche nota: poi le leggo insieme e ti propongo un suggerimento.' : 'Write a few notes: then I read them together and suggest something.'}</p>
+            <p className="nt-body">{notes.length ? (it ? (family.born ? 'Leggo le tue note e ti propongo un suggerimento per questi giorni.' : 'Leggo le tue note e ti propongo un suggerimento per questa settimana.') : family.born ? 'I read your notes and suggest something for these days.' : 'I read your notes and suggest something for this week.') : it ? 'Scrivi qualche nota: poi le leggo insieme e ti propongo un suggerimento.' : 'Write a few notes: then I read them together and suggest something.'}</p>
           )}
           <div className="nt-spread">
             <button aria-busy={thinking} type="button" className="nt-btn nt-btn--sm nt-btn--white nt-pop" disabled={!notes.length || thinking} onClick={() => void ask()}><Icon name="sparkle" size={18} />{thinking ? (it ? 'Sto leggendo…' : 'Reading…') : insight ? (it ? 'Aggiorna' : 'Refresh') : it ? 'Leggi le mie note' : 'Read my notes'}</button>
@@ -459,7 +471,7 @@ export function NotebookTab({ onCalendar }: { onCalendar: () => void }) {
             <span className="nt-notecard__icon"><Icon name={TAG_ICON[n.tag]} size={18} /></span>
             <div className="nt-grow">
               <div className="nt-spread">
-                <span className="nt-note">{shortDate(n.created_at, lang, { weekday: 'short', day: 'numeric', month: 'short' })}{n.ga_label ? ` · ${n.ga_label} ${it ? 'sett.' : 'wk'}` : ''}</span>
+                <span className="nt-note">{shortDate(n.created_at, lang, { weekday: 'short', day: 'numeric', month: 'short' })}{n.ga_label ? ` · ${/^\d+(\+\d)?$/.test(n.ga_label) ? `${n.ga_label} ${it ? 'sett.' : 'wk'}` : n.ga_label}` : ''}</span>
                 <button type="button" className="nt-iconbtn" aria-label={it ? 'Elimina nota' : 'Delete note'} onClick={() => void (async () => {
                   if (!(await confirm({ title: it ? 'Eliminare questa nota?' : 'Delete this note?', confirm: it ? 'Elimina' : 'Delete', cancel: it ? 'Annulla' : 'Cancel', danger: true }))) return;
                   if (await remove('notes', n.id)) toast(it ? 'Nota eliminata.' : 'Note deleted.');
@@ -480,9 +492,10 @@ export function NotebookTab({ onCalendar }: { onCalendar: () => void }) {
 
 function UrgentBox({ kind }: { kind: 'medical' | 'crisis' }) {
   const { it } = useLang();
+  const { role } = useFamily();
   return (
     <div className="nt-urgent" role="alert">
-      <b>{kind === 'crisis' ? (it ? 'Non sei da sola' : 'You are not alone') : it ? 'Fallo valutare subito' : 'Get this checked now'}</b>
+      <b>{kind === 'crisis' ? (it ? (role === 'papa' ? 'Non sei solo' : 'Non sei da sola') : 'You are not alone') : it ? 'Fallo valutare subito' : 'Get this checked now'}</b>
       <div className="nt-chips">
         <a className="nt-btn nt-btn--sm" href="tel:112">{it ? 'Chiama il 112' : 'Call 112'}</a>
         {kind === 'crisis' ? <a className="nt-btn nt-btn--sm nt-btn--white" href="tel:+390223272327">Telefono Amico</a> : null}
@@ -498,7 +511,9 @@ const READ_KEY = 'nascitara.letture';
 export function SupportTab() {
   const { lang, it } = useLang();
   const { call } = useMamma();
+  const { family, ai } = useFamilyContext();
   const week = useWeek() ?? 20;
+  const papa = family.role === 'papa';
   const [query, setQuery] = useState('');
   const [topic, setTopic] = useState<'pregnancy' | 'feelings'>('pregnancy');
   const [chat, setChat] = useState<Msg[]>([]);
@@ -508,7 +523,7 @@ export function SupportTab() {
   const box = useRef<HTMLDivElement>(null);
   const today = romeToday();
   const dayIndex = Math.floor(Date.now() / 864e5);
-  const daily = useMemo(() => dailyFor(week, dayIndex), [week, dayIndex]);
+  const daily = useMemo(() => dailyFor(family.born ? 'born' : week, dayIndex, 4, family.role), [family.born, family.role, week, dayIndex]);
   const found = searchSupport(query);
   const [read, setRead] = useState<string[]>(() => {
     try {
@@ -531,8 +546,16 @@ export function SupportTab() {
   const kindName = (k: SupportItem['kind']) => (it ? { formazione: 'Da sapere', fisica: 'Movimento', ludica: 'Da fare insieme', benessere: 'Benessere' } : { formazione: 'Good to know', fisica: 'Movement', ludica: 'Do together', benessere: 'Wellbeing' })[k];
   const whoName = (w: SupportItem['who']) => (it ? { mamma: 'Per la mamma', papa: 'Per il papà', insieme: 'Per tutti e due' } : { mamma: 'For mum', papa: 'For dad', insieme: 'For both' })[w];
   const suggestions = topic === 'pregnancy'
-    ? (it ? ['Posso fare sport?', 'Cosa mettere in valigia?', 'Posso bere il caffè?'] : ['Can I exercise?', 'What to pack for hospital?', 'Can I drink coffee?'])
-    : (it ? ['Sono spesso in ansia', 'Mi sento stanca e giù', 'Ho paura del parto'] : ['I often feel anxious', 'I feel tired and low', 'I’m scared of giving birth']);
+    ? family.born
+      ? (it ? ['Quanto deve dormire?', 'Come capisco se mangia abbastanza?', 'Quando si fa il primo bagnetto?'] : ['How much should they sleep?', 'How do I know they are feeding enough?', 'When is the first bath?'])
+      : papa
+        ? (it ? ['Come posso aiutarla in gravidanza?', 'Cosa serve per il parto?', 'Posso assistere al parto?'] : ['How can I help during pregnancy?', 'What do we need for the birth?', 'Can I be at the birth?'])
+        : (it ? ['Posso fare sport?', 'Cosa mettere in valigia?', 'Posso bere il caffè?'] : ['Can I exercise?', 'What to pack for hospital?', 'Can I drink coffee?'])
+    : papa
+      ? (it ? ['Mi sento escluso', 'Ho paura di non essere all’altezza', 'Dormo pochissimo'] : ['I feel left out', 'I’m afraid I won’t be good enough', 'I barely sleep'])
+      : family.born
+        ? (it ? ['Mi sento stanca e giù', 'Piango spesso', 'Mi sento sola'] : ['I feel tired and low', 'I cry a lot', 'I feel alone'])
+        : (it ? ['Sono spesso in ansia', 'Mi sento stanca e giù', 'Ho paura del parto'] : ['I often feel anxious', 'I feel tired and low', 'I’m scared of giving birth']);
   const send = async (text: string) => {
     const q = text.trim();
     if (!q || busy) return;
@@ -541,7 +564,7 @@ export function SupportTab() {
     setDraft('');
     setBusy(true);
     setMsg('');
-    const r = await call('ai', { mode: 'assistant', topic, lang, week, messages: next.map(({ role, content }) => ({ role, content })) });
+    const r = await call('ai', { mode: 'assistant', topic, lang, week: family.born ? undefined : week, ...ai, messages: next.map(({ role, content }) => ({ role, content })) });
     setBusy(false);
     if (r.status !== 'ok') {
       setMsg(r.status === 'refused' ? (it ? 'Su questo non posso aiutarti: chiedi al tuo medico o al consultorio.' : 'I can’t help with this: ask your doctor.') : aiError(r, it));
@@ -577,7 +600,7 @@ export function SupportTab() {
     <div className="nt-assist">
       <div className="nt-assist__head">
         <span className="nt-journey__title"><IconBubble name="sparkle" tone="brand" size={36} />{it ? 'Assistente AI' : 'AI assistant'}</span>
-        <Segmented label={it ? 'Argomento' : 'Topic'} size="sm" value={topic} options={[['pregnancy', it ? 'Gravidanza' : 'Pregnancy'], ['feelings', it ? 'Come ti senti' : 'How you feel']]} onChange={(t) => { setTopic(t); setChat([]); setMsg(''); }} />
+        <Segmented label={it ? 'Argomento' : 'Topic'} size="sm" value={topic} options={[['pregnancy', family.born ? (it ? 'Il bebe' : 'Baby') : it ? 'Gravidanza' : 'Pregnancy'], ['feelings', it ? 'Come ti senti' : 'How you feel']]} onChange={(t) => { setTopic(t); setChat([]); setMsg(''); }} />
       </div>
       <p className="nt-note">{topic === 'pregnancy'
         ? (it ? 'Risponde un’AI, non un’ostetrica: cerca su Ministero, ISS, EFSA, OMS e cita le fonti.' : 'An AI answers, not a midwife: it searches official health sites and cites them.')
@@ -623,8 +646,8 @@ export function SupportTab() {
       <div className="nt-pagehead">
         <IconBubble name="heart" tone="brand" size={48} />
         <div>
-          <h1 className="nt-title">{it ? 'Supporto mamma' : 'Mum support'}</h1>
-          <p className="nt-sub">{it ? `Ogni giorno, sulla tua ${week}ª settimana` : `Every day, for week ${week}`}</p>
+          <h1 className="nt-title">{papa ? (it ? 'Supporto papà' : 'Dad support') : it ? 'Supporto mamma' : 'Mum support'}</h1>
+          <p className="nt-sub">{family.born ? (it ? 'Ogni giorno, per i primi mesi del bebe' : 'Every day, for your baby’s first months') : it ? `Ogni giorno, sulla tua ${week}ª settimana` : `Every day, for week ${week}`}</p>
         </div>
       </div>
       <div className="nt-supp__layout">
@@ -647,7 +670,7 @@ export function SupportTab() {
                   <b>{done}/{daily.length}</b>
                 </span>
               </div>
-              <p className="nt-note">{done === daily.length && daily.length ? (it ? 'Tutto letto per oggi. Domani ve ne aspettano altri!' : 'All read for today. More tomorrow!') : it ? 'Quattro letture brevi da fonti ufficiali, scelte per la tua settimana.' : 'Four short reads from official sources, picked for your week.'}</p>
+              <p className="nt-note">{done === daily.length && daily.length ? (it ? 'Tutto letto per oggi. Domani ve ne aspettano altri!' : 'All read for today. More tomorrow!') : it ? (family.born ? 'Quattro letture brevi da fonti ufficiali, scelte per questi mesi.' : 'Quattro letture brevi da fonti ufficiali, scelte per la tua settimana.') : 'Four short reads from official sources, picked for your week.'}</p>
               <div className="nt-reads">{daily.map(card)}</div>
             </section>
           )}

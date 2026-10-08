@@ -1,6 +1,8 @@
 import { useState, type ReactNode } from 'react';
 import { useNasciTara, type NumField } from '../state/NasciTaraStore';
-import { useAccount } from '../state/AccountContext';
+import { useAccount, useFamily } from '../state/AccountContext';
+import { PHASE_NAME, ageLabel, neoUntil } from '../lib/family';
+import { BirthSheet } from '../components/BirthSheet';
 import { useMamma } from '../state/MammaStore';
 import { estimatedDueDate, parseISO, toISO, todayUTC } from '../lib/gestationalAge';
 import { belongsToEmail } from '../lib/screeningStorage';
@@ -10,7 +12,7 @@ import { ScreeningHistory } from './ScreeningHistory';
 import { useFeedback } from '../ui/feedback';
 import { APP_VERSION } from '../version';
 
-type Edit = 'name' | 'email' | 'password' | 'body' | 'sex' | 'week' | 'due' | 'delete' | 'history' | null;
+type Edit = 'name' | 'email' | 'password' | 'body' | 'sex' | 'week' | 'due' | 'role' | 'birth' | 'delete' | 'history' | null;
 
 /** Area riservata (M19 / D11): i tuoi dati, i dati del bebe, privacy e uscita. */
 export function PrivateArea({ onBack, onPrivacy, onScans, onJourney }: { onBack: () => void; onPrivacy: () => void; onScans: () => void; onJourney: () => void }) {
@@ -22,6 +24,8 @@ export function PrivateArea({ onBack, onPrivacy, onScans, onJourney }: { onBack:
   const loc = localeOf(lang);
   const [edit, setEdit] = useState<Edit>(null);
   const { toast } = useFeedback();
+  const family = useFamily();
+  const dateLong = (iso: string) => new Date(iso + 'T12:00:00Z').toLocaleDateString(loc, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
   const full = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ');
   const initial = (profile?.firstName || user?.email || '·').trim()[0]?.toUpperCase();
   const due = gaValid ? estimatedDueDate(state.referenceDate, ga) : null;
@@ -41,7 +45,7 @@ export function PrivateArea({ onBack, onPrivacy, onScans, onJourney }: { onBack:
     const data = {
       exported_at: new Date().toISOString(),
       app: 'NasciTara',
-      account: { email: user?.email, first_name: profile?.firstName, last_name: profile?.lastName, ga_weeks: profile?.gaWeeks, consent: profile?.consent, created_at: user?.created_at },
+      account: { email: user?.email, first_name: profile?.firstName, last_name: profile?.lastName, role: profile?.role, birth_date: profile?.birthDate, ga_weeks: profile?.gaWeeks, consent: profile?.consent, created_at: user?.created_at },
       current_screening: state,
       screenings: [...account.cloud, ...mine.filter((r) => !account.cloud.some((c) => c.id === r.id))],
       visits: mamma.visits,
@@ -89,15 +93,31 @@ export function PrivateArea({ onBack, onPrivacy, onScans, onJourney }: { onBack:
               {row(it ? 'Nome e cognome' : 'Name', full || '—', mod, () => setEdit('name'))}
               {row('Email', user?.email ?? '—', mod, () => setEdit('email'))}
               {row('Password', google ? (it ? 'Accesso con Google' : 'Google sign-in') : '••••••••', google ? (it ? 'Imposta' : 'Set') : mod, () => setEdit('password'))}
-              {row(it ? 'Altezza e peso pre-gravidanza' : 'Height and pre-pregnancy weight', body, mod, () => setEdit('body'))}
+              {row(family.role === 'papa' ? (it ? 'Altezza e peso della mamma' : 'Mum’s height and weight') : it ? 'Altezza e peso pre-gravidanza' : 'Height and pre-pregnancy weight', body, mod, () => setEdit('body'))}
+            </div>
+          </section>
+          <section className="nt-stack6" aria-labelledby="nt-family-title">
+            <h2 className="nt-eyebrow" id="nt-family-title">{it ? 'La tua famiglia' : 'Your family'}</h2>
+            <div className="nt-card nt-plist">
+              {row(it ? 'Sei' : 'You are', family.role === 'papa' ? (it ? 'Il papà' : 'Dad') : it ? 'La mamma' : 'Mum', mod, () => setEdit('role'))}
+              <div className="nt-prow">
+                <div className="nt-grow">
+                  <div className="nt-prow__label">{it ? 'Fase' : 'Stage'}</div>
+                  <div className="nt-prow__value">{PHASE_NAME[family.phase][lang]}</div>
+                  {family.phase === 'neo' && family.birthDate ? <div className="nt-note">{it ? `Fino al ${dateLong(neoUntil(family.birthDate))}, poi “Già genitore” in automatico.` : `Until ${dateLong(neoUntil(family.birthDate))}, then “Already a parent” automatically.`}</div> : null}
+                </div>
+              </div>
+              {family.born && family.birthDate
+                ? row(it ? 'Data di nascita' : 'Date of birth', `${dateLong(family.birthDate)} · ${ageLabel(family.birthDate, lang)}`, mod, () => setEdit('birth'))
+                : row(it ? 'Il bebe è nato?' : 'Is the baby here?', it ? 'Indica la data di nascita' : 'Add the date of birth', it ? 'È nato!' : 'Born!', () => setEdit('birth'))}
             </div>
           </section>
           <section className="nt-stack6">
             <h2 className="nt-eyebrow">{it ? 'I dati del tuo bebe' : 'Your baby'}</h2>
             <div className="nt-card nt-plist">
               {row(it ? 'Sesso' : 'Sex', sex, mod, () => setEdit('sex'))}
-              {row(it ? 'Settimana di gravidanza' : 'Week of pregnancy', week !== null ? (it ? `${week}ª settimana` : `Week ${week}`) : '—', mod, () => setEdit('week'))}
-              {row(it ? 'Parto previsto' : 'Due date', due ? due.toLocaleDateString(loc, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) : '—', mod, () => setEdit('due'))}
+              {!family.born ? row(it ? 'Settimana di gravidanza' : 'Week of pregnancy', week !== null ? (it ? `${week}ª settimana` : `Week ${week}`) : '—', mod, () => setEdit('week')) : null}
+              {!family.born ? row(it ? 'Parto previsto' : 'Due date', due ? due.toLocaleDateString(loc, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) : '—', mod, () => setEdit('due')) : null}
               {row(it ? 'Ecografie salvate' : 'Saved scans', String(scans), it ? 'Vedi' : 'View', onScans)}
               {row(it ? 'Storico screening' : 'Screening history', it ? 'Apri, ricomincia o elimina' : 'Open, restart or delete', it ? 'Apri' : 'Open', () => setEdit('history'))}
             </div>
@@ -131,6 +151,7 @@ export function PrivateArea({ onBack, onPrivacy, onScans, onJourney }: { onBack:
           </section>
         </div>
       </main>
+      <BirthSheet open={edit === 'birth'} onClose={() => setEdit(null)} />
       <EditSheets edit={edit} close={() => setEdit(null)} done={(m) => { setEdit(null); if (m) toast(m); }} setGa={setGa} onJourney={onJourney} />
     </div>
   );
@@ -224,6 +245,12 @@ function EditSheets({ edit, close, done, setGa, onJourney }: { edit: Edit; close
         {save(S, !valid, () => { setGa(Math.floor(total / 7), total % 7); done(it ? 'Data del parto aggiornata.' : 'Due date updated.'); })}
       </>);
     }
+    case 'role':
+      return sheet(it ? 'Sei' : 'You are', <>
+        <Segmented label={it ? 'Sei' : 'You are'} variant="brand" value={account.profile?.role ?? 'mamma'} options={[['mamma', it ? 'La mamma' : 'Mum'], ['papa', it ? 'Il papà' : 'Dad']]}
+          onChange={(role) => void run(() => account.updateProfile({ role }), role === 'papa' ? (it ? 'Da ora la sezione si chiama “Il papà”.' : 'The section is now called “Dad”.') : it ? 'Da ora la sezione si chiama “La mamma”.' : 'The section is now called “Mum”.')} />
+        <p className="nt-note">{it ? 'Cambia i nomi delle sezioni, le letture del giorno e il modo in cui l’assistente ti risponde.' : 'Changes section names, daily reads and how the assistant answers you.'}</p>
+      </>);
     case 'delete':
       return sheet(it ? 'Elimina account' : 'Delete account', <>
         <p className="nt-body">{it ? 'Cancelliamo per sempre account, screening, visite, integratori, note e promemoria. Non si può annullare: se vuoi, prima scarica i tuoi dati.' : 'We permanently delete your account, screenings, visits, supplements, notes and reminders. This cannot be undone: download your data first if you wish.'}</p>

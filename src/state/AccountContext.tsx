@@ -13,6 +13,7 @@ import type { User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabaseClient";
 import { useNasciTara } from "./NasciTaraStore";
 import { toISO, todayUTC } from "../lib/gestationalAge";
+import { phaseOf, validBirthDate, type Phase, type Role } from "../lib/family";
 import {
   validSavedState,
   screeningRevision,
@@ -33,6 +34,17 @@ export interface Profile {
   gaWeeks: number | null;
   gaReference: string | null;
   consent: boolean;
+  /** 1.0: mamma o papà. Gli account nati prima della 1.0 sono mamme in attesa. */
+  role: Role;
+  /** Data di nascita del bebe; senza, la famiglia è in attesa. */
+  birthDate: string | null;
+}
+
+/** Dati di registrazione 1.0: settimana se in attesa, data di nascita se il bebe è già nato. */
+export interface FamilyInput {
+  role: Role;
+  gaWeeks: number | null;
+  birthDate: string | null;
 }
 
 export type AuthResult = { ok: true; needsConfirmation?: boolean } | { ok: false; error: string };
@@ -47,12 +59,12 @@ interface Account {
   recovering: boolean;
   authError: string;
   resendConfirmation: (email: string) => Promise<AuthResult>;
-  signUp: (input: { firstName: string; lastName: string; email: string; password: string; gaWeeks: number; consent: boolean }) => Promise<AuthResult>;
+  signUp: (input: FamilyInput & { firstName: string; lastName: string; email: string; password: string; consent: boolean }) => Promise<AuthResult>;
   signIn: (email: string, password: string) => Promise<AuthResult>;
   signInWithGoogle: () => Promise<AuthResult>;
   resetPassword: (email: string) => Promise<AuthResult>;
   updatePassword: (password: string) => Promise<AuthResult>;
-  completeProfile: (input: { firstName?: string; lastName?: string; gaWeeks: number; consent: boolean }) => Promise<AuthResult>;
+  completeProfile: (input: FamilyInput & { firstName?: string; lastName?: string; consent: boolean }) => Promise<AuthResult>;
   /** Area riservata: nome, email (con conferma), settimana e consenso AI. */
   updateProfile: (data: Record<string, unknown>) => Promise<AuthResult>;
   updateEmail: (email: string) => Promise<AuthResult>;
@@ -293,7 +305,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   const origin = window.location.origin + "/";
   const fail = (e: { message?: string } | null | undefined): AuthResult => ({ ok: false, error: authMessage(e?.message, state.lang) });
   const signUp: Account["signUp"] = async (input) => {
-    const data = { welcome_requested: true, lang: state.lang, first_name: input.firstName.trim(), last_name: input.lastName.trim(), ga_weeks: input.gaWeeks, ga_reference: toISO(todayUTC()), consent_version: input.consent ? CONSENT_VERSION : null, consent_at: input.consent ? new Date().toISOString() : null };
+    const data = { welcome_requested: true, lang: state.lang, first_name: input.firstName.trim(), last_name: input.lastName.trim(), ...familyData(input), consent_version: input.consent ? CONSENT_VERSION : null, consent_at: input.consent ? new Date().toISOString() : null };
     if (!supabase) {
       if (!preview) return fail({ message: "unavailable" });
       setUser(storePreviewUser(input.email.trim(), data));
@@ -341,7 +353,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     return { ok: true };
   };
   const completeProfile: Account["completeProfile"] = async (input) => {
-    const data: Record<string, unknown> = { ga_weeks: input.gaWeeks, ga_reference: toISO(todayUTC()), consent_version: input.consent ? CONSENT_VERSION : null, consent_at: input.consent ? new Date().toISOString() : null };
+    const data: Record<string, unknown> = { ...familyData(input), consent_version: input.consent ? CONSENT_VERSION : null, consent_at: input.consent ? new Date().toISOString() : null };
     if (!user?.user_metadata?.consent_version) { data.welcome_requested = true; data.lang = state.lang; }
     if (input.firstName !== undefined) data.first_name = input.firstName.trim();
     if (input.lastName !== undefined) data.last_name = input.lastName.trim();
@@ -398,7 +410,36 @@ export function profileOf(user: User): Profile {
     gaWeeks: weeks,
     gaReference: typeof m.ga_reference === "string" && /^\d{4}-\d{2}-\d{2}$/.test(m.ga_reference) ? m.ga_reference : null,
     consent: typeof m.consent_version === "string" && m.consent_version.length > 0,
+    role: m.role === "papa" ? "papa" : "mamma",
+    birthDate: validBirthDate(m.birth_date),
   };
+}
+
+/** Metadati dell'account per ruolo e fase: in attesa la settimana, dopo la nascita la data. */
+export function familyData(input: FamilyInput): Record<string, unknown> {
+  const born = validBirthDate(input.birthDate);
+  return {
+    role: input.role,
+    birth_date: born,
+    ga_weeks: born ? null : input.gaWeeks,
+    ga_reference: born ? null : toISO(todayUTC()),
+  };
+}
+
+export interface Family {
+  role: Role;
+  phase: Phase;
+  birthDate: string | null;
+  born: boolean;
+}
+
+/** Ruolo e fase correnti. Senza account (esempio, test) è una mamma in attesa. */
+export function useFamily(): Family {
+  const account = useContext(Context);
+  const profile = account?.profile ?? null;
+  const birthDate = profile?.birthDate ?? null;
+  const phase = phaseOf(birthDate);
+  return { role: profile?.role ?? "mamma", phase, birthDate, born: phase !== "attesa" };
 }
 
 const PREVIEW_KEY = "nascitara.preview-user";

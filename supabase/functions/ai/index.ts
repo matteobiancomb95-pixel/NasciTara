@@ -5,6 +5,7 @@ import {
   INSIGHT_SCHEMA, SOURCES, SUPPLEMENT_SCHEMA, SUPPLEMENT_SYSTEM, TIMES,
   assistantSystem, insightSystem, urgentReply,
 } from "../_shared/prompts.ts";
+import { familyContext } from "../_shared/family.ts";
 
 /**
  * AI di NasciTara (Claude API). Tre usi, ognuno con un tetto giornaliero per persona:
@@ -38,7 +39,7 @@ Deno.serve(async (req: Request) => {
       const messages = chat(body.messages);
       if (!messages) return json({ status: "bad_request" }, 400);
       const urgency = urgencyOf(messages[messages.length - 1].content as string);
-      if (urgency !== "none") return json({ status: "ok", answer: urgentReply(urgency, lang), sources: [], urgent: urgency });
+      if (urgency !== "none") return json({ status: "ok", answer: urgentReply(urgency, lang, familyContext(body).papa), sources: [], urgent: urgency });
     }
 
     const { data: allowed, error } = await admin.rpc("reserve_ai_call", { p_owner: user.id, p_mode: mode, p_limit: LIMITS[mode] });
@@ -95,9 +96,10 @@ async function insight(body: Json, lang: "it" | "en"): Promise<Json> {
     .filter((l) => l.length > 20);
   if (!lines.length) return { status: "empty" };
   const week = Number(body.week);
+  const family = familyContext(body);
   const recent = notes.slice(0, 5).map((n) => str((n as Json)?.text, 600)).join("\n");
   const urgency = urgencyOf(recent);
-  const out = await structured(insightSystem(lang), `Settimana attuale: ${Number.isFinite(week) ? week : "non nota"}\n\nNote, dalla più recente:\n${lines.join("\n")}`, INSIGHT_SCHEMA, "medium", 6000);
+  const out = await structured(insightSystem(lang), `${family.line}\n${family.born ? "" : `Settimana attuale: ${Number.isFinite(week) ? week : "non nota"}\n`}\nNote, dalla più recente:\n${lines.join("\n")}`, INSIGHT_SCHEMA, "medium", 6000);
   if (!out) return { status: "unavailable" };
   return { status: "ok", title: str(out.title, 120), body: str(out.body, 400), question: str(out.question, 160), urgent: urgency };
 }
@@ -113,12 +115,11 @@ function chat(raw: unknown): Msg[] | null {
 async function assistant(body: Json, lang: "it" | "en"): Promise<Json> {
   const topic = body.topic === "feelings" ? "feelings" : "pregnancy";
   const week = Number(body.week);
+  const family = familyContext(body);
   const messages: Anthropic.Beta.BetaMessageParam[] = chat(body.messages)!;
-  // La settimana come contesto operativo, dopo la domanda: il prompt di sistema resta identico e in cache.
-  if (Number.isFinite(week)) {
-    const last = messages[messages.length - 1];
-    last.content = `${last.content}\n\n(Settimana di gravidanza: ${Math.round(week)})`;
-  }
+  // Chi scrive e la fase come contesto operativo, dopo la domanda: il prompt di sistema resta identico e in cache.
+  const last = messages[messages.length - 1];
+  last.content = `${last.content}\n\n(${family.line}${!family.born && Number.isFinite(week) ? ` Settimana di gravidanza: ${Math.round(week)}.` : ""})`;
   const request = {
     model: MODEL,
     max_tokens: 8000,

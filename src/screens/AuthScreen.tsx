@@ -3,8 +3,8 @@ import markUrl from '../assets/brand/logo-mark-transparent.png';
 import { useAccount } from '../state/AccountContext';
 import { useNasciTara } from '../state/NasciTaraStore';
 import { addDays, toISO, todayUTC } from '../lib/gestationalAge';
-import { localeOf } from '../i18n';
-import { Check, GoogleIcon, Logo, Segmented, TextInput, WeekStepper } from '../ui/kit';
+import { Check, GoogleIcon, Logo, Segmented, TextInput } from '../ui/kit';
+import { FamilyFields, familyValid, type FamilyValue } from '../components/FamilyFields';
 
 export type AuthMode = 'register' | 'login' | 'forgot' | 'sent' | 'recover' | 'complete';
 
@@ -27,7 +27,12 @@ export function AuthScreen({ initialMode = 'register' }: { initialMode?: AuthMod
   const [email, setEmail] = useState(state.email);
   const [password, setPassword] = useState('');
   const [show, setShow] = useState(false);
-  const [week, setWeek] = useState<number>(Number(state.gaWeeks) || account.profile?.gaWeeks || 28);
+  const [family, setFamily] = useState<FamilyValue>(() => ({
+    role: account.profile?.role ?? 'mamma',
+    phase: 'attesa',
+    week: Number(state.gaWeeks) || account.profile?.gaWeeks || 28,
+    birthDate: '',
+  }));
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
   const pending = useRef(false);
@@ -39,7 +44,12 @@ export function AuthScreen({ initialMode = 'register' }: { initialMode?: AuthMod
     setError('');
     setInfo('');
   };
-  const due = dueFromWeek(week).toLocaleDateString(localeOf(lang), { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+  const familyInput = () => ({ role: family.role, gaWeeks: family.phase === 'attesa' ? family.week : null, birthDate: family.phase === 'attesa' ? null : family.birthDate });
+  const familyError = () => (familyValid(family) ? '' : it ? 'Indica la data di nascita del bebe, coerente con la fase scelta.' : 'Enter the baby’s date of birth, consistent with the stage you chose.');
+  /** In attesa la settimana entra subito nello screening; dopo la nascita non serve. */
+  const applyWeek = () => {
+    if (family.phase === 'attesa') dispatch({ type: 'setProfileGa', weeks: family.week, days: 0, referenceDate: toISO(todayUTC()) });
+  };
 
   async function run(task: () => Promise<{ ok: boolean; error?: string; needsConfirmation?: boolean } | void>) {
     if (pending.current) return;
@@ -62,11 +72,12 @@ export function AuthScreen({ initialMode = 'register' }: { initialMode?: AuthMod
     e.preventDefault();
     if (!firstName.trim() || !EMAIL.test(email.trim())) return setError(it ? 'Inserisci nome ed email validi.' : 'Enter a valid name and email.');
     if (!strongEnough(password)) return setError(it ? 'La password deve avere almeno 8 caratteri e un numero.' : 'Use at least 8 characters and a number.');
+    if (familyError()) return setError(familyError());
     if (!consent) return setError(it ? 'Per continuare serve il consenso al trattamento dei dati.' : 'Consent to data processing is required to continue.');
     void run(async () => {
-      const r = await account.signUp({ firstName, lastName, email, password, gaWeeks: week, consent });
+      const r = await account.signUp({ firstName, lastName, email, password, consent, ...familyInput() });
       if (r.ok) {
-        dispatch({ type: 'setProfileGa', weeks: week, days: 0, referenceDate: toISO(todayUTC()) });
+        applyWeek();
         if (r.needsConfirmation) go('sent');
       }
       return r;
@@ -94,10 +105,11 @@ export function AuthScreen({ initialMode = 'register' }: { initialMode?: AuthMod
   const complete = (e: FormEvent) => {
     e.preventDefault();
     if (!firstName.trim()) return setError(it ? 'Come ti chiami?' : 'What is your name?');
+    if (familyError()) return setError(familyError());
     if (!consent) return setError(it ? 'Per continuare serve il consenso al trattamento dei dati.' : 'Consent to data processing is required to continue.');
     void run(async () => {
-      const r = await account.completeProfile({ firstName, lastName, gaWeeks: week, consent });
-      if (r.ok) dispatch({ type: 'setProfileGa', weeks: week, days: 0, referenceDate: toISO(todayUTC()) });
+      const r = await account.completeProfile({ firstName, lastName, consent, ...familyInput() });
+      if (r.ok) applyWeek();
       return r;
     });
   };
@@ -112,13 +124,7 @@ export function AuthScreen({ initialMode = 'register' }: { initialMode?: AuthMod
     <TextInput label={label} hint={hint} type={show ? 'text' : 'password'} autoComplete={autoComplete} value={password} onChange={setPassword}
       action={extra ?? <button type="button" className="nt-input__action" onClick={() => setShow((v) => !v)}>{show ? (it ? 'Nascondi' : 'Hide') : (it ? 'Mostra' : 'Show')}</button>} />
   );
-  const weekField = (
-    <div className="nt-field">
-      <span className="nt-field__label">{it ? 'Settimana di gravidanza' : 'Week of pregnancy'}</span>
-      <WeekStepper value={week} onChange={setWeek} lang={lang} />
-      <span className="nt-field__hint">{it ? `Parto previsto intorno al ${due}` : `Due around ${due}`}</span>
-    </div>
-  );
+  const weekField = <FamilyFields value={family} onChange={setFamily} lang={lang} />;
   const consentField = (
     <div className="stack--consent">
       <Check checked={consent} onChange={setConsent}>
@@ -128,8 +134,8 @@ export function AuthScreen({ initialMode = 'register' }: { initialMode?: AuthMod
         <summary>{it ? 'Cosa accetto' : 'What I accept'}</summary>
         <p className="nt-note">
           {it
-            ? 'NasciTara conserva nel tuo account email, nome, settimana di gravidanza, dati facoltativi dei genitori e misure delle ecografie, per calcolare le stime e ritrovarle su altri dispositivi. Registriamo anche le fasi completate per contare gli utenti e migliorare il servizio (90 giorni). Il risultato si scarica in PDF dall’app. Le foto dei referti vengono lette sul dispositivo e non vengono mai salvate. Nessun marketing. Puoi eliminare i dati dall’area riservata.'
-            : 'NasciTara stores your email, name, week of pregnancy, optional parents’ details and scan measurements in your account to compute estimates and sync devices. We also record completed steps to count users and improve the service (90 days). You can download the result as a PDF in the app. Report photos are read on the device and never saved. No marketing. You can delete your data in the private area.'}
+            ? 'NasciTara conserva nel tuo account email, nome, ruolo (mamma o papà), settimana di gravidanza o data di nascita del bebe, dati facoltativi dei genitori e misure delle ecografie, per calcolare le stime e ritrovarle su altri dispositivi. Registriamo anche le fasi completate per contare gli utenti e migliorare il servizio (90 giorni). Il risultato si scarica in PDF dall’app. Le foto dei referti vengono lette sul dispositivo e non vengono mai salvate. Nessun marketing. Puoi eliminare i dati dall’area riservata.'
+            : 'NasciTara stores your email, name, role (mum or dad), week of pregnancy or baby’s date of birth, optional parents’ details and scan measurements in your account to compute estimates and sync devices. We also record completed steps to count users and improve the service (90 days). You can download the result as a PDF in the app. Report photos are read on the device and never saved. No marketing. You can delete your data in the private area.'}
         </p>
       </details>
     </div>
@@ -166,7 +172,7 @@ export function AuthScreen({ initialMode = 'register' }: { initialMode?: AuthMod
           <img src={markUrl} alt="" width={130} height={130} />
         </div>
         <div>
-          <h1 className="nt-title">{it ? 'Bentornata' : 'Welcome back'}</h1>
+          <h1 className="nt-title">{it ? 'Bentornati' : 'Welcome back'}</h1>
           <p className="nt-sub">{it ? 'Accedi per ritrovare le tue misurazioni.' : 'Sign in to find your measurements.'}</p>
         </div>
         {google(it ? 'Continua con Google' : 'Continue with Google')}
@@ -227,7 +233,7 @@ export function AuthScreen({ initialMode = 'register' }: { initialMode?: AuthMod
       <form className="nt-auth__form" onSubmit={complete} noValidate>
         <div>
           <h1 className="nt-title">{it ? `Ciao${firstName ? ' ' + firstName : ''}, un’ultima cosa` : `Hi${firstName ? ' ' + firstName : ''}, one last thing`}</h1>
-          <p className="nt-sub">{it ? 'A che settimana sei? Il resto lo chiediamo strada facendo.' : 'Which week are you in? We ask the rest along the way.'}</p>
+          <p className="nt-sub">{it ? 'Raccontaci chi sei e a che punto siete. Il resto lo chiediamo strada facendo.' : 'Tell us who you are and where you are at. We ask the rest along the way.'}</p>
         </div>
         <div className="nt-grid2">
           <TextInput label={it ? 'Nome' : 'First name'} autoComplete="given-name" value={firstName} onChange={setFirstName} maxLength={60} />

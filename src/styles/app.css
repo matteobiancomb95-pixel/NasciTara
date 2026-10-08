@@ -1114,3 +1114,11 @@ button.nt-row:hover { box-shadow: 0 8px 22px rgba(255, 57, 92, 0.14); }
 .nt-qc { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 10px 12px; border-radius: 14px; background: #fff4e5; color: #6b3a00; font-size: 13px; font-weight: 700; line-height: 1.4; }
 .nt-qc svg { flex: none; margin-top: 1px; }
 .nt-acc__w--warn { color: #8a4b00; display: inline-flex; }
+
+/* --- 1.0: famiglia --- */
+.nt-field__hint--error { color: var(--nt-label); font-weight: 700; }
+.nt-linkcard--born { background: var(--nt-tint); box-shadow: inset 0 0 0 2px var(--nt-brand-2); }
+.nt-born { display: grid; gap: 8px; align-content: start; }
+.nt-born .nt-tag { justify-self: start; }
+.nt-row--plain { padding: 6px 0; background: none; box-shadow: none; cursor: default; }
+.nt-home--born .nt-home__hero { display: grid; gap: 16px; align-content: start; }

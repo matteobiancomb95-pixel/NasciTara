@@ -11,7 +11,7 @@ const empty = { ...emptyState(), lang: 'it' as const, email: EMAIL, emailConsent
 // Account simulato: utente gia' registrato, storico online letto, nessuna rete.
 const account = { user: { id: 'u1', email: EMAIL, email_confirmed_at: 'x', user_metadata: {} }, profile: { firstName: 'Matteo', lastName: '', gaWeeks: 33, gaReference: null, consent: true }, ready: true, recovering: false, cloudReady: true, cloud: [] as SavedScreening[], status: '', authError: '', preview: false };
 vi.mock('../lib/supabaseClient', () => ({ supabase: null, isSupabaseConfigured: () => false }));
-vi.mock('../state/AccountContext', () => ({ useAccount: () => account, AccountProvider: ({ children }: { children: unknown }) => children, profileOf: () => account.profile }));
+vi.mock('../state/AccountContext', () => ({ useAccount: () => account, AccountProvider: ({ children }: { children: unknown }) => children, profileOf: () => account.profile, useFamily: () => ({ role: 'mamma', phase: 'attesa', birthDate: null, born: false }) }));
 
 import { AppShell } from '../components/AppShell';
 import { MammaProvider } from '../state/MammaStore';

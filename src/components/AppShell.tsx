@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { UsageTracker } from './UsageTracker';
 import { IconInstagram } from './icons';
 import { useNasciTara } from '../state/NasciTaraStore';
-import { useAccount } from '../state/AccountContext';
+import { useAccount, useFamily } from '../state/AccountContext';
 import { setUsageConsent } from '../lib/usageTracking';
 import { parseISO, toISO, todayUTC } from '../lib/gestationalAge';
 import { AuthScreen } from '../screens/AuthScreen';
@@ -28,8 +28,9 @@ export function AppShell({ demo = false }: { demo?: boolean }) {
   const account = useAccount();
   const { confirm } = useFeedback();
   const { user, profile } = account;
+  const { born } = useFamily();
   const it = lang === 'it';
-  const [view, setView] = useState<View>(() => (demo ? 'journey' : state.completed ? 'area' : 'welcome'));
+  const [view, setView] = useState<View>(() => (demo ? 'journey' : state.completed || born ? 'area' : 'welcome'));
   const [privacy, setPrivacy] = useState(() => window.location.hash === '#privacy');
   const [back, setBack] = useState<View>('area');
   const [areaTab, setAreaTab] = useState<AreaTab>('home');
@@ -66,9 +67,10 @@ export function AppShell({ demo = false }: { demo?: boolean }) {
   }, [demo, user, account.cloudReady, account.cloud, state, openScreening]);
 
   // A different screening (opened from history or new) decides its own landing screen.
+  // After the birth there is no scan journey: the family lands in the area.
   useEffect(() => {
-    if (!demo) setView(state.completed ? 'area' : 'welcome');
-  }, [state.completed, demo]);
+    if (!demo) setView((v) => (v === 'account' ? v : state.completed || born ? 'area' : 'welcome'));
+  }, [state.completed, born, demo]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'auto' });
@@ -105,7 +107,7 @@ export function AppShell({ demo = false }: { demo?: boolean }) {
   else if (!demo && account.recovering) screen = <AuthScreen key="recover" initialMode="recover" />;
   else if (!demo && !user) screen = <AuthScreen key="auth" />;
   else if (!demo && user && state.email && !belongsToEmail(state, user.email)) screen = <div className="nt-screen nt-splash" aria-busy="true" />;
-  else if (!demo && profile && (!profile.consent || (profile.gaWeeks === null && state.gaWeeks === ''))) screen = <AuthScreen key="complete" initialMode="complete" />;
+  else if (!demo && profile && (!profile.consent || (!born && profile.gaWeeks === null && state.gaWeeks === ''))) screen = <AuthScreen key="complete" initialMode="complete" />;
   else {
     const first = profile?.firstName || (demo ? 'Giulia' : '');
     const full = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ') || first;
@@ -113,7 +115,7 @@ export function AppShell({ demo = false }: { demo?: boolean }) {
       view === 'welcome' ? (
         <Welcome firstName={first} fullName={full} onAccount={openAccount} onStart={() => setView('journey')} />
       ) : view === 'account' && !demo ? (
-        <PrivateArea onBack={() => setView(back)} onPrivacy={() => setPrivacy(true)}
+        <PrivateArea onBack={() => setView(born ? 'area' : back)} onPrivacy={() => setPrivacy(true)}
           onScans={() => { setAreaTab('baby'); setView('area'); }}
           onJourney={() => { dispatch({ type: 'goTo', page: 'landing' }); setView('journey'); }} />
       ) : view === 'area' || view === 'account' ? (
